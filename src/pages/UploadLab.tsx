@@ -4,17 +4,37 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Camera, FileUp, Loader2, Upload } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Camera, FileUp, Loader2, Upload, RefreshCw, AlertTriangle } from "lucide-react";
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Check for most recent failed result
+  const { data: failedResult } = useQuery({
+    queryKey: ["failed-result", user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("lab_results")
+        .select("*")
+        .eq("user_id", user!.id)
+        .eq("status", "failed")
+        .order("upload_date", { ascending: false })
+        .limit(1)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -36,7 +56,6 @@ const UploadLab = () => {
     setUploading(true);
 
     try {
-      // 1. Upload to storage
       setProcessingStep("Uploading your lab result...");
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -44,7 +63,6 @@ const UploadLab = () => {
         .upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      // 2. Create lab_results record
       setProcessingStep("Creating your record...");
       const { data: labResult, error: insertError } = await supabase
         .from("lab_results")
@@ -53,39 +71,23 @@ const UploadLab = () => {
         .single();
       if (insertError) throw insertError;
 
-      // 3. Call AI interpretation
       setProcessingStep("AI is reading your lab result...");
       const { data: interpretData, error: fnError } = await supabase.functions.invoke(
         "interpret-lab",
-        {
-          body: { labResultId: labResult.id, filePath },
-        }
+        { body: { labResultId: labResult.id, filePath } }
       );
 
       if (fnError) throw fnError;
 
-      // Check for graceful AI errors returned as 200
       if (interpretData?.error) {
-        // Clean up the uploaded file
         await supabase.storage.from("lab-uploads").remove([filePath]);
-        if (interpretData.error === "AI_CREDITS_EXHAUSTED") {
-          toast.error("AI service is temporarily unavailable. Please try again later.");
-        } else if (interpretData.error === "RATE_LIMITED") {
-          toast.error("Too many requests. Please wait a moment and try again.");
-        } else {
-          toast.error(interpretData.message || "Something went wrong with the analysis.");
-        }
-        setFile(null);
-        setPreview(null);
+        handleAiError(interpretData);
         return;
       }
 
-      // 4. Delete the uploaded file (Data Minimization - NDPA compliance)
       await supabase.storage.from("lab-uploads").remove([filePath]);
-
       setProcessingStep("Almost done...");
-
-      // Navigate to result
+      queryClient.invalidateQueries({ queryKey: ["failed-result"] });
       navigate(`/result/${labResult.id}`);
     } catch (err: any) {
       console.error(err);
@@ -96,6 +98,67 @@ const UploadLab = () => {
     }
   };
 
+  const handleRetry = async () => {
+    if (!failedResult || !file || !user) return;
+    setRetrying(true);
+
+    try {
+      setProcessingStep("Re-uploading your lab result...");
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("lab-uploads")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      setProcessingStep("AI is re-reading your lab result...");
+      // Update the existing record back to processing
+      await supabase
+        .from("lab_results")
+        .update({ status: "processing" })
+        .eq("id", failedResult.id);
+
+      const { data: interpretData, error: fnError } = await supabase.functions.invoke(
+        "interpret-lab",
+        { body: { labResultId: failedResult.id, filePath } }
+      );
+
+      if (fnError) throw fnError;
+
+      if (interpretData?.error) {
+        await supabase.storage.from("lab-uploads").remove([filePath]);
+        handleAiError(interpretData);
+        return;
+      }
+
+      await supabase.storage.from("lab-uploads").remove([filePath]);
+      setProcessingStep("Almost done...");
+      queryClient.invalidateQueries({ queryKey: ["failed-result"] });
+      queryClient.invalidateQueries({ queryKey: ["last-result"] });
+      navigate(`/result/${failedResult.id}`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Retry failed. Please try again.");
+    } finally {
+      setRetrying(false);
+      setProcessingStep("");
+    }
+  };
+
+  const handleAiError = (interpretData: any) => {
+    if (interpretData.error === "AI_CREDITS_EXHAUSTED") {
+      toast.error("AI service is temporarily unavailable. Please try again later.");
+    } else if (interpretData.error === "RATE_LIMITED") {
+      toast.error("Too many requests. Please wait a moment and try again.");
+    } else if (interpretData.error === "MODEL_UNAVAILABLE") {
+      toast.error("The AI model is busy right now. Please retry in a few minutes.");
+    } else {
+      toast.error(interpretData.message || "Something went wrong with the analysis.");
+    }
+    queryClient.invalidateQueries({ queryKey: ["failed-result"] });
+  };
+
+  const isProcessing = uploading || retrying;
+
   return (
     <div className="px-5 pt-8 pb-4 max-w-lg mx-auto">
       <h1 className="font-display text-2xl font-bold mb-2">Upload Lab Result</h1>
@@ -103,7 +166,7 @@ const UploadLab = () => {
         Take a photo or upload an image/PDF of your lab result. We'll read it and create your personalized diet plan.
       </p>
 
-      {uploading ? (
+      {isProcessing ? (
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="w-12 h-12 text-accent animate-spin mb-6" />
           <p className="font-display text-lg font-semibold text-center">{processingStep}</p>
@@ -113,8 +176,43 @@ const UploadLab = () => {
         </div>
       ) : (
         <>
+          {/* Failed result retry banner */}
+          {failedResult && file && (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-sm">Previous analysis failed</p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  Your last upload couldn't be processed. Tap below to retry with the same file.
+                </p>
+                <Button
+                  onClick={handleRetry}
+                  variant="outline"
+                  size="sm"
+                  className="mt-3 border-destructive/40 text-destructive hover:bg-destructive/10"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Retry Analysis
+                </Button>
+              </div>
+            </div>
+          )}
+
           {!file ? (
             <div className="space-y-4">
+              {/* Failed result notice when no file selected */}
+              {failedResult && (
+                <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">Previous analysis failed</p>
+                    <p className="text-muted-foreground text-xs mt-1">
+                      Upload the same lab result again and tap "Retry Analysis" to re-process it.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Camera */}
               <button
                 onClick={() => cameraInputRef.current?.click()}
