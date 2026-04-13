@@ -49,7 +49,13 @@ serve(async (req) => {
     if (downloadError) throw downloadError;
 
     const arrayBuffer = await fileData.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+    const bytes = new Uint8Array(arrayBuffer);
+    const CHUNK = 8192;
+    let binaryStr = "";
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binaryStr += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, Math.min(i + CHUNK, bytes.length))));
+    }
+    const base64 = btoa(binaryStr);
     const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
 
     // --- Biomarker extraction via Gemini ---
