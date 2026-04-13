@@ -89,12 +89,12 @@ const Landing = () => {
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight tracking-tight">
-            Understand Your Lab Results.{" "}
-            <span className="text-accent">Eat Right</span> for Your Body.
+            Turn Lab Results Into{" "}
+            <span className="text-accent">Life-Saving Action.</span>
           </h1>
 
           <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-            Upload your lab result and get a personalized Nigerian diet plan powered by AI. No jargon — just clear guidance you can act on today.
+            Confused by your lab report? BioGuide translates clinical numbers into plain English and culturally-grounded Nigerian dietary plans.
           </p>
 
           <Button
