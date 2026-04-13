@@ -14,7 +14,96 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      lab_results: {
+        Row: {
+          biomarkers: Json | null
+          consultation_checklist: Json | null
+          created_at: string
+          critical_alerts: Json | null
+          dietary_plan: Json | null
+          has_critical_alert: boolean
+          id: string
+          status: string
+          updated_at: string
+          upload_date: string
+          user_id: string
+        }
+        Insert: {
+          biomarkers?: Json | null
+          consultation_checklist?: Json | null
+          created_at?: string
+          critical_alerts?: Json | null
+          dietary_plan?: Json | null
+          has_critical_alert?: boolean
+          id?: string
+          status?: string
+          updated_at?: string
+          upload_date?: string
+          user_id: string
+        }
+        Update: {
+          biomarkers?: Json | null
+          consultation_checklist?: Json | null
+          created_at?: string
+          critical_alerts?: Json | null
+          dietary_plan?: Json | null
+          has_critical_alert?: boolean
+          id?: string
+          status?: string
+          updated_at?: string
+          upload_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          age: number | null
+          created_at: string
+          full_name: string
+          geopolitical_zone:
+            | Database["public"]["Enums"]["geopolitical_zone"]
+            | null
+          id: string
+          medical_disclaimer_accepted: boolean
+          ndpa_consent: boolean
+          onboarding_completed: boolean
+          sex: Database["public"]["Enums"]["sex_type"] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          full_name?: string
+          geopolitical_zone?:
+            | Database["public"]["Enums"]["geopolitical_zone"]
+            | null
+          id?: string
+          medical_disclaimer_accepted?: boolean
+          ndpa_consent?: boolean
+          onboarding_completed?: boolean
+          sex?: Database["public"]["Enums"]["sex_type"] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          full_name?: string
+          geopolitical_zone?:
+            | Database["public"]["Enums"]["geopolitical_zone"]
+            | null
+          id?: string
+          medical_disclaimer_accepted?: boolean
+          ndpa_consent?: boolean
+          onboarding_completed?: boolean
+          sex?: Database["public"]["Enums"]["sex_type"] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +112,14 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      geopolitical_zone:
+        | "south-south"
+        | "south-west"
+        | "south-east"
+        | "north-central"
+        | "north-east"
+        | "north-west"
+      sex_type: "male" | "female"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +246,16 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      geopolitical_zone: [
+        "south-south",
+        "south-west",
+        "south-east",
+        "north-central",
+        "north-east",
+        "north-west",
+      ],
+      sex_type: ["male", "female"],
+    },
   },
 } as const
