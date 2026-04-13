@@ -6,6 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -19,12 +21,12 @@ serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
-    if (!lovableApiKey) throw new Error("LOVABLE_API_KEY not configured");
+    const geminiApiKey = Deno.env.get("GOOGLE_GEMINI_API_KEY");
+    if (!geminiApiKey) throw new Error("GOOGLE_GEMINI_API_KEY not configured");
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user profile for geopolitical zone
+    // Get user profile
     const { data: labResult } = await supabase
       .from("lab_results")
       .select("user_id")
@@ -39,18 +41,18 @@ serve(async (req) => {
       .eq("user_id", labResult.user_id)
       .single();
 
-    // Download the file from storage
+    // Download file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("lab-uploads")
       .download(filePath);
 
     if (downloadError) throw downloadError;
 
-    // Convert to base64 for AI
     const arrayBuffer = await fileData.arrayBuffer();
     const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
     const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
 
+    // --- Biomarker extraction via Gemini ---
     const systemPrompt = `You are BioGuide's Lab Interpretation Engine for Nigerian users. You are a clinical-grade AI that reads lab results.
 
 RULES:
@@ -60,34 +62,27 @@ RULES:
 - NEVER suggest pharmaceutical drugs or medications
 - NEVER diagnose conditions. Only explain what the numbers mean
 
-You MUST respond with a tool call using the provided function.`;
+You MUST respond with a function call using the provided tool.`;
 
     const userPrompt = `Read this Nigerian lab result. The patient is ${profile?.age || "unknown age"} years old, ${profile?.sex || "unknown sex"}, from the ${profile?.geopolitical_zone || "unknown"} region of Nigeria.
 
 Extract all biomarkers with their values, units, reference ranges, and status classification.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: userPrompt },
-              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } },
-            ],
-          },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
+    const biomarkerBody = {
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: userPrompt },
+            { inlineData: { mimeType, data: base64 } },
+          ],
+        },
+      ],
+      tools: [
+        {
+          functionDeclarations: [
+            {
               name: "submit_lab_interpretation",
               description: "Submit the extracted biomarker data from the lab result",
               parameters: {
@@ -113,25 +108,30 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
                 required: ["biomarkers"],
               },
             },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "submit_lab_interpretation" } },
-      }),
+          ],
+        },
+      ],
+      toolConfig: {
+        functionCallingConfig: {
+          mode: "ANY",
+          allowedFunctionNames: ["submit_lab_interpretation"],
+        },
+      },
+    };
+
+    const aiResponse = await fetch(`${GEMINI_URL}?key=${geminiApiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(biomarkerBody),
     });
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI error:", aiResponse.status, errText);
+      console.error("Gemini error:", aiResponse.status, errText);
 
       if (aiResponse.status === 429) {
         await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
         return new Response(JSON.stringify({ error: "RATE_LIMITED", message: "Too many requests. Please wait a moment and try again." }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (aiResponse.status === 402) {
-        await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
-        return new Response(JSON.stringify({ error: "AI_CREDITS_EXHAUSTED", message: "AI service is temporarily unavailable. Please try again later." }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -141,15 +141,15 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
     }
 
     const aiData = await aiResponse.json();
-    const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
+    const functionCall = aiData.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall);
+    if (!functionCall) {
       await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
       throw new Error("AI did not return structured data");
     }
 
-    const { biomarkers } = JSON.parse(toolCall.function.arguments);
+    const { biomarkers } = functionCall.functionCall.args;
 
-    // Check critical thresholds (hard-coded safety check)
+    // Critical thresholds check
     const criticalAlerts: any[] = [];
     const thresholds = [
       { match: "glucose", checks: [{ cond: (v: number) => v > 300, sev: "emergency", msg: "Dangerously high glucose. Risk of diabetic emergency." }, { cond: (v: number) => v < 40, sev: "emergency", msg: "Dangerously low glucose. Risk of hypoglycemic shock." }] },
@@ -170,10 +170,9 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
     }
 
     const hasCritical = criticalAlerts.length > 0;
-
-    // Now generate diet plan (only if no emergency-level alerts)
     const hasEmergency = criticalAlerts.some((a: any) => a.severity === "emergency");
 
+    // --- Diet plan via Gemini (skip if emergency) ---
     let dietaryPlan = null;
     let consultationChecklist = null;
 
@@ -190,22 +189,13 @@ RULES:
 - Be specific about quantities and preparation tips
 - Also generate 3-7 personalized questions for the patient to ask their doctor`;
 
-      const dietResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-2.5-flash",
-          messages: [
-            { role: "system", content: "You are BioGuide's Nigerian Nutritional Intelligence Engine. Generate dietary plans using Nigerian foods with local market names. Never suggest drugs." },
-            { role: "user", content: dietPrompt },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
+      const dietBody = {
+        systemInstruction: { parts: [{ text: "You are BioGuide's Nigerian Nutritional Intelligence Engine. Generate dietary plans using Nigerian foods with local market names. Never suggest drugs." }] },
+        contents: [{ role: "user", parts: [{ text: dietPrompt }] }],
+        tools: [
+          {
+            functionDeclarations: [
+              {
                 name: "submit_diet_plan",
                 description: "Submit the dietary plan and consultation checklist",
                 parameters: {
@@ -231,11 +221,7 @@ RULES:
                           type: "array",
                           items: {
                             type: "object",
-                            properties: {
-                              name: { type: "string" },
-                              local_name: { type: "string" },
-                              reason: { type: "string" },
-                            },
+                            properties: { name: { type: "string" }, local_name: { type: "string" }, reason: { type: "string" } },
                             required: ["name", "local_name", "reason"],
                           },
                         },
@@ -243,11 +229,7 @@ RULES:
                           type: "array",
                           items: {
                             type: "object",
-                            properties: {
-                              name: { type: "string" },
-                              local_name: { type: "string" },
-                              reason: { type: "string" },
-                            },
+                            properties: { name: { type: "string" }, local_name: { type: "string" }, reason: { type: "string" } },
                             required: ["name", "local_name", "reason"],
                           },
                         },
@@ -255,10 +237,7 @@ RULES:
                           type: "array",
                           items: {
                             type: "object",
-                            properties: {
-                              meal: { type: "string" },
-                              description: { type: "string" },
-                            },
+                            properties: { meal: { type: "string" }, description: { type: "string" } },
                             required: ["meal", "description"],
                           },
                         },
@@ -274,24 +253,35 @@ RULES:
                   required: ["dietary_plan", "consultation_checklist"],
                 },
               },
-            },
-          ],
-          tool_choice: { type: "function", function: { name: "submit_diet_plan" } },
-        }),
+            ],
+          },
+        ],
+        toolConfig: {
+          functionCallingConfig: {
+            mode: "ANY",
+            allowedFunctionNames: ["submit_diet_plan"],
+          },
+        },
+      };
+
+      const dietResponse = await fetch(`${GEMINI_URL}?key=${geminiApiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dietBody),
       });
 
       if (dietResponse.ok) {
         const dietData = await dietResponse.json();
-        const dietToolCall = dietData.choices?.[0]?.message?.tool_calls?.[0];
-        if (dietToolCall) {
-          const parsed = JSON.parse(dietToolCall.function.arguments);
+        const dietFnCall = dietData.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall);
+        if (dietFnCall) {
+          const parsed = dietFnCall.functionCall.args;
           dietaryPlan = parsed.dietary_plan;
           consultationChecklist = parsed.consultation_checklist;
         }
       }
     }
 
-    // Update the lab result
+    // Update lab result
     await supabase.from("lab_results").update({
       biomarkers,
       dietary_plan: dietaryPlan,
