@@ -141,6 +141,12 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (aiResponse.status === 503) {
+        await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
+        return new Response(JSON.stringify({ error: "MODEL_UNAVAILABLE", message: "The AI model is experiencing high demand. Please try again in a few minutes." }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
       await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
       throw new Error("AI interpretation failed");
