@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/AppShell";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import Landing from "./pages/Landing";
 import Onboarding from "./pages/Onboarding";
 import UploadLab from "./pages/UploadLab";
 import ResultReport from "./pages/ResultReport";
@@ -28,7 +29,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) return <Navigate to="/auth" replace />;
+  if (!user) return <Navigate to="/landing" replace />;
   if (profile && !profile.onboarding_completed) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
 };
@@ -41,6 +42,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
