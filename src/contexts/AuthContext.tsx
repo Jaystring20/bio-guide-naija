@@ -8,7 +8,7 @@ type Profile = {
   full_name: string;
   age: number | null;
   sex: "male" | "female" | null;
-  geopolitical_zone: string | null;
+  geopolitical_zone: "south-south" | "south-west" | "south-east" | "north-central" | "north-east" | "north-west" | null;
   ndpa_consent: boolean;
   medical_disclaimer_accepted: boolean;
   onboarding_completed: boolean;
