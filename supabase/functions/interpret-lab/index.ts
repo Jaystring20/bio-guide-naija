@@ -124,13 +124,15 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
       console.error("AI error:", aiResponse.status, errText);
 
       if (aiResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited, please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
+        return new Response(JSON.stringify({ error: "RATE_LIMITED", message: "Too many requests. Please wait a moment and try again." }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (aiResponse.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
+        return new Response(JSON.stringify({ error: "AI_CREDITS_EXHAUSTED", message: "AI service is temporarily unavailable. Please try again later." }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 

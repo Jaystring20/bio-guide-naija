@@ -64,6 +64,22 @@ const UploadLab = () => {
 
       if (fnError) throw fnError;
 
+      // Check for graceful AI errors returned as 200
+      if (interpretData?.error) {
+        // Clean up the uploaded file
+        await supabase.storage.from("lab-uploads").remove([filePath]);
+        if (interpretData.error === "AI_CREDITS_EXHAUSTED") {
+          toast.error("AI service is temporarily unavailable. Please try again later.");
+        } else if (interpretData.error === "RATE_LIMITED") {
+          toast.error("Too many requests. Please wait a moment and try again.");
+        } else {
+          toast.error(interpretData.message || "Something went wrong with the analysis.");
+        }
+        setFile(null);
+        setPreview(null);
+        return;
+      }
+
       // 4. Delete the uploaded file (Data Minimization - NDPA compliance)
       await supabase.storage.from("lab-uploads").remove([filePath]);
 
