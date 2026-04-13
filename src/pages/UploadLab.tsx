@@ -1,0 +1,185 @@
+import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { Camera, FileUp, Loader2, Upload } from "lucide-react";
+
+const UploadLab = () => {
+  const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [processingStep, setProcessingStep] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) {
+      toast.error("File too large. Max 10MB.");
+      return;
+    }
+    setFile(f);
+    if (f.type.startsWith("image/")) {
+      setPreview(URL.createObjectURL(f));
+    } else {
+      setPreview(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file || !user) return;
+    setUploading(true);
+
+    try {
+      // 1. Upload to storage
+      setProcessingStep("Uploading your lab result...");
+      const filePath = `${user.id}/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("lab-uploads")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      // 2. Create lab_results record
+      setProcessingStep("Creating your record...");
+      const { data: labResult, error: insertError } = await supabase
+        .from("lab_results")
+        .insert({ user_id: user.id, status: "processing" })
+        .select()
+        .single();
+      if (insertError) throw insertError;
+
+      // 3. Call AI interpretation
+      setProcessingStep("AI is reading your lab result...");
+      const { data: interpretData, error: fnError } = await supabase.functions.invoke(
+        "interpret-lab",
+        {
+          body: { labResultId: labResult.id, filePath },
+        }
+      );
+
+      if (fnError) throw fnError;
+
+      // 4. Delete the uploaded file (Data Minimization - NDPA compliance)
+      await supabase.storage.from("lab-uploads").remove([filePath]);
+
+      setProcessingStep("Almost done...");
+
+      // Navigate to result
+      navigate(`/result/${labResult.id}`);
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Something went wrong. Please try again.");
+    } finally {
+      setUploading(false);
+      setProcessingStep("");
+    }
+  };
+
+  return (
+    <div className="px-5 pt-8 pb-4 max-w-lg mx-auto">
+      <h1 className="font-display text-2xl font-bold mb-2">Upload Lab Result</h1>
+      <p className="text-muted-foreground text-body-sm mb-6">
+        Take a photo or upload an image/PDF of your lab result. We'll read it and create your personalized diet plan.
+      </p>
+
+      {uploading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="w-12 h-12 text-accent animate-spin mb-6" />
+          <p className="font-display text-lg font-semibold text-center">{processingStep}</p>
+          <p className="text-muted-foreground text-body-sm mt-2 text-center">
+            This may take a moment. Don't close this page.
+          </p>
+        </div>
+      ) : (
+        <>
+          {!file ? (
+            <div className="space-y-4">
+              {/* Camera */}
+              <button
+                onClick={() => cameraInputRef.current?.click()}
+                className="w-full bg-primary text-primary-foreground rounded-2xl p-6 flex items-center gap-4 touch-target"
+              >
+                <Camera className="w-8 h-8" />
+                <div className="text-left">
+                  <p className="font-bold text-body">Take a Photo</p>
+                  <p className="text-primary-foreground/70 text-body-sm">Use your camera to snap the result</p>
+                </div>
+              </button>
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFile}
+                className="hidden"
+              />
+
+              {/* File upload */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full bg-card border-2 border-dashed border-border rounded-2xl p-6 flex items-center gap-4 touch-target"
+              >
+                <FileUp className="w-8 h-8 text-secondary" />
+                <div className="text-left">
+                  <p className="font-bold text-body">Upload File</p>
+                  <p className="text-muted-foreground text-body-sm">JPG, PNG, or PDF (max 10MB)</p>
+                </div>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,.pdf"
+                onChange={handleFile}
+                className="hidden"
+              />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {preview && (
+                <img
+                  src={preview}
+                  alt="Lab result preview"
+                  className="w-full rounded-xl border border-border max-h-64 object-contain bg-card"
+                />
+              )}
+              {!preview && (
+                <div className="w-full rounded-xl border border-border p-6 bg-card text-center">
+                  <FileUp className="w-10 h-10 text-secondary mx-auto mb-2" />
+                  <p className="font-semibold">{file.name}</p>
+                  <p className="text-body-sm text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                </div>
+              )}
+
+              <Button
+                onClick={handleUpload}
+                className="w-full h-14 text-lg font-bold rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 touch-target"
+              >
+                <Upload className="w-5 h-5 mr-2" />
+                Analyze My Lab Result
+              </Button>
+
+              <button
+                onClick={() => {
+                  setFile(null);
+                  setPreview(null);
+                }}
+                className="w-full text-center text-muted-foreground touch-target"
+              >
+                Choose a different file
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+export default UploadLab;
