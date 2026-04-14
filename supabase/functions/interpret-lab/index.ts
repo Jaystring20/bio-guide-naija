@@ -235,13 +235,13 @@ Extract all biomarkers with their values, units, reference ranges, status classi
     let consultationChecklist = null;
 
     if (!hasEmergency) {
-      const dietPrompt = `Based on these lab results for a patient from the ${profile?.geopolitical_zone || "Nigerian"} region, generate a comprehensive Nigerian food-mapped dietary plan.
+      const dietPrompt = `Based on these lab results for a patient from the ${demographics.geopolitical_zone || "Nigerian"} region, generate a comprehensive Nigerian food-mapped dietary plan.
 
 Biomarkers: ${JSON.stringify(biomarkers.filter((b: any) => b.status !== "normal"))}
 
 RULES:
 - Use ONLY Nigerian foods with LOCAL MARKET NAMES
-- For ${profile?.geopolitical_zone || "general Nigerian"} region specifically
+- For ${demographics.geopolitical_zone || "general Nigerian"} region specifically
 - Account for preparation methods (boiled vs stewed vs fried) and their nutrient differences
 - Never suggest pharmaceutical drugs
 - Be specific about quantities and preparation tips
