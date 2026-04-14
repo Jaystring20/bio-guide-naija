@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      dependants: {
+        Row: {
+          age: number | null
+          created_at: string
+          full_name: string
+          geopolitical_zone:
+            | Database["public"]["Enums"]["geopolitical_zone"]
+            | null
+          id: string
+          relationship: string
+          sex: Database["public"]["Enums"]["sex_type"] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age?: number | null
+          created_at?: string
+          full_name?: string
+          geopolitical_zone?:
+            | Database["public"]["Enums"]["geopolitical_zone"]
+            | null
+          id?: string
+          relationship?: string
+          sex?: Database["public"]["Enums"]["sex_type"] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number | null
+          created_at?: string
+          full_name?: string
+          geopolitical_zone?:
+            | Database["public"]["Enums"]["geopolitical_zone"]
+            | null
+          id?: string
+          relationship?: string
+          sex?: Database["public"]["Enums"]["sex_type"] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lab_results: {
         Row: {
           ai_summary: string | null
@@ -24,11 +66,13 @@ export type Database = {
           consultation_checklist_pidgin: Json | null
           created_at: string
           critical_alerts: Json | null
+          dependant_id: string | null
           dietary_plan: Json | null
           dietary_plan_pidgin: Json | null
           has_critical_alert: boolean
           id: string
           status: string
+          test_date: string | null
           updated_at: string
           upload_date: string
           user_id: string
@@ -42,11 +86,13 @@ export type Database = {
           consultation_checklist_pidgin?: Json | null
           created_at?: string
           critical_alerts?: Json | null
+          dependant_id?: string | null
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean
           id?: string
           status?: string
+          test_date?: string | null
           updated_at?: string
           upload_date?: string
           user_id: string
@@ -60,16 +106,26 @@ export type Database = {
           consultation_checklist_pidgin?: Json | null
           created_at?: string
           critical_alerts?: Json | null
+          dependant_id?: string | null
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean
           id?: string
           status?: string
+          test_date?: string | null
           updated_at?: string
           upload_date?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lab_results_dependant_id_fkey"
+            columns: ["dependant_id"]
+            isOneToOne: false
+            referencedRelation: "dependants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -86,6 +142,7 @@ export type Database = {
           sex: Database["public"]["Enums"]["sex_type"] | null
           updated_at: string
           user_id: string
+          user_role: string
         }
         Insert: {
           age?: number | null
@@ -101,6 +158,7 @@ export type Database = {
           sex?: Database["public"]["Enums"]["sex_type"] | null
           updated_at?: string
           user_id: string
+          user_role?: string
         }
         Update: {
           age?: number | null
@@ -116,6 +174,7 @@ export type Database = {
           sex?: Database["public"]["Enums"]["sex_type"] | null
           updated_at?: string
           user_id?: string
+          user_role?: string
         }
         Relationships: []
       }
