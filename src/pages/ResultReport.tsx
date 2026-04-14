@@ -5,14 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Share2, MessageCircle, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Biomarker, BiomarkerPidgin, DietaryPlan, DietaryPlanPidgin, ChecklistItem, ChecklistItemPidgin, Language } from "@/components/report/types";
 import { SummaryTab } from "@/components/report/SummaryTab";
 import { BiomarkersTab } from "@/components/report/BiomarkersTab";
 import { DietPlanTab } from "@/components/report/DietPlanTab";
 import { ChecklistTab } from "@/components/report/ChecklistTab";
-import { generatePDF } from "@/components/report/PDFExport";
+import { generatePDF, sharePDF } from "@/components/report/PDFExport";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
@@ -29,6 +29,7 @@ const ResultReport = () => {
   const [showEmergency, setShowEmergency] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("summary");
   const [language, setLanguage] = useState<Language>("en");
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const { data: result, isLoading } = useQuery({
     queryKey: ["lab-result", id],
@@ -110,19 +111,26 @@ const ResultReport = () => {
 
   const hasPidgin = !!biomarkersPidgin || !!aiSummaryPidgin;
 
+  const pdfData = {
+    language,
+    uploadDate: result.upload_date,
+    aiSummary,
+    aiSummaryPidgin,
+    biomarkers,
+    biomarkersPidgin,
+    dietaryPlan,
+    dietaryPlanPidgin,
+    checklist,
+    checklistPidgin,
+  };
+
   const handleDownloadPDF = () => {
-    generatePDF({
-      language,
-      uploadDate: result.upload_date,
-      aiSummary,
-      aiSummaryPidgin,
-      biomarkers,
-      biomarkersPidgin,
-      dietaryPlan,
-      dietaryPlanPidgin,
-      checklist,
-      checklistPidgin,
-    });
+    generatePDF(pdfData);
+  };
+
+  const handleShare = async (method: "whatsapp" | "email" | "native") => {
+    setShowShareMenu(false);
+    await sharePDF(pdfData, method);
   };
 
   return (
@@ -198,17 +206,71 @@ const ResultReport = () => {
         <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
       )}
 
-      {/* Floating PDF Download */}
-      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-center gap-1">
+      {/* Floating action buttons */}
+      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-center gap-2">
+        {/* Share menu */}
+        {showShareMenu && (
+          <div className="flex flex-col gap-2 mb-1 animate-in slide-in-from-bottom-2 fade-in duration-200">
+            <Button
+              onClick={() => handleShare("whatsapp")}
+              className="h-11 w-11 rounded-full bg-[hsl(142,70%,45%)] text-white shadow-md hover:bg-[hsl(142,70%,40%)]"
+              size="icon"
+              title="Share via WhatsApp"
+            >
+              <MessageCircle className="w-5 h-5" />
+            </Button>
+            <Button
+              onClick={() => handleShare("email")}
+              className="h-11 w-11 rounded-full bg-secondary text-secondary-foreground shadow-md hover:bg-secondary/90"
+              size="icon"
+              title="Share via Email"
+            >
+              <Mail className="w-5 h-5" />
+            </Button>
+            {typeof navigator !== "undefined" && navigator.share && (
+              <Button
+                onClick={() => handleShare("native")}
+                className="h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
+                size="icon"
+                title="More sharing options"
+              >
+                <Share2 className="w-5 h-5" />
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Share toggle */}
         <Button
-          onClick={handleDownloadPDF}
-          className="h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl touch-target"
+          onClick={() => setShowShareMenu(!showShareMenu)}
+          className={cn(
+            "h-12 w-12 rounded-full shadow-lg touch-target transition-colors",
+            showShareMenu
+              ? "bg-muted text-muted-foreground"
+              : "bg-secondary text-secondary-foreground"
+          )}
           size="icon"
         >
-          <Download className="w-6 h-6" />
+          <Share2 className="w-5 h-5" />
         </Button>
-        <span className="text-[10px] font-semibold text-muted-foreground">PDF</span>
+
+        {/* PDF download */}
+        <div className="flex flex-col items-center gap-1">
+          <Button
+            onClick={handleDownloadPDF}
+            className="h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl touch-target"
+            size="icon"
+          >
+            <Download className="w-6 h-6" />
+          </Button>
+          <span className="text-[10px] font-semibold text-muted-foreground">PDF</span>
+        </div>
       </div>
+
+      {/* Backdrop to close share menu */}
+      {showShareMenu && (
+        <div className="fixed inset-0 z-30" onClick={() => setShowShareMenu(false)} />
+      )}
     </div>
   );
 };
