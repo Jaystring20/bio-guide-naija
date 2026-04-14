@@ -18,7 +18,7 @@ function isStructured(item: ChecklistItem): item is { question: string; context:
   return typeof item === "object" && "question" in item;
 }
 
-export function generatePDF(data: PDFData) {
+export function generatePDF(data: PDFData, returnBlob?: boolean): { blob: Blob | null; fileName: string } {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 15;
