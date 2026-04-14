@@ -1,73 +1,34 @@
 
 
-# PDF Export + Pidgin/English Language Toggle + Relatable UX
+# Fix Mobile Layout + Android Chrome Upload Issues
 
-## What We're Building
+## Problems Identified
 
-Three enhancements to the lab report experience:
+1. **Report page tabs overflow on small screens** — The 4 tabs ("Summary", "Biomarkers", "Diet Plan", "Doctor Q's") use `overflow-x-auto` but have no scrollbar hint, and on narrow screens the language toggle + title can collide
+2. **Floating PDF button overlaps bottom nav** — Fixed at `bottom-20 right-4` but may overlap content or be hard to tap on smaller Android devices
+3. **Tab buttons need proper wrapping** — Currently `whitespace-nowrap` prevents wrapping; on very small screens they scroll off-screen without visual indication
+4. **Android Chrome file upload broken** — The `accept="image/*"` with `capture="environment"` on the camera input can cause issues on some Android Chrome versions. The file input `accept="image/*,.pdf"` may also fail on certain Android browsers that don't handle the comma-separated MIME types well
 
-1. **PDF Export** — A "Download PDF" button that generates a clean, branded PDF containing all three report sections (Biomarkers, Diet Plan, Doctor Questions) from the client side
-2. **Pidgin ↔ English Toggle** — A language switcher on the report page. The AI generates both versions at interpretation time, and users flip between them instantly
-3. **More Relatable Language** — Update the Gemini prompts to use warm, everyday Nigerian English — like a knowledgeable friend or big sister explaining your results
+## Changes
 
-## How It Works
+### 1. ResultReport.tsx — Mobile layout fixes
+- **Tabs**: Switch from horizontal scroll to a **flex-wrap grid** (2x2) so all 4 tabs are always visible without scrolling
+- **Title + Language toggle**: Stack vertically on mobile instead of `justify-between` in a row (title on top, toggle below)
+- **PDF button**: Move to `bottom-24` to clear the bottom nav, add a subtle label
 
-### 1. Language Toggle (Edge Function + DB + UI)
+### 2. UploadLab.tsx — Android Chrome upload fix
+- **Camera input**: Remove `capture="environment"` from the camera input and instead use `capture` only as an attribute. Some Android Chrome versions fail when both `accept="image/*"` and `capture="environment"` are set. Use `capture="camera"` as a more compatible option, and add a fallback
+- **File input**: Change `accept="image/*,.pdf"` to `accept="image/jpeg,image/png,image/webp,image/heic,.pdf,application/pdf"` — explicit MIME types work better on Android Chrome
+- **Add error handling**: Wrap file selection in a try-catch and show a helpful toast if the file picker fails
+- **Add drag-and-drop zone**: For desktop/tablet users as an alternative input method
 
-**Edge function change**: After the current biomarker + diet extraction, add a third Gemini call that takes the English output and translates it into Nigerian Pidgin — keeping medical accuracy but using everyday pidgin phrasing (e.g., "Your sugar level dey too high" instead of "Elevated glucose levels").
+### 3. BiomarkersTab — Status badge wrapping
+- On the expandable biomarker cards, ensure the status badge and chevron don't get cut off on narrow screens by allowing the name/value section to truncate if needed
 
-**Database**: Add two new JSONB columns to `lab_results`:
-- `biomarkers_pidgin` — pidgin versions of explanations/tips per biomarker
-- `dietary_plan_pidgin` — pidgin versions of diet plan text
-- `consultation_checklist_pidgin` — pidgin doctor questions
-- `ai_summary_pidgin` — pidgin summary
-
-**UI**: Add a toggle pill at the top of ResultReport (🇬🇧 English / 🇳🇬 Pidgin). When toggled, all tab components read from the pidgin variants instead. No page reload needed — it's a simple React state switch.
-
-### 2. PDF Export (Client-Side)
-
-Use `jspdf` + `html2canvas` approach or a simpler text-based PDF using `jspdf` directly:
-- Add a "Download PDF" floating action button on the report page
-- Generate a branded PDF with:
-  - Header: BioGuide logo, date, patient info
-  - Section 1: Health Summary + score
-  - Section 2: All biomarkers with status, explanation, lifestyle tips
-  - Section 3: Diet plan (foods to increase/reduce/avoid, meal plan)
-  - Section 4: Doctor consultation questions with priority
-  - Footer: disclaimer ("This is not medical advice")
-- Uses the currently active language (English or Pidgin)
-
-### 3. More Relatable Prompts
-
-Update both Gemini system prompts to emphasize:
-- "Explain like a caring Nigerian big sister/brother"
-- Use everyday analogies (e.g., "Think of your liver like a filter for dirty water")
-- Reference relatable scenarios ("after eating that party jollof rice...")
-- Keep it warm, not clinical
-
-## Files Changed
-
+### Files Changed
 | File | Change |
 |------|--------|
-| `supabase/functions/interpret-lab/index.ts` | Add 3rd Gemini call for Pidgin translation; update prompts for warmer tone |
-| DB migration | Add `biomarkers_pidgin`, `dietary_plan_pidgin`, `consultation_checklist_pidgin`, `ai_summary_pidgin` columns |
-| `src/pages/ResultReport.tsx` | Add language toggle state, pass language to all tabs, add PDF download button |
-| `src/components/report/SummaryTab.tsx` | Accept `language` prop, switch between English/Pidgin summary |
-| `src/components/report/BiomarkersTab.tsx` | Accept `language` prop, show pidgin explanations/tips when active |
-| `src/components/report/DietPlanTab.tsx` | Accept `language` prop, show pidgin diet text when active |
-| `src/components/report/ChecklistTab.tsx` | Accept `language` prop, show pidgin questions when active |
-| `src/components/report/types.ts` | Add pidgin variant types |
-| New: `src/components/report/PDFExport.tsx` | PDF generation component using jspdf |
-| `package.json` | Add `jspdf` dependency |
-
-## Technical Detail
-
-### Pidgin Translation Call
-The 3rd Gemini call receives the full English output and returns pidgin equivalents. Uses structured function calling to ensure consistent shape. This runs in parallel-ish with the diet call since it only needs biomarker data.
-
-### PDF Structure
-Uses `jspdf` (no canvas rendering needed — pure text/layout PDF). Sections are laid out programmatically with proper pagination. The PDF respects whichever language is currently active.
-
-### Language State
-A simple `useState<"en" | "pidgin">("en")` in ResultReport. Each tab component receives both English and Pidgin data, displaying based on the active language. The toggle is a sticky pill at the top of the page.
+| `src/pages/ResultReport.tsx` | Fix tab layout (wrap grid), stack title/toggle, adjust PDF button position |
+| `src/pages/UploadLab.tsx` | Fix Android Chrome accept attributes, improve capture compatibility, add error handling |
+| `src/components/report/BiomarkersTab.tsx` | Minor text truncation fix for narrow screens |
 
