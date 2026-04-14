@@ -1,62 +1,73 @@
 
 
-# Enhance BioGuide Analysis: Comprehensive Reports + UX Optimization
+# PDF Export + Pidgin/English Language Toggle + Relatable UX
 
-## Your Question
-You asked whether diet plans alone are enough as a USP. Short answer: **no, but the combination is**. The real value is the full loop — lab interpretation in plain language, localized Nigerian diet plans, AND actionable doctor questions — all from a single photo upload. Right now the pieces exist but feel disconnected. This plan makes the analysis richer and the experience more polished.
+## What We're Building
 
-## What Changes
+Three enhancements to the lab report experience:
 
-### 1. Richer AI Analysis (Edge Function)
-Enhance both Gemini prompts to produce deeper, more actionable output:
+1. **PDF Export** — A "Download PDF" button that generates a clean, branded PDF containing all three report sections (Biomarkers, Diet Plan, Doctor Questions) from the client side
+2. **Pidgin ↔ English Toggle** — A language switcher on the report page. The AI generates both versions at interpretation time, and users flip between them instantly
+3. **More Relatable Language** — Update the Gemini prompts to use warm, everyday Nigerian English — like a knowledgeable friend or big sister explaining your results
 
-**Biomarkers** — add two new fields per biomarker:
-- `lifestyle_tip`: one actionable non-drug lifestyle change (e.g., "Walk 30 min after meals to help regulate blood sugar")
-- `trend_context`: context about what this result could mean over time
+## How It Works
 
-**Diet Plan** — add:
-- `weekly_meal_plan`: 7-day sample meal plan with breakfast/lunch/dinner mapped to the patient's region
-- `hydration_tips`: water/fluid recommendations based on results
-- `supplement_notes`: natural supplement suggestions (moringa, zobo, etc.) — no pharmaceuticals
+### 1. Language Toggle (Edge Function + DB + UI)
 
-**Consultation Checklist** — restructure from plain strings to objects with:
-- `question`: the question text
-- `context`: why this question matters (so the user understands its importance)
-- `priority`: high / medium / low
+**Edge function change**: After the current biomarker + diet extraction, add a third Gemini call that takes the English output and translates it into Nigerian Pidgin — keeping medical accuracy but using everyday pidgin phrasing (e.g., "Your sugar level dey too high" instead of "Elevated glucose levels").
 
-### 2. Summary Dashboard Card (New)
-Add a top-level summary section to the ResultReport page showing:
-- Overall health snapshot: count of normal / borderline / abnormal biomarkers
-- Color-coded progress ring or bar
-- One-sentence AI-generated summary (added to edge function output)
-- "Share Full Report" button
+**Database**: Add two new JSONB columns to `lab_results`:
+- `biomarkers_pidgin` — pidgin versions of explanations/tips per biomarker
+- `dietary_plan_pidgin` — pidgin versions of diet plan text
+- `consultation_checklist_pidgin` — pidgin doctor questions
+- `ai_summary_pidgin` — pidgin summary
 
-### 3. Enhanced ResultReport Page
-- **Summary tab** (new default): health snapshot + AI summary + quick action buttons
-- **Biomarkers tab**: add lifestyle tips inline, visual status bar showing where value falls in reference range
-- **Diet Plan tab**: add weekly meal plan section, hydration tips, supplement notes
-- **Doctor Questions tab**: show priority badges, add context expandable per question
+**UI**: Add a toggle pill at the top of ResultReport (🇬🇧 English / 🇳🇬 Pidgin). When toggled, all tab components read from the pidgin variants instead. No page reload needed — it's a simple React state switch.
 
-### 4. Database Schema Update
-Add column to `lab_results`:
-- `ai_summary` (text) — one-paragraph plain-English health summary
+### 2. PDF Export (Client-Side)
 
-### Files Changed
-- `supabase/functions/interpret-lab/index.ts` — enhanced prompts and function declarations
-- `src/pages/ResultReport.tsx` — new Summary tab, enhanced Biomarkers/Diet/Checklist tabs
-- Database migration — add `ai_summary` column
+Use `jspdf` + `html2canvas` approach or a simpler text-based PDF using `jspdf` directly:
+- Add a "Download PDF" floating action button on the report page
+- Generate a branded PDF with:
+  - Header: BioGuide logo, date, patient info
+  - Section 1: Health Summary + score
+  - Section 2: All biomarkers with status, explanation, lifestyle tips
+  - Section 3: Diet plan (foods to increase/reduce/avoid, meal plan)
+  - Section 4: Doctor consultation questions with priority
+  - Footer: disclaimer ("This is not medical advice")
+- Uses the currently active language (English or Pidgin)
 
-### What Stays the Same
-- Upload flow, retry logic, authentication, critical alerts — all unchanged
-- Existing data in `biomarkers`, `dietary_plan`, `consultation_checklist` JSONB columns still works (new fields are additive)
+### 3. More Relatable Prompts
+
+Update both Gemini system prompts to emphasize:
+- "Explain like a caring Nigerian big sister/brother"
+- Use everyday analogies (e.g., "Think of your liver like a filter for dirty water")
+- Reference relatable scenarios ("after eating that party jollof rice...")
+- Keep it warm, not clinical
+
+## Files Changed
+
+| File | Change |
+|------|--------|
+| `supabase/functions/interpret-lab/index.ts` | Add 3rd Gemini call for Pidgin translation; update prompts for warmer tone |
+| DB migration | Add `biomarkers_pidgin`, `dietary_plan_pidgin`, `consultation_checklist_pidgin`, `ai_summary_pidgin` columns |
+| `src/pages/ResultReport.tsx` | Add language toggle state, pass language to all tabs, add PDF download button |
+| `src/components/report/SummaryTab.tsx` | Accept `language` prop, switch between English/Pidgin summary |
+| `src/components/report/BiomarkersTab.tsx` | Accept `language` prop, show pidgin explanations/tips when active |
+| `src/components/report/DietPlanTab.tsx` | Accept `language` prop, show pidgin diet text when active |
+| `src/components/report/ChecklistTab.tsx` | Accept `language` prop, show pidgin questions when active |
+| `src/components/report/types.ts` | Add pidgin variant types |
+| New: `src/components/report/PDFExport.tsx` | PDF generation component using jspdf |
+| `package.json` | Add `jspdf` dependency |
 
 ## Technical Detail
 
-The edge function's two Gemini calls get expanded tool schemas:
+### Pidgin Translation Call
+The 3rd Gemini call receives the full English output and returns pidgin equivalents. Uses structured function calling to ensure consistent shape. This runs in parallel-ish with the diet call since it only needs biomarker data.
 
-**Call 1** adds `lifestyle_tip` and `trend_context` string fields to each biomarker object, plus a top-level `summary` string field.
+### PDF Structure
+Uses `jspdf` (no canvas rendering needed — pure text/layout PDF). Sections are laid out programmatically with proper pagination. The PDF respects whichever language is currently active.
 
-**Call 2** adds `weekly_meal_plan` (array of day objects), `hydration_tips` (string array), `supplement_notes` (string array) to the dietary plan, and restructures `consultation_checklist` from `string[]` to `{question, context, priority}[]`.
-
-The ResultReport page gets a 4-tab layout: Summary → Biomarkers → Diet Plan → Doctor Questions, with the summary as the default landing tab showing a visual health snapshot.
+### Language State
+A simple `useState<"en" | "pidgin">("en")` in ResultReport. Each tab component receives both English and Pidgin data, displaying based on the active language. The toggle is a sticky pill at the top of the page.
 
