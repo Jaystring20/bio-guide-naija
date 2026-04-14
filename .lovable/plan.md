@@ -1,42 +1,62 @@
 
 
-# Make Gemini API calls resilient to 503 overload errors
+# Enhance BioGuide Analysis: Comprehensive Reports + UX Optimization
 
-## Problem
-Google's `gemini-2.5-flash` model is returning 503 errors due to high demand. The API key and integration are correct — this is a Google-side availability issue.
+## Your Question
+You asked whether diet plans alone are enough as a USP. Short answer: **no, but the combination is**. The real value is the full loop — lab interpretation in plain language, localized Nigerian diet plans, AND actionable doctor questions — all from a single photo upload. Right now the pieces exist but feel disconnected. This plan makes the analysis richer and the experience more polished.
 
-## Solution
-Update `supabase/functions/interpret-lab/index.ts` with two resilience strategies:
+## What Changes
 
-### 1. Retry with exponential backoff
-- Wrap each Gemini API call in a retry helper that attempts up to 3 times
-- Delays: 2s, 4s between retries
-- Only retries on 503 and 429 status codes
+### 1. Richer AI Analysis (Edge Function)
+Enhance both Gemini prompts to produce deeper, more actionable output:
 
-### 2. Fallback model
-- If all retries on `gemini-2.5-flash` fail with 503, retry once with `gemini-2.0-flash` as a fallback
-- Same request format — both models support the same Gemini API contract
+**Biomarkers** — add two new fields per biomarker:
+- `lifestyle_tip`: one actionable non-drug lifestyle change (e.g., "Walk 30 min after meals to help regulate blood sugar")
+- `trend_context`: context about what this result could mean over time
 
-### Implementation detail
-Add a helper function at the top of the edge function:
+**Diet Plan** — add:
+- `weekly_meal_plan`: 7-day sample meal plan with breakfast/lunch/dinner mapped to the patient's region
+- `hydration_tips`: water/fluid recommendations based on results
+- `supplement_notes`: natural supplement suggestions (moringa, zobo, etc.) — no pharmaceuticals
 
-```text
-async function callGeminiWithRetry(body, apiKey):
-  models = ["gemini-2.5-flash", "gemini-2.0-flash"]
-  for each model:
-    for attempt 1..3:
-      response = fetch(model URL, body)
-      if response.ok → return response
-      if 503 or 429 → wait (2^attempt seconds), retry
-      else → throw
-  throw "All models unavailable"
-```
+**Consultation Checklist** — restructure from plain strings to objects with:
+- `question`: the question text
+- `context`: why this question matters (so the user understands its importance)
+- `priority`: high / medium / low
 
-Both the biomarker extraction call and the diet plan call will use this helper.
+### 2. Summary Dashboard Card (New)
+Add a top-level summary section to the ResultReport page showing:
+- Overall health snapshot: count of normal / borderline / abnormal biomarkers
+- Color-coded progress ring or bar
+- One-sentence AI-generated summary (added to edge function output)
+- "Share Full Report" button
 
-### File changed
-- `supabase/functions/interpret-lab/index.ts` — add retry helper, update both Gemini fetch calls to use it
+### 3. Enhanced ResultReport Page
+- **Summary tab** (new default): health snapshot + AI summary + quick action buttons
+- **Biomarkers tab**: add lifestyle tips inline, visual status bar showing where value falls in reference range
+- **Diet Plan tab**: add weekly meal plan section, hydration tips, supplement notes
+- **Doctor Questions tab**: show priority badges, add context expandable per question
 
-### No other changes
-Frontend stays the same. The edge function's input/output contract is unchanged.
+### 4. Database Schema Update
+Add column to `lab_results`:
+- `ai_summary` (text) — one-paragraph plain-English health summary
+
+### Files Changed
+- `supabase/functions/interpret-lab/index.ts` — enhanced prompts and function declarations
+- `src/pages/ResultReport.tsx` — new Summary tab, enhanced Biomarkers/Diet/Checklist tabs
+- Database migration — add `ai_summary` column
+
+### What Stays the Same
+- Upload flow, retry logic, authentication, critical alerts — all unchanged
+- Existing data in `biomarkers`, `dietary_plan`, `consultation_checklist` JSONB columns still works (new fields are additive)
+
+## Technical Detail
+
+The edge function's two Gemini calls get expanded tool schemas:
+
+**Call 1** adds `lifestyle_tip` and `trend_context` string fields to each biomarker object, plus a top-level `summary` string field.
+
+**Call 2** adds `weekly_meal_plan` (array of day objects), `hydration_tips` (string array), `supplement_notes` (string array) to the dietary plan, and restructures `consultation_checklist` from `string[]` to `{question, context, priority}[]`.
+
+The ResultReport page gets a 4-tab layout: Summary → Biomarkers → Diet Plan → Doctor Questions, with the summary as the default landing tab showing a visual health snapshot.
 
