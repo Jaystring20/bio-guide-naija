@@ -12,6 +12,7 @@ import Onboarding from "./pages/Onboarding";
 import UploadLab from "./pages/UploadLab";
 import ResultReport from "./pages/ResultReport";
 import History from "./pages/History";
+import BulkUpload from "./pages/BulkUpload";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
