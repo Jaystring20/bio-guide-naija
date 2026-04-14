@@ -139,7 +139,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
               {ZONES.map((z) => (
                 <button
                   key={z.value}
-                  onClick={() => setZone(z.value)}
+                  onClick={() => setZone(z.value as typeof zone)}
                   className={`px-3 py-2 rounded-lg border text-sm transition-all ${
                     zone === z.value
                       ? "border-accent bg-accent/10 text-accent font-medium"
