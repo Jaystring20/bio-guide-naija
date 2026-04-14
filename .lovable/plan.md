@@ -1,27 +1,42 @@
 
 
-# Integrate Google Gemini API (replacing Lovable AI Gateway)
+# Make Gemini API calls resilient to 503 overload errors
 
-## Overview
-Store the Google API key as a secure backend secret, then update the `interpret-lab` edge function to call the Gemini API directly instead of the Lovable AI Gateway.
+## Problem
+Google's `gemini-2.5-flash` model is returning 503 errors due to high demand. The API key and integration are correct — this is a Google-side availability issue.
 
-## Steps
+## Solution
+Update `supabase/functions/interpret-lab/index.ts` with two resilience strategies:
 
-### 1. Store API key as a secret
-Use the `add_secret` tool to securely store `GOOGLE_GEMINI_API_KEY` in the backend. The key will only be accessible from edge functions.
+### 1. Retry with exponential backoff
+- Wrap each Gemini API call in a retry helper that attempts up to 3 times
+- Delays: 2s, 4s between retries
+- Only retries on 503 and 429 status codes
 
-### 2. Update `supabase/functions/interpret-lab/index.ts`
-- Replace `LOVABLE_API_KEY` with `GOOGLE_GEMINI_API_KEY`
-- Switch API endpoint from `https://ai.gateway.lovable.dev/v1/chat/completions` to Google's Gemini API: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent`
-- Adapt request format from OpenAI-compatible to Gemini's native format:
-  - `contents[]` instead of `messages[]`
-  - `inlineData` for images instead of `image_url`
-  - Gemini's function calling format instead of OpenAI tools format
-- Keep all existing logic: biomarker extraction, critical thresholds, diet plan generation, error handling
-- Both AI calls (biomarker extraction + diet plan) switch to Gemini
+### 2. Fallback model
+- If all retries on `gemini-2.5-flash` fail with 503, retry once with `gemini-2.0-flash` as a fallback
+- Same request format — both models support the same Gemini API contract
 
-### 3. Redeploy the edge function
+### Implementation detail
+Add a helper function at the top of the edge function:
 
-## No other files change
-The frontend (`UploadLab.tsx`, `ResultReport.tsx`) remains untouched — the edge function's input/output contract stays the same.
+```text
+async function callGeminiWithRetry(body, apiKey):
+  models = ["gemini-2.5-flash", "gemini-2.0-flash"]
+  for each model:
+    for attempt 1..3:
+      response = fetch(model URL, body)
+      if response.ok → return response
+      if 503 or 429 → wait (2^attempt seconds), retry
+      else → throw
+  throw "All models unavailable"
+```
+
+Both the biomarker extraction call and the diet plan call will use this helper.
+
+### File changed
+- `supabase/functions/interpret-lab/index.ts` — add retry helper, update both Gemini fetch calls to use it
+
+### No other changes
+Frontend stays the same. The edge function's input/output contract is unchanged.
 
