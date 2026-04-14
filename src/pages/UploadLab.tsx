@@ -5,7 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, FileUp, Loader2, Upload, RefreshCw, AlertTriangle } from "lucide-react";
+import { useDependants } from "@/hooks/useDependants";
+import { Camera, FileUp, Loader2, Upload, RefreshCw, AlertTriangle, CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -13,13 +18,15 @@ const UploadLab = () => {
   const [uploading, setUploading] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
+  const [selectedPerson, setSelectedPerson] = useState<string | null>(null); // null = myself
+  const [testDate, setTestDate] = useState<Date | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { dependants } = useDependants();
 
-  // Check for most recent failed result
   const { data: failedResult } = useQuery({
     queryKey: ["failed-result", user?.id],
     queryFn: async () => {
@@ -40,23 +47,12 @@ const UploadLab = () => {
     try {
       const f = e.target.files?.[0];
       if (!f) return;
-      if (f.size > 10 * 1024 * 1024) {
-        toast.error("File too large. Max 10MB.");
-        return;
-      }
-      // Validate file type
+      if (f.size > 10 * 1024 * 1024) { toast.error("File too large. Max 10MB."); return; }
       const validTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
       const isValidType = validTypes.includes(f.type) || f.name.match(/\.(jpg|jpeg|png|webp|heic|pdf)$/i);
-      if (!isValidType) {
-        toast.error("Unsupported file type. Please use JPG, PNG, or PDF.");
-        return;
-      }
+      if (!isValidType) { toast.error("Unsupported file type. Please use JPG, PNG, or PDF."); return; }
       setFile(f);
-      if (f.type.startsWith("image/")) {
-        setPreview(URL.createObjectURL(f));
-      } else {
-        setPreview(null);
-      }
+      if (f.type.startsWith("image/")) { setPreview(URL.createObjectURL(f)); } else { setPreview(null); }
     } catch (err) {
       console.error("File selection error:", err);
       toast.error("Could not read that file. Please try a different one.");
@@ -70,15 +66,17 @@ const UploadLab = () => {
     try {
       setProcessingStep("Uploading your lab result...");
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("lab-uploads")
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("lab-uploads").upload(filePath, file);
       if (uploadError) throw uploadError;
 
       setProcessingStep("Creating your record...");
+      const insertData: any = { user_id: user.id, status: "processing" };
+      if (selectedPerson) insertData.dependant_id = selectedPerson;
+      if (testDate) insertData.test_date = format(testDate, "yyyy-MM-dd");
+
       const { data: labResult, error: insertError } = await supabase
         .from("lab_results")
-        .insert({ user_id: user.id, status: "processing" })
+        .insert(insertData)
         .select()
         .single();
       if (insertError) throw insertError;
@@ -90,7 +88,6 @@ const UploadLab = () => {
       );
 
       if (fnError) throw fnError;
-
       if (interpretData?.error) {
         await supabase.storage.from("lab-uploads").remove([filePath]);
         handleAiError(interpretData);
@@ -117,17 +114,11 @@ const UploadLab = () => {
     try {
       setProcessingStep("Re-uploading your lab result...");
       const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("lab-uploads")
-        .upload(filePath, file);
+      const { error: uploadError } = await supabase.storage.from("lab-uploads").upload(filePath, file);
       if (uploadError) throw uploadError;
 
       setProcessingStep("AI is re-reading your lab result...");
-      // Update the existing record back to processing
-      await supabase
-        .from("lab_results")
-        .update({ status: "processing" })
-        .eq("id", failedResult.id);
+      await supabase.from("lab_results").update({ status: "processing" }).eq("id", failedResult.id);
 
       const { data: interpretData, error: fnError } = await supabase.functions.invoke(
         "interpret-lab",
@@ -135,7 +126,6 @@ const UploadLab = () => {
       );
 
       if (fnError) throw fnError;
-
       if (interpretData?.error) {
         await supabase.storage.from("lab-uploads").remove([filePath]);
         handleAiError(interpretData);
@@ -170,6 +160,7 @@ const UploadLab = () => {
   };
 
   const isProcessing = uploading || retrying;
+  const hasDependants = dependants.length > 0;
 
   return (
     <div className="px-5 pt-8 pb-4 max-w-lg mx-auto">
@@ -188,6 +179,63 @@ const UploadLab = () => {
         </div>
       ) : (
         <>
+          {/* Person selector */}
+          {hasDependants && (
+            <div className="mb-5">
+              <label className="text-body-sm font-medium mb-2 block">Who is this result for?</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedPerson(null)}
+                  className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                    selectedPerson === null ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+                  }`}
+                >
+                  Myself
+                </button>
+                {dependants.map((d) => (
+                  <button
+                    key={d.id}
+                    onClick={() => setSelectedPerson(d.id)}
+                    className={`px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
+                      selectedPerson === d.id ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+                    }`}
+                  >
+                    {d.full_name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Test date picker */}
+          <div className="mb-5">
+            <label className="text-body-sm font-medium mb-2 block">When was this test done?</label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full h-12 rounded-xl justify-start text-left font-normal",
+                    !testDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {testDate ? format(testDate, "PPP") : "Today (default)"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={testDate}
+                  onSelect={setTestDate}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
           {/* Failed result retry banner */}
           {failedResult && file && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 mb-5 flex items-start gap-3">
@@ -212,7 +260,6 @@ const UploadLab = () => {
 
           {!file ? (
             <div className="space-y-4">
-              {/* Failed result notice when no file selected */}
               {failedResult && (
                 <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-4 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
@@ -225,7 +272,6 @@ const UploadLab = () => {
                 </div>
               )}
 
-              {/* Camera */}
               <button
                 onClick={() => cameraInputRef.current?.click()}
                 className="w-full bg-primary text-primary-foreground rounded-2xl p-6 flex items-center gap-4 touch-target"
@@ -245,7 +291,6 @@ const UploadLab = () => {
                 className="hidden"
               />
 
-              {/* File upload */}
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="w-full bg-card border-2 border-dashed border-border rounded-2xl p-6 flex items-center gap-4 touch-target"
@@ -288,14 +333,11 @@ const UploadLab = () => {
                 className="w-full h-14 text-lg font-bold rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 touch-target"
               >
                 <Upload className="w-5 h-5 mr-2" />
-                Analyze My Lab Result
+                Analyze Lab Result
               </Button>
 
               <button
-                onClick={() => {
-                  setFile(null);
-                  setPreview(null);
-                }}
+                onClick={() => { setFile(null); setPreview(null); }}
                 className="w-full text-center text-muted-foreground touch-target"
               >
                 Choose a different file

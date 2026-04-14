@@ -12,6 +12,7 @@ type Profile = {
   ndpa_consent: boolean;
   medical_disclaimer_accepted: boolean;
   onboarding_completed: boolean;
+  user_role: string;
 };
 
 type AuthContextType = {
