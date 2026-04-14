@@ -114,7 +114,7 @@ RULES:
 
 You MUST respond with a function call using the provided tool.`;
 
-    const userPrompt = `Read this Nigerian lab result. The patient is ${profile?.age || "unknown age"} years old, ${profile?.sex || "unknown sex"}, from the ${profile?.geopolitical_zone || "unknown"} region of Nigeria.
+    const userPrompt = `Read this Nigerian lab result. The patient is ${demographics.age || "unknown age"} years old, ${demographics.sex || "unknown sex"}, from the ${demographics.geopolitical_zone || "unknown"} region of Nigeria.
 
 Extract all biomarkers with their values, units, reference ranges, status classification, lifestyle tips, and trend context. Also provide an overall health summary paragraph that sounds like a caring friend talking — not a clinical report.`;
 
