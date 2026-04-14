@@ -131,12 +131,12 @@ const ResultReport = () => {
         ← Back
       </button>
 
-      <div className="flex items-center justify-between mb-1">
+      <div className="mb-1">
         <h1 className="font-display text-2xl font-bold">
           {language === "pidgin" ? "Your Lab Report" : "Your Lab Report"}
         </h1>
         {hasPidgin && (
-          <div className="flex bg-muted rounded-full p-0.5">
+          <div className="flex bg-muted rounded-full p-0.5 mt-2 w-fit">
             <button
               onClick={() => setLanguage("en")}
               className={cn(
@@ -165,13 +165,13 @@ const ResultReport = () => {
       </p>
 
       {/* Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+      <div className="grid grid-cols-2 gap-2 mb-6">
         {TABS.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              "px-4 py-3 rounded-xl font-semibold text-body-sm whitespace-nowrap touch-target transition-colors",
+              "px-3 py-3 rounded-xl font-semibold text-body-sm text-center touch-target transition-colors",
               activeTab === tab
                 ? "bg-primary text-primary-foreground"
                 : "bg-card border border-border text-foreground"
@@ -199,7 +199,7 @@ const ResultReport = () => {
       )}
 
       {/* Floating PDF Download */}
-      <div className="fixed bottom-20 right-4 z-40">
+      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-center gap-1">
         <Button
           onClick={handleDownloadPDF}
           className="h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl touch-target"
@@ -207,6 +207,7 @@ const ResultReport = () => {
         >
           <Download className="w-6 h-6" />
         </Button>
+        <span className="text-[10px] font-semibold text-muted-foreground">PDF</span>
       </div>
     </div>
   );

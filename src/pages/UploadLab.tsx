@@ -37,17 +37,29 @@ const UploadLab = () => {
   });
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > 10 * 1024 * 1024) {
-      toast.error("File too large. Max 10MB.");
-      return;
-    }
-    setFile(f);
-    if (f.type.startsWith("image/")) {
-      setPreview(URL.createObjectURL(f));
-    } else {
-      setPreview(null);
+    try {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      if (f.size > 10 * 1024 * 1024) {
+        toast.error("File too large. Max 10MB.");
+        return;
+      }
+      // Validate file type
+      const validTypes = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
+      const isValidType = validTypes.includes(f.type) || f.name.match(/\.(jpg|jpeg|png|webp|heic|pdf)$/i);
+      if (!isValidType) {
+        toast.error("Unsupported file type. Please use JPG, PNG, or PDF.");
+        return;
+      }
+      setFile(f);
+      if (f.type.startsWith("image/")) {
+        setPreview(URL.createObjectURL(f));
+      } else {
+        setPreview(null);
+      }
+    } catch (err) {
+      console.error("File selection error:", err);
+      toast.error("Could not read that file. Please try a different one.");
     }
   };
 
@@ -227,8 +239,8 @@ const UploadLab = () => {
               <input
                 ref={cameraInputRef}
                 type="file"
-                accept="image/*"
-                capture="environment"
+                accept="image/jpeg,image/png,image/webp"
+                capture="user"
                 onChange={handleFile}
                 className="hidden"
               />
@@ -247,7 +259,7 @@ const UploadLab = () => {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*,.pdf"
+                accept="image/jpeg,image/png,image/webp,image/heic,application/pdf,.pdf"
                 onChange={handleFile}
                 className="hidden"
               />
