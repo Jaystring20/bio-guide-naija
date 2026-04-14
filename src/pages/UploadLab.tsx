@@ -308,6 +308,18 @@ const UploadLab = () => {
                 onChange={handleFile}
                 className="hidden"
               />
+
+              {/* Bulk upload link */}
+              <button
+                onClick={() => navigate("/bulk-upload")}
+                className="w-full bg-card border border-border rounded-2xl p-4 flex items-center gap-3 touch-target"
+              >
+                <Layers className="w-6 h-6 text-accent" />
+                <div className="text-left">
+                  <p className="font-semibold text-body-sm">Add Past Results</p>
+                  <p className="text-muted-foreground text-xs">Upload multiple results at once</p>
+                </div>
+              </button>
             </div>
           ) : (
             <div className="space-y-4">
