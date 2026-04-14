@@ -17,11 +17,15 @@ export type Database = {
       lab_results: {
         Row: {
           ai_summary: string | null
+          ai_summary_pidgin: string | null
           biomarkers: Json | null
+          biomarkers_pidgin: Json | null
           consultation_checklist: Json | null
+          consultation_checklist_pidgin: Json | null
           created_at: string
           critical_alerts: Json | null
           dietary_plan: Json | null
+          dietary_plan_pidgin: Json | null
           has_critical_alert: boolean
           id: string
           status: string
@@ -31,11 +35,15 @@ export type Database = {
         }
         Insert: {
           ai_summary?: string | null
+          ai_summary_pidgin?: string | null
           biomarkers?: Json | null
+          biomarkers_pidgin?: Json | null
           consultation_checklist?: Json | null
+          consultation_checklist_pidgin?: Json | null
           created_at?: string
           critical_alerts?: Json | null
           dietary_plan?: Json | null
+          dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean
           id?: string
           status?: string
@@ -45,11 +53,15 @@ export type Database = {
         }
         Update: {
           ai_summary?: string | null
+          ai_summary_pidgin?: string | null
           biomarkers?: Json | null
+          biomarkers_pidgin?: Json | null
           consultation_checklist?: Json | null
+          consultation_checklist_pidgin?: Json | null
           created_at?: string
           critical_alerts?: Json | null
           dietary_plan?: Json | null
+          dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean
           id?: string
           status?: string
