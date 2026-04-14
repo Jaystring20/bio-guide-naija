@@ -28,22 +28,22 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
           <div key={b.name} className="bg-card rounded-xl border border-border overflow-hidden">
             <button
               onClick={() => setExpanded(expanded === b.name ? null : b.name)}
-              className="w-full p-4 flex items-center justify-between touch-target"
+              className="w-full p-4 flex items-center justify-between gap-2 touch-target"
             >
-              <div className="text-left">
-                <p className="font-semibold text-body">{b.name}</p>
-                <p className="text-body-sm text-muted-foreground">
+              <div className="text-left min-w-0 flex-1">
+                <p className="font-semibold text-body truncate">{b.name}</p>
+                <p className="text-body-sm text-muted-foreground truncate">
                   {b.value} {b.unit} <span className="text-xs">(Ref: {b.reference_range})</span>
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={cn("px-3 py-1 rounded-full text-xs font-bold border", STATUS_COLORS[b.status])}>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap", STATUS_COLORS[b.status])}>
                   {STATUS_LABELS[b.status]}
                 </span>
                 {expanded === b.name ? (
-                  <ChevronUp className="w-5 h-5 text-muted-foreground" />
+                  <ChevronUp className="w-5 h-5 text-muted-foreground shrink-0" />
                 ) : (
-                  <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                  <ChevronDown className="w-5 h-5 text-muted-foreground shrink-0" />
                 )}
               </div>
             </button>
