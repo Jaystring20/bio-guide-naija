@@ -57,17 +57,30 @@ serve(async (req) => {
 
     const { data: labResult } = await supabase
       .from("lab_results")
-      .select("user_id")
+      .select("user_id, dependant_id")
       .eq("id", labResultId)
       .single();
 
     if (!labResult) throw new Error("Lab result not found");
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("geopolitical_zone, age, sex")
-      .eq("user_id", labResult.user_id)
-      .single();
+    // Fetch demographics from dependant or profile
+    let demographics: { geopolitical_zone: string | null; age: number | null; sex: string | null } = { geopolitical_zone: null, age: null, sex: null };
+
+    if (labResult.dependant_id) {
+      const { data: dependant } = await supabase
+        .from("dependants")
+        .select("geopolitical_zone, age, sex")
+        .eq("id", labResult.dependant_id)
+        .single();
+      if (dependant) demographics = dependant;
+    } else {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("geopolitical_zone, age, sex")
+        .eq("user_id", labResult.user_id)
+        .single();
+      if (profile) demographics = profile;
+    }
 
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("lab-uploads")
