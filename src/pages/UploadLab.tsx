@@ -240,7 +240,7 @@ const UploadLab = () => {
                 ref={cameraInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                capture="camera"
+                capture="user"
                 onChange={handleFile}
                 className="hidden"
               />
