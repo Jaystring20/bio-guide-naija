@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Leaf, MapPin, User, ShieldCheck } from "lucide-react";
+import { Leaf, MapPin, User, ShieldCheck, Heart, Stethoscope, UserCheck } from "lucide-react";
 
 const ZONES = [
   { value: "south-south", label: "South-South", desc: "Rivers, Bayelsa, Delta, Edo, Akwa Ibom, Cross River" },
@@ -15,8 +15,15 @@ const ZONES = [
   { value: "north-west", label: "North-West", desc: "Kano, Kaduna, Katsina, Zamfara, Sokoto, Kebbi, Jigawa" },
 ];
 
+const ROLES = [
+  { value: "personal", label: "For myself", desc: "Track my own health", icon: UserCheck },
+  { value: "caregiver", label: "I'm a caregiver", desc: "Managing health for family members", icon: Heart },
+  { value: "professional", label: "Health professional", desc: "Track results for my patients", icon: Stethoscope },
+];
+
 const Onboarding = () => {
   const [step, setStep] = useState(0);
+  const [role, setRole] = useState("");
   const [zone, setZone] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState<"male" | "female" | "">("");
@@ -27,6 +34,7 @@ const Onboarding = () => {
   const handleComplete = async () => {
     try {
       await updateProfile({
+        user_role: role || "personal",
         geopolitical_zone: zone as any,
         age: parseInt(age),
         sex: sex as any,
@@ -53,6 +61,36 @@ const Onboarding = () => {
       <p className="text-muted-foreground text-body-sm max-w-xs">
         We'll help you understand your lab results and create a diet plan using foods you already know and love.
       </p>
+    </div>,
+
+    // Role selection
+    <div key="role" className="w-full animate-slide-up">
+      <h2 className="font-display text-2xl font-bold mb-2">How will you use BioGuide?</h2>
+      <p className="text-muted-foreground mb-6 text-body-sm">
+        This helps us tailor the experience for you.
+      </p>
+      <div className="space-y-3">
+        {ROLES.map((r) => {
+          const Icon = r.icon;
+          return (
+            <button
+              key={r.value}
+              onClick={() => setRole(r.value)}
+              className={`w-full text-left p-4 rounded-xl border-2 transition-all touch-target flex items-center gap-4 ${
+                role === r.value
+                  ? "border-accent bg-accent/10"
+                  : "border-border bg-card"
+              }`}
+            >
+              <Icon className={`w-6 h-6 flex-shrink-0 ${role === r.value ? "text-accent" : "text-secondary"}`} />
+              <div>
+                <p className="font-semibold text-body">{r.label}</p>
+                <p className="text-body-sm text-muted-foreground">{r.desc}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>,
 
     // Region
@@ -147,6 +185,7 @@ const Onboarding = () => {
 
   const canProceed = [
     true,
+    !!role,
     !!zone,
     !!age && !!sex && consent,
   ][step];
@@ -155,7 +194,7 @@ const Onboarding = () => {
     <div className="min-h-screen bg-background flex flex-col px-6 py-8">
       {/* Progress */}
       <div className="flex gap-2 mb-8">
-        {[0, 1, 2].map((i) => (
+        {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
             className={`h-1.5 flex-1 rounded-full transition-all ${
@@ -174,13 +213,13 @@ const Onboarding = () => {
       <div className="mt-8">
         <Button
           onClick={() => {
-            if (step < 2) setStep(step + 1);
+            if (step < 3) setStep(step + 1);
             else handleComplete();
           }}
           disabled={!canProceed}
           className="w-full h-14 text-lg font-bold rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 touch-target"
         >
-          {step === 2 ? "Get Started" : "Continue"}
+          {step === 3 ? "Get Started" : "Continue"}
         </Button>
         {step > 0 && (
           <button

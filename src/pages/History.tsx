@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, FileText, AlertTriangle } from "lucide-react";
+import { useDependants } from "@/hooks/useDependants";
+import { Loader2, FileText, AlertTriangle, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const History = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { dependants } = useDependants();
+  const [personFilter, setPersonFilter] = useState<string>("all"); // "all", "myself", or dependant id
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["lab-results", user?.id],
@@ -22,9 +26,53 @@ const History = () => {
     enabled: !!user,
   });
 
+  const filteredResults = results?.filter((r) => {
+    if (personFilter === "all") return true;
+    if (personFilter === "myself") return !r.dependant_id;
+    return r.dependant_id === personFilter;
+  });
+
+  const getDependantName = (depId: string | null) => {
+    if (!depId) return null;
+    return dependants.find((d) => d.id === depId)?.full_name || "Unknown";
+  };
+
   return (
     <div className="px-5 pt-8 pb-4 max-w-lg mx-auto">
-      <h1 className="font-display text-2xl font-bold mb-6">Your History</h1>
+      <h1 className="font-display text-2xl font-bold mb-4">Your History</h1>
+
+      {/* Person filter */}
+      {dependants.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-5">
+          <button
+            onClick={() => setPersonFilter("all")}
+            className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+              personFilter === "all" ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setPersonFilter("myself")}
+            className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+              personFilter === "myself" ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+            }`}
+          >
+            Myself
+          </button>
+          {dependants.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => setPersonFilter(d.id)}
+              className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
+                personFilter === d.id ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+              }`}
+            >
+              {d.full_name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {isLoading && (
         <div className="flex justify-center py-20">
@@ -32,7 +80,7 @@ const History = () => {
         </div>
       )}
 
-      {!isLoading && results?.length === 0 && (
+      {!isLoading && filteredResults?.length === 0 && (
         <div className="text-center py-20">
           <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground text-body">No lab results yet</p>
@@ -46,11 +94,11 @@ const History = () => {
       )}
 
       <div className="space-y-3">
-        {results?.map((r) => {
+        {filteredResults?.map((r) => {
           const biomarkers = (r.biomarkers as any[] | null) || [];
-          const abnormalCount = biomarkers.filter(
-            (b: any) => b.status !== "normal"
-          ).length;
+          const abnormalCount = biomarkers.filter((b: any) => b.status !== "normal").length;
+          const depName = getDependantName(r.dependant_id);
+          const displayDate = r.test_date || r.upload_date;
 
           return (
             <button
@@ -70,12 +118,18 @@ const History = () => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-body">
-                  {new Date(r.upload_date).toLocaleDateString("en-NG", {
+                  {new Date(displayDate).toLocaleDateString("en-NG", {
                     day: "numeric",
                     month: "short",
                     year: "numeric",
                   })}
                 </p>
+                {depName && (
+                  <p className="text-xs text-accent flex items-center gap-1">
+                    <User className="w-3 h-3" />
+                    {depName}
+                  </p>
+                )}
                 <p className="text-body-sm text-muted-foreground">
                   {r.status === "processing"
                     ? "Processing..."

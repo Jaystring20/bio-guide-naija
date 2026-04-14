@@ -1,13 +1,15 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Upload, Leaf, TrendingUp, Clock } from "lucide-react";
+import { Upload, Leaf, TrendingUp, Clock, Users, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useDependants } from "@/hooks/useDependants";
 
 const Index = () => {
   const { profile, user } = useAuth();
   const navigate = useNavigate();
+  const { dependants } = useDependants();
 
   const { data: lastResult } = useQuery({
     queryKey: ["last-result", user?.id],
@@ -62,6 +64,43 @@ const Index = () => {
           Upload Lab Result
         </Button>
       </div>
+
+      {/* People I manage */}
+      {dependants.length > 0 && (
+        <div className="mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-display font-bold text-lg flex items-center gap-2">
+              <Users className="w-5 h-5 text-secondary" />
+              {profile?.user_role === "professional" ? "Patients" : "People"}
+            </h3>
+            <button
+              onClick={() => navigate("/profile")}
+              className="text-accent text-body-sm font-medium"
+            >
+              Manage
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {dependants.slice(0, 4).map((d) => (
+              <button
+                key={d.id}
+                onClick={() => navigate("/upload")}
+                className="bg-card rounded-xl p-4 border border-border text-left touch-target"
+              >
+                <p className="font-semibold text-body-sm truncate">{d.full_name}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {d.relationship}{d.age ? ` • ${d.age}yrs` : ""}
+                </p>
+                <div className="flex items-center gap-1 mt-2 text-accent text-xs font-medium">
+                  <Upload className="w-3 h-3" />
+                  Upload
+                  <ChevronRight className="w-3 h-3" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-4 mb-6">
