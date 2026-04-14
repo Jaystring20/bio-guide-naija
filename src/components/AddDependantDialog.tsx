@@ -34,7 +34,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
   const [fullName, setFullName] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState<"male" | "female" | "">("");
-  const [zone, setZone] = useState("");
+  const [zone, setZone] = useState<"south-south" | "south-west" | "south-east" | "north-central" | "north-east" | "north-west" | "">("");
   const [relationship, setRelationship] = useState("");
 
   useEffect(() => {
