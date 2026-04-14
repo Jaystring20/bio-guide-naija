@@ -5,22 +5,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Biomarker, DietaryPlan, ChecklistItem } from "@/components/report/types";
+import { Biomarker, BiomarkerPidgin, DietaryPlan, DietaryPlanPidgin, ChecklistItem, ChecklistItemPidgin, Language } from "@/components/report/types";
 import { SummaryTab } from "@/components/report/SummaryTab";
 import { BiomarkersTab } from "@/components/report/BiomarkersTab";
 import { DietPlanTab } from "@/components/report/DietPlanTab";
 import { ChecklistTab } from "@/components/report/ChecklistTab";
+import { generatePDF } from "@/components/report/PDFExport";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
 
-const TAB_LABELS: Record<Tab, string> = {
-  summary: "Summary",
-  results: "Biomarkers",
-  diet: "Diet Plan",
-  checklist: "Doctor Q's",
+const TAB_LABELS: Record<Language, Record<Tab, string>> = {
+  en: { summary: "Summary", results: "Biomarkers", diet: "Diet Plan", checklist: "Doctor Q's" },
+  pidgin: { summary: "Summary", results: "Results", diet: "Chop Plan", checklist: "Doctor Q's" },
 };
 
 const ResultReport = () => {
@@ -29,6 +28,7 @@ const ResultReport = () => {
   const navigate = useNavigate();
   const [showEmergency, setShowEmergency] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("summary");
+  const [language, setLanguage] = useState<Language>("en");
 
   const { data: result, isLoading } = useQuery({
     queryKey: ["lab-result", id],
@@ -92,11 +92,15 @@ const ResultReport = () => {
     );
   }
 
-  const biomarkers = (result.biomarkers as Biomarker[] | null) || [];
-  const dietaryPlan = result.dietary_plan as DietaryPlan | null;
-  const checklist = (result.consultation_checklist as ChecklistItem[] | null) || [];
+  const biomarkers = (result.biomarkers as unknown as Biomarker[] | null) || [];
+  const biomarkersPidgin = (result.biomarkers_pidgin as unknown as BiomarkerPidgin[] | null) || null;
+  const dietaryPlan = result.dietary_plan as unknown as DietaryPlan | null;
+  const dietaryPlanPidgin = result.dietary_plan_pidgin as unknown as DietaryPlanPidgin | null;
+  const checklist = (result.consultation_checklist as unknown as ChecklistItem[] | null) || [];
+  const checklistPidgin = (result.consultation_checklist_pidgin as unknown as ChecklistItemPidgin[] | null) || null;
   const criticalAlerts = (result.critical_alerts as any[] | null) || [];
-  const aiSummary = (result as any).ai_summary as string | null;
+  const aiSummary = result.ai_summary as string | null;
+  const aiSummaryPidgin = (result as any).ai_summary_pidgin as string | null;
 
   if (showEmergency && criticalAlerts.length > 0) {
     return (
@@ -104,13 +108,56 @@ const ResultReport = () => {
     );
   }
 
+  const hasPidgin = !!biomarkersPidgin || !!aiSummaryPidgin;
+
+  const handleDownloadPDF = () => {
+    generatePDF({
+      language,
+      uploadDate: result.upload_date,
+      aiSummary,
+      aiSummaryPidgin,
+      biomarkers,
+      biomarkersPidgin,
+      dietaryPlan,
+      dietaryPlanPidgin,
+      checklist,
+      checklistPidgin,
+    });
+  };
+
   return (
     <div className="px-5 pt-6 pb-4 max-w-lg mx-auto">
       <button onClick={() => navigate(-1)} className="text-muted-foreground text-body-sm mb-4 touch-target">
         ← Back
       </button>
 
-      <h1 className="font-display text-2xl font-bold mb-1">Your Lab Report</h1>
+      <div className="flex items-center justify-between mb-1">
+        <h1 className="font-display text-2xl font-bold">
+          {language === "pidgin" ? "Your Lab Report" : "Your Lab Report"}
+        </h1>
+        {hasPidgin && (
+          <div className="flex bg-muted rounded-full p-0.5">
+            <button
+              onClick={() => setLanguage("en")}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-bold transition-colors",
+                language === "en" ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+              )}
+            >
+              🇬🇧 English
+            </button>
+            <button
+              onClick={() => setLanguage("pidgin")}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-xs font-bold transition-colors",
+                language === "pidgin" ? "bg-accent text-accent-foreground" : "text-muted-foreground"
+              )}
+            >
+              🇳🇬 Pidgin
+            </button>
+          </div>
+        )}
+      </div>
       <p className="text-muted-foreground text-body-sm mb-6">
         {new Date(result.upload_date).toLocaleDateString("en-NG", {
           day: "numeric", month: "long", year: "numeric",
@@ -130,20 +177,37 @@ const ResultReport = () => {
                 : "bg-card border border-border text-foreground"
             )}
           >
-            {TAB_LABELS[tab]}
+            {TAB_LABELS[language][tab]}
           </button>
         ))}
       </div>
 
       {activeTab === "summary" && (
-        <SummaryTab biomarkers={biomarkers} aiSummary={aiSummary} uploadDate={result.upload_date} />
+        <SummaryTab biomarkers={biomarkers} aiSummary={aiSummary} aiSummaryPidgin={aiSummaryPidgin} uploadDate={result.upload_date} language={language} />
       )}
 
-      {activeTab === "results" && <BiomarkersTab biomarkers={biomarkers} />}
+      {activeTab === "results" && (
+        <BiomarkersTab biomarkers={biomarkers} biomarkersPidgin={biomarkersPidgin} language={language} />
+      )}
 
-      {activeTab === "diet" && dietaryPlan && <DietPlanTab dietaryPlan={dietaryPlan} />}
+      {activeTab === "diet" && dietaryPlan && (
+        <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
+      )}
 
-      {activeTab === "checklist" && <ChecklistTab checklist={checklist} />}
+      {activeTab === "checklist" && (
+        <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
+      )}
+
+      {/* Floating PDF Download */}
+      <div className="fixed bottom-20 right-4 z-40">
+        <Button
+          onClick={handleDownloadPDF}
+          className="h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl touch-target"
+          size="icon"
+        >
+          <Download className="w-6 h-6" />
+        </Button>
+      </div>
     </div>
   );
 };

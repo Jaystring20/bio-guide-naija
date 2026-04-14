@@ -1,3 +1,5 @@
+export type Language = "en" | "pidgin";
+
 export type Biomarker = {
   name: string;
   value: number;
@@ -10,6 +12,14 @@ export type Biomarker = {
   trend_context?: string;
 };
 
+export type BiomarkerPidgin = {
+  name: string;
+  explanation: string;
+  why_it_matters: string;
+  lifestyle_tip: string;
+  trend_context: string;
+};
+
 export type DietaryPlan = {
   foods_to_increase: Array<{ name: string; local_name: string; benefit: string; preparation_tip: string }>;
   foods_to_reduce: Array<{ name: string; local_name: string; reason: string }>;
@@ -20,11 +30,25 @@ export type DietaryPlan = {
   supplement_notes?: string[];
 };
 
+export type DietaryPlanPidgin = {
+  foods_to_increase?: Array<{ name: string; benefit: string; preparation_tip?: string }>;
+  foods_to_reduce?: Array<{ name: string; reason: string }>;
+  foods_to_avoid?: Array<{ name: string; reason: string }>;
+  meal_suggestions?: Array<{ meal: string; description: string }>;
+  hydration_tips?: string[];
+  supplement_notes?: string[];
+};
+
 export type ChecklistItem = {
   question: string;
   context: string;
   priority: "high" | "medium" | "low";
 } | string;
+
+export type ChecklistItemPidgin = {
+  question: string;
+  context: string;
+};
 
 export const STATUS_COLORS: Record<string, string> = {
   normal: "bg-secondary/20 text-secondary border-secondary/30",
