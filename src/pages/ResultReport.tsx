@@ -5,14 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, Share2, MessageCircle, Mail } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Biomarker, BiomarkerPidgin, DietaryPlan, DietaryPlanPidgin, ChecklistItem, ChecklistItemPidgin, Language } from "@/components/report/types";
 import { SummaryTab } from "@/components/report/SummaryTab";
 import { BiomarkersTab } from "@/components/report/BiomarkersTab";
 import { DietPlanTab } from "@/components/report/DietPlanTab";
 import { ChecklistTab } from "@/components/report/ChecklistTab";
-import { generatePDF } from "@/components/report/PDFExport";
+import { generatePDF, sharePDF } from "@/components/report/PDFExport";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
