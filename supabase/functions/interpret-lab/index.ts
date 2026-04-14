@@ -6,7 +6,37 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
+const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
+const MAX_RETRIES = 3;
+
+async function callGeminiWithRetry(body: unknown, apiKey: string): Promise<Response> {
+  for (const model of GEMINI_MODELS) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      console.log(`Trying ${model}, attempt ${attempt}/${MAX_RETRIES}`);
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (response.ok) return response;
+      const status = response.status;
+      if ((status === 503 || status === 429) && attempt < MAX_RETRIES) {
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Got ${status}, waiting ${delay}ms before retry`);
+        await new Promise(r => setTimeout(r, delay));
+        continue;
+      }
+      if (status === 503 || status === 429) {
+        console.log(`${model} exhausted retries with ${status}, trying next model`);
+        break;
+      }
+      // Non-retryable error
+      return response;
+    }
+  }
+  throw new Error("All Gemini models unavailable after retries");
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -26,7 +56,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get user profile
     const { data: labResult } = await supabase
       .from("lab_results")
       .select("user_id")
@@ -41,7 +70,6 @@ serve(async (req) => {
       .eq("user_id", labResult.user_id)
       .single();
 
-    // Download file from storage
     const { data: fileData, error: downloadError } = await supabase.storage
       .from("lab-uploads")
       .download(filePath);
@@ -58,7 +86,7 @@ serve(async (req) => {
     const base64 = btoa(binaryStr);
     const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
 
-    // --- Biomarker extraction via Gemini ---
+    // --- Biomarker extraction ---
     const systemPrompt = `You are BioGuide's Lab Interpretation Engine for Nigerian users. You are a clinical-grade AI that reads lab results.
 
 RULES:
@@ -104,8 +132,8 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
                         unit: { type: "string" },
                         reference_range: { type: "string" },
                         status: { type: "string", enum: ["normal", "borderline", "deranged-low", "deranged-high", "critical"] },
-                        explanation: { type: "string", description: "Plain English explanation of what this value means" },
-                        why_it_matters: { type: "string", description: "Why this biomarker matters for health" },
+                        explanation: { type: "string" },
+                        why_it_matters: { type: "string" },
                       },
                       required: ["name", "value", "unit", "reference_range", "status", "explanation", "why_it_matters"],
                     },
@@ -125,30 +153,26 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
       },
     };
 
-    const aiResponse = await fetch(`${GEMINI_URL}?key=${geminiApiKey}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(biomarkerBody),
-    });
+    let aiResponse: Response;
+    try {
+      aiResponse = await callGeminiWithRetry(biomarkerBody, geminiApiKey);
+    } catch (e) {
+      await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
+      return new Response(JSON.stringify({ error: "MODEL_UNAVAILABLE", message: "All AI models are currently overloaded. Please try again in a few minutes." }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
       console.error("Gemini error:", aiResponse.status, errText);
+      await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
 
       if (aiResponse.status === 429) {
-        await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
         return new Response(JSON.stringify({ error: "RATE_LIMITED", message: "Too many requests. Please wait a moment and try again." }), {
           status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (aiResponse.status === 503) {
-        await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
-        return new Response(JSON.stringify({ error: "MODEL_UNAVAILABLE", message: "The AI model is experiencing high demand. Please try again in a few minutes." }), {
-          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      await supabase.from("lab_results").update({ status: "failed" }).eq("id", labResultId);
       throw new Error("AI interpretation failed");
     }
 
@@ -184,7 +208,7 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
     const hasCritical = criticalAlerts.length > 0;
     const hasEmergency = criticalAlerts.some((a: any) => a.severity === "emergency");
 
-    // --- Diet plan via Gemini (skip if emergency) ---
+    // --- Diet plan (skip if emergency) ---
     let dietaryPlan = null;
     let consultationChecklist = null;
 
@@ -222,7 +246,7 @@ RULES:
                             type: "object",
                             properties: {
                               name: { type: "string" },
-                              local_name: { type: "string", description: "Nigerian/local market name" },
+                              local_name: { type: "string" },
                               benefit: { type: "string" },
                               preparation_tip: { type: "string" },
                             },
@@ -259,7 +283,6 @@ RULES:
                     consultation_checklist: {
                       type: "array",
                       items: { type: "string" },
-                      description: "3-7 personalized questions for the patient's next doctor visit",
                     },
                   },
                   required: ["dietary_plan", "consultation_checklist"],
@@ -276,24 +299,22 @@ RULES:
         },
       };
 
-      const dietResponse = await fetch(`${GEMINI_URL}?key=${geminiApiKey}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(dietBody),
-      });
-
-      if (dietResponse.ok) {
-        const dietData = await dietResponse.json();
-        const dietFnCall = dietData.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall);
-        if (dietFnCall) {
-          const parsed = dietFnCall.functionCall.args;
-          dietaryPlan = parsed.dietary_plan;
-          consultationChecklist = parsed.consultation_checklist;
+      try {
+        const dietResponse = await callGeminiWithRetry(dietBody, geminiApiKey);
+        if (dietResponse.ok) {
+          const dietData = await dietResponse.json();
+          const dietFnCall = dietData.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall);
+          if (dietFnCall) {
+            const parsed = dietFnCall.functionCall.args;
+            dietaryPlan = parsed.dietary_plan;
+            consultationChecklist = parsed.consultation_checklist;
+          }
         }
+      } catch {
+        console.log("Diet plan generation failed after retries, continuing without it");
       }
     }
 
-    // Update lab result
     await supabase.from("lab_results").update({
       biomarkers,
       dietary_plan: dietaryPlan,
