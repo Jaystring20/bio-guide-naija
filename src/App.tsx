@@ -51,6 +51,7 @@ const App = () => (
               <Route path="/upload" element={<UploadLab />} />
               <Route path="/result/:id" element={<ResultReport />} />
               <Route path="/history" element={<History />} />
+              <Route path="/bulk-upload" element={<BulkUpload />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
             <Route path="*" element={<NotFound />} />
