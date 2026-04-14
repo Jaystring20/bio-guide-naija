@@ -111,19 +111,26 @@ const ResultReport = () => {
 
   const hasPidgin = !!biomarkersPidgin || !!aiSummaryPidgin;
 
+  const pdfData = {
+    language,
+    uploadDate: result.upload_date,
+    aiSummary,
+    aiSummaryPidgin,
+    biomarkers,
+    biomarkersPidgin,
+    dietaryPlan,
+    dietaryPlanPidgin,
+    checklist,
+    checklistPidgin,
+  };
+
   const handleDownloadPDF = () => {
-    generatePDF({
-      language,
-      uploadDate: result.upload_date,
-      aiSummary,
-      aiSummaryPidgin,
-      biomarkers,
-      biomarkersPidgin,
-      dietaryPlan,
-      dietaryPlanPidgin,
-      checklist,
-      checklistPidgin,
-    });
+    generatePDF(pdfData);
+  };
+
+  const handleShare = async (method: "whatsapp" | "email" | "native") => {
+    setShowShareMenu(false);
+    await sharePDF(pdfData, method);
   };
 
   return (
