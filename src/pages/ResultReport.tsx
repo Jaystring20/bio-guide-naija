@@ -29,6 +29,7 @@ const ResultReport = () => {
   const [showEmergency, setShowEmergency] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("summary");
   const [language, setLanguage] = useState<Language>("en");
+  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const { data: result, isLoading } = useQuery({
     queryKey: ["lab-result", id],
