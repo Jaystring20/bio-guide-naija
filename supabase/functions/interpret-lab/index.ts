@@ -31,7 +31,6 @@ async function callGeminiWithRetry(body: unknown, apiKey: string): Promise<Respo
         console.log(`${model} exhausted retries with ${status}, trying next model`);
         break;
       }
-      // Non-retryable error
       return response;
     }
   }
@@ -86,13 +85,15 @@ serve(async (req) => {
     const base64 = btoa(binaryStr);
     const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
 
-    // --- Biomarker extraction ---
+    // --- Biomarker extraction (enhanced) ---
     const systemPrompt = `You are BioGuide's Lab Interpretation Engine for Nigerian users. You are a clinical-grade AI that reads lab results.
 
 RULES:
 - Extract ALL biomarker values, units, and reference ranges from the lab result image
 - Classify each biomarker as: normal, borderline, deranged-low, deranged-high, or critical
 - Write plain-English explanations (no medical jargon). Explain like a knowledgeable friend
+- For each biomarker, provide a practical lifestyle tip (non-drug) and trend context
+- Generate a one-paragraph overall health summary in plain English
 - NEVER suggest pharmaceutical drugs or medications
 - NEVER diagnose conditions. Only explain what the numbers mean
 
@@ -100,7 +101,7 @@ You MUST respond with a function call using the provided tool.`;
 
     const userPrompt = `Read this Nigerian lab result. The patient is ${profile?.age || "unknown age"} years old, ${profile?.sex || "unknown sex"}, from the ${profile?.geopolitical_zone || "unknown"} region of Nigeria.
 
-Extract all biomarkers with their values, units, reference ranges, and status classification.`;
+Extract all biomarkers with their values, units, reference ranges, status classification, lifestyle tips, and trend context. Also provide an overall health summary paragraph.`;
 
     const biomarkerBody = {
       systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -118,10 +119,14 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
           functionDeclarations: [
             {
               name: "submit_lab_interpretation",
-              description: "Submit the extracted biomarker data from the lab result",
+              description: "Submit the extracted biomarker data and health summary from the lab result",
               parameters: {
                 type: "object",
                 properties: {
+                  summary: {
+                    type: "string",
+                    description: "A one-paragraph plain-English overall health summary based on all biomarkers. Written for a non-medical person.",
+                  },
                   biomarkers: {
                     type: "array",
                     items: {
@@ -134,12 +139,14 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
                         status: { type: "string", enum: ["normal", "borderline", "deranged-low", "deranged-high", "critical"] },
                         explanation: { type: "string" },
                         why_it_matters: { type: "string" },
+                        lifestyle_tip: { type: "string", description: "One actionable non-drug lifestyle change to help improve this biomarker" },
+                        trend_context: { type: "string", description: "What this result could mean if it stays at this level or trends further" },
                       },
-                      required: ["name", "value", "unit", "reference_range", "status", "explanation", "why_it_matters"],
+                      required: ["name", "value", "unit", "reference_range", "status", "explanation", "why_it_matters", "lifestyle_tip", "trend_context"],
                     },
                   },
                 },
-                required: ["biomarkers"],
+                required: ["summary", "biomarkers"],
               },
             },
           ],
@@ -183,7 +190,7 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
       throw new Error("AI did not return structured data");
     }
 
-    const { biomarkers } = functionCall.functionCall.args;
+    const { biomarkers, summary } = functionCall.functionCall.args;
 
     // Critical thresholds check
     const criticalAlerts: any[] = [];
@@ -208,12 +215,12 @@ Extract all biomarkers with their values, units, reference ranges, and status cl
     const hasCritical = criticalAlerts.length > 0;
     const hasEmergency = criticalAlerts.some((a: any) => a.severity === "emergency");
 
-    // --- Diet plan (skip if emergency) ---
+    // --- Enhanced Diet plan + Consultation checklist ---
     let dietaryPlan = null;
     let consultationChecklist = null;
 
     if (!hasEmergency) {
-      const dietPrompt = `Based on these lab results for a patient from the ${profile?.geopolitical_zone || "Nigerian"} region, generate a Nigerian food-mapped dietary plan.
+      const dietPrompt = `Based on these lab results for a patient from the ${profile?.geopolitical_zone || "Nigerian"} region, generate a comprehensive Nigerian food-mapped dietary plan.
 
 Biomarkers: ${JSON.stringify(biomarkers.filter((b: any) => b.status !== "normal"))}
 
@@ -223,17 +230,20 @@ RULES:
 - Account for preparation methods (boiled vs stewed vs fried) and their nutrient differences
 - Never suggest pharmaceutical drugs
 - Be specific about quantities and preparation tips
-- Also generate 3-7 personalized questions for the patient to ask their doctor`;
+- Include a 7-day meal plan with breakfast, lunch, and dinner for each day
+- Include hydration tips based on the lab results
+- Include natural supplement suggestions (moringa, zobo, etc.) — no pharmaceuticals
+- Generate 3-7 personalized questions for the patient to ask their doctor, each with context explaining why it matters and a priority level`;
 
       const dietBody = {
-        systemInstruction: { parts: [{ text: "You are BioGuide's Nigerian Nutritional Intelligence Engine. Generate dietary plans using Nigerian foods with local market names. Never suggest drugs." }] },
+        systemInstruction: { parts: [{ text: "You are BioGuide's Nigerian Nutritional Intelligence Engine. Generate comprehensive dietary plans using Nigerian foods with local market names. Include weekly meal plans, hydration guidance, and natural supplements. Never suggest drugs." }] },
         contents: [{ role: "user", parts: [{ text: dietPrompt }] }],
         tools: [
           {
             functionDeclarations: [
               {
                 name: "submit_diet_plan",
-                description: "Submit the dietary plan and consultation checklist",
+                description: "Submit the comprehensive dietary plan and consultation checklist",
                 parameters: {
                   type: "object",
                   properties: {
@@ -277,12 +287,45 @@ RULES:
                             required: ["meal", "description"],
                           },
                         },
+                        weekly_meal_plan: {
+                          type: "array",
+                          description: "7-day meal plan with breakfast, lunch, and dinner",
+                          items: {
+                            type: "object",
+                            properties: {
+                              day: { type: "string", description: "Day of the week e.g. Monday" },
+                              breakfast: { type: "string" },
+                              lunch: { type: "string" },
+                              dinner: { type: "string" },
+                            },
+                            required: ["day", "breakfast", "lunch", "dinner"],
+                          },
+                        },
+                        hydration_tips: {
+                          type: "array",
+                          description: "Water and fluid recommendations based on results",
+                          items: { type: "string" },
+                        },
+                        supplement_notes: {
+                          type: "array",
+                          description: "Natural supplement suggestions (moringa, zobo, etc.) — no pharmaceuticals",
+                          items: { type: "string" },
+                        },
                       },
-                      required: ["foods_to_increase", "foods_to_reduce", "foods_to_avoid", "meal_suggestions"],
+                      required: ["foods_to_increase", "foods_to_reduce", "foods_to_avoid", "meal_suggestions", "weekly_meal_plan", "hydration_tips", "supplement_notes"],
                     },
                     consultation_checklist: {
                       type: "array",
-                      items: { type: "string" },
+                      description: "Personalized questions for the patient to ask their doctor",
+                      items: {
+                        type: "object",
+                        properties: {
+                          question: { type: "string" },
+                          context: { type: "string", description: "Why this question matters for the patient" },
+                          priority: { type: "string", enum: ["high", "medium", "low"] },
+                        },
+                        required: ["question", "context", "priority"],
+                      },
                     },
                   },
                   required: ["dietary_plan", "consultation_checklist"],
@@ -321,6 +364,7 @@ RULES:
       consultation_checklist: consultationChecklist,
       has_critical_alert: hasCritical,
       critical_alerts: criticalAlerts.length > 0 ? criticalAlerts : null,
+      ai_summary: summary || null,
       status: hasCritical ? "critical" : "completed",
     }).eq("id", labResultId);
 
