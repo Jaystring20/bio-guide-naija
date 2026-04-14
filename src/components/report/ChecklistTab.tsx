@@ -15,7 +15,7 @@ const PRIORITY_COLORS: Record<string, string> = {
   low: "bg-secondary/20 text-secondary border-secondary/30",
 };
 
-function isStructured(item: ChecklistItem): item is { question: string; context: string; priority: string } {
+function isStructured(item: ChecklistItem): item is { question: string; context: string; priority: "high" | "medium" | "low" } {
   return typeof item === "object" && "question" in item;
 }
 
