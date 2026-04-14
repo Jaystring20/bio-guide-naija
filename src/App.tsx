@@ -12,6 +12,7 @@ import Onboarding from "./pages/Onboarding";
 import UploadLab from "./pages/UploadLab";
 import ResultReport from "./pages/ResultReport";
 import History from "./pages/History";
+import Trends from "./pages/Trends";
 import BulkUpload from "./pages/BulkUpload";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -51,6 +52,7 @@ const App = () => (
               <Route path="/upload" element={<UploadLab />} />
               <Route path="/result/:id" element={<ResultReport />} />
               <Route path="/history" element={<History />} />
+              <Route path="/trends" element={<Trends />} />
               <Route path="/bulk-upload" element={<BulkUpload />} />
               <Route path="/profile" element={<Profile />} />
             </Route>

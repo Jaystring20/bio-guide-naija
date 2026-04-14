@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useDependants } from "@/hooks/useDependants";
-import { Loader2, FileText, AlertTriangle, User } from "lucide-react";
+import { Loader2, FileText, AlertTriangle, User, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const History = () => {
@@ -73,6 +73,24 @@ const History = () => {
           ))}
         </div>
       )}
+
+      {/* View Trends button */}
+      <button
+        onClick={() =>
+          navigate(
+            personFilter === "all" || personFilter === "myself"
+              ? "/trends"
+              : `/trends?person=${personFilter}`
+          )
+        }
+        className="w-full flex items-center gap-3 bg-accent/10 border border-accent/30 rounded-xl p-4 mb-5 text-left"
+      >
+        <TrendingUp className="w-5 h-5 text-accent flex-shrink-0" />
+        <div>
+          <p className="font-semibold text-body text-accent">View Trends</p>
+          <p className="text-body-sm text-muted-foreground">Track biomarkers over time</p>
+        </div>
+      </button>
 
       {isLoading && (
         <div className="flex justify-center py-20">

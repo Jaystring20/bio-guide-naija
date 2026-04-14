@@ -1,4 +1,4 @@
-import { Home, Upload, Clock, UserCircle } from "lucide-react";
+import { Home, Upload, Clock, TrendingUp, UserCircle } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -6,6 +6,7 @@ const tabs = [
   { path: "/", icon: Home, label: "Home" },
   { path: "/upload", icon: Upload, label: "Upload", center: true },
   { path: "/history", icon: Clock, label: "History" },
+  { path: "/trends", icon: TrendingUp, label: "Trends" },
   { path: "/profile", icon: UserCircle, label: "Profile" },
 ];
 
