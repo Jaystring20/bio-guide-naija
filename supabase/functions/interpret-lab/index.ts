@@ -85,23 +85,25 @@ serve(async (req) => {
     const base64 = btoa(binaryStr);
     const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
 
-    // --- Biomarker extraction (enhanced) ---
-    const systemPrompt = `You are BioGuide's Lab Interpretation Engine for Nigerian users. You are a clinical-grade AI that reads lab results.
+    // --- Biomarker extraction (warm, relatable tone) ---
+    const systemPrompt = `You are BioGuide's Lab Interpretation Engine for Nigerian users. You're like a caring, knowledgeable big sister or brother explaining health results.
 
 RULES:
 - Extract ALL biomarker values, units, and reference ranges from the lab result image
 - Classify each biomarker as: normal, borderline, deranged-low, deranged-high, or critical
-- Write plain-English explanations (no medical jargon). Explain like a knowledgeable friend
+- Write explanations like you're talking to a friend — warm, clear, no medical jargon
+- Use everyday analogies Nigerians can relate to (e.g., "Think of your liver like a water filter for your body")
 - For each biomarker, provide a practical lifestyle tip (non-drug) and trend context
-- Generate a one-paragraph overall health summary in plain English
+- Generate a one-paragraph overall health summary — warm and encouraging, like a friend who cares
 - NEVER suggest pharmaceutical drugs or medications
 - NEVER diagnose conditions. Only explain what the numbers mean
+- Keep it real, keep it relatable, keep it warm
 
 You MUST respond with a function call using the provided tool.`;
 
     const userPrompt = `Read this Nigerian lab result. The patient is ${profile?.age || "unknown age"} years old, ${profile?.sex || "unknown sex"}, from the ${profile?.geopolitical_zone || "unknown"} region of Nigeria.
 
-Extract all biomarkers with their values, units, reference ranges, status classification, lifestyle tips, and trend context. Also provide an overall health summary paragraph.`;
+Extract all biomarkers with their values, units, reference ranges, status classification, lifestyle tips, and trend context. Also provide an overall health summary paragraph that sounds like a caring friend talking — not a clinical report.`;
 
     const biomarkerBody = {
       systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -125,7 +127,7 @@ Extract all biomarkers with their values, units, reference ranges, status classi
                 properties: {
                   summary: {
                     type: "string",
-                    description: "A one-paragraph plain-English overall health summary based on all biomarkers. Written for a non-medical person.",
+                    description: "A one-paragraph plain-English overall health summary. Written warmly like a caring friend — not clinical.",
                   },
                   biomarkers: {
                     type: "array",
@@ -137,9 +139,9 @@ Extract all biomarkers with their values, units, reference ranges, status classi
                         unit: { type: "string" },
                         reference_range: { type: "string" },
                         status: { type: "string", enum: ["normal", "borderline", "deranged-low", "deranged-high", "critical"] },
-                        explanation: { type: "string" },
-                        why_it_matters: { type: "string" },
-                        lifestyle_tip: { type: "string", description: "One actionable non-drug lifestyle change to help improve this biomarker" },
+                        explanation: { type: "string", description: "Explain what this result means using everyday language and relatable analogies" },
+                        why_it_matters: { type: "string", description: "Why the patient should care about this — relate it to their daily life" },
+                        lifestyle_tip: { type: "string", description: "One actionable non-drug lifestyle change. Be specific and practical." },
                         trend_context: { type: "string", description: "What this result could mean if it stays at this level or trends further" },
                       },
                       required: ["name", "value", "unit", "reference_range", "status", "explanation", "why_it_matters", "lifestyle_tip", "trend_context"],
@@ -230,13 +232,14 @@ RULES:
 - Account for preparation methods (boiled vs stewed vs fried) and their nutrient differences
 - Never suggest pharmaceutical drugs
 - Be specific about quantities and preparation tips
+- Write like a caring friend giving food advice — warm, practical, relatable
 - Include a 7-day meal plan with breakfast, lunch, and dinner for each day
 - Include hydration tips based on the lab results
 - Include natural supplement suggestions (moringa, zobo, etc.) — no pharmaceuticals
 - Generate 3-7 personalized questions for the patient to ask their doctor, each with context explaining why it matters and a priority level`;
 
       const dietBody = {
-        systemInstruction: { parts: [{ text: "You are BioGuide's Nigerian Nutritional Intelligence Engine. Generate comprehensive dietary plans using Nigerian foods with local market names. Include weekly meal plans, hydration guidance, and natural supplements. Never suggest drugs." }] },
+        systemInstruction: { parts: [{ text: "You are BioGuide's Nigerian Nutritional Intelligence Engine. You're like a caring aunty who knows her food and health. Generate comprehensive dietary plans using Nigerian foods with local market names. Write warmly and relatably. Include weekly meal plans, hydration guidance, and natural supplements. Never suggest drugs." }] },
         contents: [{ role: "user", parts: [{ text: dietPrompt }] }],
         tools: [
           {
@@ -358,6 +361,154 @@ RULES:
       }
     }
 
+    // --- Pidgin Translation Call ---
+    let biomarkersPidgin = null;
+    let dietaryPlanPidgin = null;
+    let consultationChecklistPidgin = null;
+    let aiSummaryPidgin = null;
+
+    try {
+      const pidginInput = {
+        summary: summary || "",
+        biomarkers: biomarkers.map((b: any) => ({
+          name: b.name,
+          explanation: b.explanation,
+          why_it_matters: b.why_it_matters,
+          lifestyle_tip: b.lifestyle_tip || "",
+          trend_context: b.trend_context || "",
+        })),
+        dietary_plan: dietaryPlan ? {
+          foods_to_increase: dietaryPlan.foods_to_increase?.map((f: any) => ({ name: f.name, local_name: f.local_name, benefit: f.benefit, preparation_tip: f.preparation_tip || "" })),
+          foods_to_reduce: dietaryPlan.foods_to_reduce?.map((f: any) => ({ name: f.name, local_name: f.local_name, reason: f.reason })),
+          foods_to_avoid: dietaryPlan.foods_to_avoid?.map((f: any) => ({ name: f.name, local_name: f.local_name, reason: f.reason })),
+          meal_suggestions: dietaryPlan.meal_suggestions?.map((m: any) => ({ meal: m.meal, description: m.description })),
+          hydration_tips: dietaryPlan.hydration_tips || [],
+          supplement_notes: dietaryPlan.supplement_notes || [],
+        } : null,
+        consultation_checklist: consultationChecklist?.map((q: any) => typeof q === "string" ? { question: q, context: "" } : { question: q.question, context: q.context || "" }),
+      };
+
+      const pidginPrompt = `Translate the following health report content into Nigerian Pidgin English. 
+
+RULES:
+- Keep ALL medical terms/biomarker names in English (e.g., "Hemoglobin", "Glucose")
+- Translate the explanations, tips, reasons, and descriptions into warm, natural Nigerian Pidgin
+- Don't translate food names — keep those as-is
+- Make it sound like a caring friend who speaks Pidgin is explaining everything
+- Keep it accurate — don't change the medical meaning
+- Examples of good Pidgin: "Your sugar level dey too high o", "This one mean say your body no dey get enough iron", "Try dey drink more water every day"
+
+Here is the content to translate:
+${JSON.stringify(pidginInput, null, 2)}`;
+
+      const pidginBody = {
+        systemInstruction: { parts: [{ text: "You are a Nigerian Pidgin English translator for health content. You translate health explanations into warm, natural Nigerian Pidgin while keeping medical terms and food names in English. Be accurate but relatable." }] },
+        contents: [{ role: "user", parts: [{ text: pidginPrompt }] }],
+        tools: [
+          {
+            functionDeclarations: [
+              {
+                name: "submit_pidgin_translation",
+                description: "Submit the Pidgin translations of all health report content",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    summary_pidgin: { type: "string", description: "Pidgin translation of the health summary" },
+                    biomarkers_pidgin: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          name: { type: "string" },
+                          explanation: { type: "string" },
+                          why_it_matters: { type: "string" },
+                          lifestyle_tip: { type: "string" },
+                          trend_context: { type: "string" },
+                        },
+                        required: ["name", "explanation", "why_it_matters", "lifestyle_tip", "trend_context"],
+                      },
+                    },
+                    dietary_plan_pidgin: {
+                      type: "object",
+                      properties: {
+                        foods_to_increase: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: { name: { type: "string" }, benefit: { type: "string" }, preparation_tip: { type: "string" } },
+                            required: ["name", "benefit"],
+                          },
+                        },
+                        foods_to_reduce: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: { name: { type: "string" }, reason: { type: "string" } },
+                            required: ["name", "reason"],
+                          },
+                        },
+                        foods_to_avoid: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: { name: { type: "string" }, reason: { type: "string" } },
+                            required: ["name", "reason"],
+                          },
+                        },
+                        meal_suggestions: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: { meal: { type: "string" }, description: { type: "string" } },
+                            required: ["meal", "description"],
+                          },
+                        },
+                        hydration_tips: { type: "array", items: { type: "string" } },
+                        supplement_notes: { type: "array", items: { type: "string" } },
+                      },
+                    },
+                    consultation_checklist_pidgin: {
+                      type: "array",
+                      items: {
+                        type: "object",
+                        properties: {
+                          question: { type: "string" },
+                          context: { type: "string" },
+                        },
+                        required: ["question", "context"],
+                      },
+                    },
+                  },
+                  required: ["summary_pidgin", "biomarkers_pidgin"],
+                },
+              },
+            ],
+          },
+        ],
+        toolConfig: {
+          functionCallingConfig: {
+            mode: "ANY",
+            allowedFunctionNames: ["submit_pidgin_translation"],
+          },
+        },
+      };
+
+      const pidginResponse = await callGeminiWithRetry(pidginBody, geminiApiKey);
+      if (pidginResponse.ok) {
+        const pidginData = await pidginResponse.json();
+        const pidginFnCall = pidginData.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall);
+        if (pidginFnCall) {
+          const pidginArgs = pidginFnCall.functionCall.args;
+          aiSummaryPidgin = pidginArgs.summary_pidgin || null;
+          biomarkersPidgin = pidginArgs.biomarkers_pidgin || null;
+          dietaryPlanPidgin = pidginArgs.dietary_plan_pidgin || null;
+          consultationChecklistPidgin = pidginArgs.consultation_checklist_pidgin || null;
+        }
+      }
+    } catch {
+      console.log("Pidgin translation failed, continuing without it");
+    }
+
     await supabase.from("lab_results").update({
       biomarkers,
       dietary_plan: dietaryPlan,
@@ -365,6 +516,10 @@ RULES:
       has_critical_alert: hasCritical,
       critical_alerts: criticalAlerts.length > 0 ? criticalAlerts : null,
       ai_summary: summary || null,
+      biomarkers_pidgin: biomarkersPidgin,
+      dietary_plan_pidgin: dietaryPlanPidgin,
+      consultation_checklist_pidgin: consultationChecklistPidgin,
+      ai_summary_pidgin: aiSummaryPidgin,
       status: hasCritical ? "critical" : "completed",
     }).eq("id", labResultId);
 
