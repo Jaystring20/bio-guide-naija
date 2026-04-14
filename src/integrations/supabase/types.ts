@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       lab_results: {
         Row: {
+          ai_summary: string | null
           biomarkers: Json | null
           consultation_checklist: Json | null
           created_at: string
@@ -29,6 +30,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          ai_summary?: string | null
           biomarkers?: Json | null
           consultation_checklist?: Json | null
           created_at?: string
@@ -42,6 +44,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          ai_summary?: string | null
           biomarkers?: Json | null
           consultation_checklist?: Json | null
           created_at?: string

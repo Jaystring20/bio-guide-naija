@@ -1,0 +1,1 @@
+ALTER TABLE public.lab_results ADD COLUMN ai_summary text;
