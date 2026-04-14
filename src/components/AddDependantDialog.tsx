@@ -42,7 +42,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
       setFullName(editing.full_name);
       setAge(editing.age?.toString() || "");
       setSex(editing.sex || "");
-      setZone(editing.geopolitical_zone || "");
+      setZone((editing.geopolitical_zone as typeof zone) || "");
       setRelationship(editing.relationship);
     } else {
       setFullName("");
