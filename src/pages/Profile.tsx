@@ -165,7 +165,7 @@ const Profile = () => {
       <div className="bg-card rounded-xl border border-border p-5 mb-6">
         <p className="font-semibold mb-2 text-body-sm">Medical Disclaimer</p>
         <p className="text-xs text-muted-foreground">
-          BioGuide provides nutritional guidance based on your lab results. It is NOT a substitute for
+          VeriDIA provides nutritional guidance based on your lab results. It is NOT a substitute for
           professional medical advice, diagnosis, or treatment. Always consult your doctor or qualified
           healthcare provider with questions about your medical condition.
         </p>

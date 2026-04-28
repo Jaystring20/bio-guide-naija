@@ -99,7 +99,7 @@ serve(async (req) => {
     const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
 
     // --- Biomarker extraction (warm, relatable tone) ---
-    const systemPrompt = `You are BioGuide's Lab Interpretation Engine for Nigerian users. You're like a caring, knowledgeable big sister or brother explaining health results.
+    const systemPrompt = `You are VeriDIA's Lab Interpretation Engine for Nigerian users. You're like a caring, knowledgeable big sister or brother explaining health results.
 
 RULES:
 - Extract ALL biomarker values, units, and reference ranges from the lab result image
@@ -252,7 +252,7 @@ RULES:
 - Generate 3-7 personalized questions for the patient to ask their doctor, each with context explaining why it matters and a priority level`;
 
       const dietBody = {
-        systemInstruction: { parts: [{ text: "You are BioGuide's Nigerian Nutritional Intelligence Engine. You're like a caring aunty who knows her food and health. Generate comprehensive dietary plans using Nigerian foods with local market names. Write warmly and relatably. Include weekly meal plans, hydration guidance, and natural supplements. Never suggest drugs." }] },
+        systemInstruction: { parts: [{ text: "You are VeriDIA's Nigerian Nutritional Intelligence Engine. You're like a caring aunty who knows her food and health. Generate comprehensive dietary plans using Nigerian foods with local market names. Write warmly and relatably. Include weekly meal plans, hydration guidance, and natural supplements. Never suggest drugs." }] },
         contents: [{ role: "user", parts: [{ text: dietPrompt }] }],
         tools: [
           {
