@@ -60,10 +60,7 @@ const Landing = () => {
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
           <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold text-primary font-display">BioGuide</span>
+            <img src={veridiaLogo} alt="VeriDIA" className="h-9 w-auto" />
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
@@ -143,7 +140,7 @@ const Landing = () => {
           </motion.h1>
 
           <motion.p variants={fadeUp} className="text-lg sm:text-xl text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Confused by your lab report? BioGuide translates clinical numbers into plain English and culturally-grounded Nigerian dietary plans.
+            Confused by your lab report? VeriDIA translates clinical numbers into plain English and culturally-grounded Nigerian dietary plans.
           </motion.p>
 
           <motion.div variants={fadeUp} className="flex flex-col sm:flex-row items-center justify-center gap-3">
@@ -425,9 +422,9 @@ const Landing = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               { name: "Adaeze O.", city: "Lagos", quote: "I finally understand what my lab results mean. The diet plan with local foods made it so practical!" },
-              { name: "Ibrahim M.", city: "Abuja", quote: "The emergency alert saved me — I didn't know my potassium was critically high until BioGuide flagged it." },
+              { name: "Ibrahim M.", city: "Abuja", quote: "The emergency alert saved me — I didn't know my potassium was critically high until VeriDIA flagged it." },
               { name: "Folake A.", city: "Ibadan", quote: "I love the doctor checklist. I walked into my appointment feeling confident and prepared." },
-              { name: "Chidi E.", city: "Port Harcourt", quote: "No more confusing medical jargon. BioGuide explains everything in a way I can actually use." },
+              { name: "Chidi E.", city: "Port Harcourt", quote: "No more confusing medical jargon. VeriDIA explains everything in a way I can actually use." },
             ].map((t, i) => (
               <motion.div key={i} variants={fadeUp}>
                 <Card className="text-left border shadow-sm hover:shadow-lg transition-all duration-300 h-full">
@@ -471,7 +468,7 @@ const Landing = () => {
             <span className="text-accent">Let's make it easy.</span>
           </motion.h2>
           <motion.p variants={fadeUp} className="text-primary-foreground/80 max-w-lg mx-auto text-lg">
-            Join 500+ Nigerians already using BioGuide to understand their health and eat better.
+            Join 500+ Nigerians already using VeriDIA to understand their health and eat better.
           </motion.p>
           <motion.div variants={fadeUp}>
             <Button
@@ -489,13 +486,10 @@ const Landing = () => {
       <footer className="border-t py-12 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Leaf className="w-4 h-4 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-primary font-display">BioGuide</span>
+            <img src={veridiaLogo} alt="VeriDIA" className="h-8 w-auto" />
           </div>
           <p className="text-xs text-muted-foreground text-center max-w-md">
-            BioGuide is not a substitute for professional medical advice. Always consult a qualified healthcare provider.
+            VeriDIA is not a substitute for professional medical advice. Always consult a qualified healthcare provider.
           </p>
           <div className="flex gap-6 text-sm text-muted-foreground">
             <span className="hover:text-foreground cursor-pointer transition-colors">Privacy</span>
@@ -503,7 +497,7 @@ const Landing = () => {
             <span className="hover:text-foreground cursor-pointer transition-colors">Contact</span>
           </div>
         </div>
-        <p className="text-center text-xs text-muted-foreground mt-8">© {new Date().getFullYear()} BioGuide. All rights reserved.</p>
+        <p className="text-center text-xs text-muted-foreground mt-8">© {new Date().getFullYear()} VeriDIA. All rights reserved.</p>
       </footer>
     </div>
   );

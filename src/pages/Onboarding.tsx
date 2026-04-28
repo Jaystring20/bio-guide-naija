@@ -4,7 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Leaf, MapPin, User, ShieldCheck, Heart, Stethoscope, UserCheck } from "lucide-react";
+import { MapPin, User, ShieldCheck, Heart, Stethoscope, UserCheck } from "lucide-react";
+import veridiaLogo from "@/assets/veridia-logo.png";
 
 const ZONES = [
   { value: "south-south", label: "South-South", desc: "Rivers, Bayelsa, Delta, Edo, Akwa Ibom, Cross River" },
@@ -51,10 +52,8 @@ const Onboarding = () => {
   const screens = [
     // Welcome
     <div key="welcome" className="flex flex-col items-center text-center animate-slide-up">
-      <div className="w-20 h-20 rounded-2xl bg-primary flex items-center justify-center mb-6">
-        <Leaf className="w-10 h-10 text-primary-foreground" />
-      </div>
-      <h1 className="font-display text-3xl font-bold text-primary mb-3">Welcome to BioGuide</h1>
+      <img src={veridiaLogo} alt="VeriDIA" className="h-20 w-auto mb-6" />
+      <h1 className="font-display text-3xl font-bold text-secondary mb-3">Welcome to VeriDIA</h1>
       <p className="text-muted-foreground text-body max-w-xs mb-2">
         Your personal lab-to-nutrition companion — built for Nigerians, by Nigerians.
       </p>
@@ -65,7 +64,7 @@ const Onboarding = () => {
 
     // Role selection
     <div key="role" className="w-full animate-slide-up">
-      <h2 className="font-display text-2xl font-bold mb-2">How will you use BioGuide?</h2>
+      <h2 className="font-display text-2xl font-bold mb-2">How will you use VeriDIA?</h2>
       <p className="text-muted-foreground mb-6 text-body-sm">
         This helps us tailor the experience for you.
       </p>

@@ -142,7 +142,7 @@ const Index = () => {
 
       {/* Disclaimer */}
       <p className="text-xs text-muted-foreground text-center mt-8 px-4">
-        BioGuide provides nutritional guidance only and is not a substitute for professional medical advice.
+        VeriDIA provides nutritional guidance only and is not a substitute for professional medical advice.
         Always consult your doctor.
       </p>
     </div>
