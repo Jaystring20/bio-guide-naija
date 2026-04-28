@@ -8,6 +8,7 @@ import {
   ClipboardList, Star, ChevronRight, Heart, Lock, Trash2, Menu, X,
   Users, Baby, Activity, Stethoscope, HeartPulse, ArrowRight, Sparkles, CheckCircle2
 } from "lucide-react";
+import veridiaLogo from "@/assets/veridia-logo.png";
 
 /* ── Animation helpers ── */
 const fadeUp = {
