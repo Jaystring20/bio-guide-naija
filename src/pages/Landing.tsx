@@ -653,7 +653,7 @@ const Landing = () => {
       <footer className="border-t py-12 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <img src={veridiaLogo} alt="VeriDIA" className="h-8 w-auto" />
+            <img src={veridiaLogo} alt="VeriDIA" className="h-10 md:h-12 w-auto drop-shadow-sm" />
           </div>
           <p className="text-xs text-muted-foreground text-center max-w-md">
             VeriDIA is not a substitute for professional medical advice. Always consult a qualified healthcare provider.
