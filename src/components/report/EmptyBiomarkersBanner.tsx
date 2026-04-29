@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedbackSheet } from "@/components/feedback/FeedbackSheet";
 import type { Language } from "./types";
