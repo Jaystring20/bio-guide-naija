@@ -507,7 +507,7 @@ const Landing = () => {
             {[
               { icon: Leaf, title: "Nigerian Food Intelligence", desc: "Localized advice using foods from your region — Ugu, Ofada rice, Garden Egg, and more.", color: "text-primary", bg: "bg-primary/10", borderColor: "hover:border-primary/30" },
               { icon: AlertTriangle, title: "Emergency Safety Alerts", desc: "Critical values are flagged immediately with doctor contact guidance.", color: "text-destructive", bg: "bg-destructive/10", borderColor: "hover:border-destructive/30" },
-              { icon: ClipboardList, title: "Doctor Visit Checklist", desc: "Personalized questions to bring to your next appointment.", color: "text-accent", bg: "bg-accent/10", borderColor: "hover:border-accent/30" },
+              { icon: ClipboardList, title: "Doctor Visit Checklist", desc: "Personalized questions to bring to your next appointment.", color: "text-secondary-foreground", bg: "bg-accent/10", borderColor: "hover:border-accent/30" },
             ].map((f, i) => (
               <motion.div key={i} variants={fadeUp}>
                 <Card className={`text-left border shadow-sm hover:shadow-lg transition-all duration-300 group ${f.borderColor} h-full`}>
