@@ -372,6 +372,8 @@ const UploadLab = () => {
                 </p>
               </div>
 
+              <Ripple
+                onClick={() => cameraInputRef.current?.click()}
                 rippleColor="hsl(0 0% 100% / 0.45)"
                 className="group relative w-full overflow-hidden bg-gradient-hero rounded-3xl p-6 flex items-center gap-4 touch-target shadow-elevated transition-transform hover:scale-[1.01] animate-breathe"
               >
