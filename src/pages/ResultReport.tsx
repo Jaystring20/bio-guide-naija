@@ -33,7 +33,7 @@ const ResultReport = () => {
   const [language, setLanguage] = useState<Language>("en");
   const [showShareMenu, setShowShareMenu] = useState(false);
 
-  const { data: result, isLoading } = useQuery({
+  const { data: result, isLoading, refetch } = useQuery({
     queryKey: ["lab-result", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -48,9 +48,26 @@ const ResultReport = () => {
     enabled: !!id && !!user,
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.status === "processing" ? 3000 : false;
+      // Keep polling while still processing or background work hasn't finished.
+      if (data?.status === "processing") return 3000;
+      if (data?.status === "partial") return 4000;
+      return false;
     },
   });
+
+  // Realtime: react to background diet/Pidgin updates without waiting for poll.
+  useEffect(() => {
+    if (!id || !user) return;
+    const channel = supabase
+      .channel(`lab-result-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "lab_results", filter: `id=eq.${id}` },
+        () => { refetch(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, user, refetch]);
 
   useEffect(() => {
     if (result?.has_critical_alert) setShowEmergency(true);
