@@ -228,6 +228,152 @@ const Landing = () => {
         </motion.div>
       </section>
 
+      {/* ═══ Real People. Real Results. ═══ */}
+      <section className="relative py-20 md:py-28 px-4 overflow-hidden bg-gradient-to-b from-background to-card/40">
+        <div className="absolute inset-0 pointer-events-none opacity-60">
+          <Aurora tone="brand" intensity={0.4} />
+        </div>
+
+        <AnimatedSection className="relative max-w-6xl mx-auto space-y-14">
+          <motion.div variants={fadeUp} className="text-center space-y-3 max-w-2xl mx-auto">
+            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Real People. Real Results.</p>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
+              From confusing lab numbers<br className="hidden sm:block" /> to calm, clear action.
+            </h2>
+            <p className="text-muted-foreground text-base sm:text-lg pt-2">
+              Every day, Nigerian families turn worry into a plan they can actually follow. Here's how it sounds.
+            </p>
+          </motion.div>
+
+          {/* Constellation */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-12 md:gap-y-16">
+            {[
+              {
+                name: "Aunty Bisi",
+                role: "Caregiver, Lagos",
+                Icon: Users,
+                halo: "bg-destructive/15",
+                ring: "ring-destructive/30",
+                iconColor: "text-destructive",
+                worry: "Mum's BP is 240/120. What now?",
+                reply: "Critical. Call her doctor today. Cut salt; add ugu and watermelon.",
+                tilt: "-rotate-2",
+                replyTilt: "rotate-1",
+              },
+              {
+                name: "Mr. Adekunle",
+                role: "Living with diabetes",
+                Icon: Activity,
+                halo: "bg-primary/15",
+                ring: "ring-primary/30",
+                iconColor: "text-primary",
+                worry: "HbA1c 8.2 — is that bad?",
+                reply: "High. Swap white rice for ofada. Walk 20 min daily.",
+                tilt: "rotate-2",
+                replyTilt: "-rotate-1",
+              },
+              {
+                name: "Chioma",
+                role: "New mum, Enugu",
+                Icon: Baby,
+                halo: "bg-secondary/15",
+                ring: "ring-secondary/30",
+                iconColor: "text-secondary",
+                worry: "Iron 9.1 and I feel weak.",
+                reply: "Low. Add ugu, liver, and beans this week.",
+                tilt: "-rotate-1",
+                replyTilt: "rotate-2",
+              },
+              {
+                name: "Tunde",
+                role: "Health-conscious, Abuja",
+                Icon: HeartPulse,
+                halo: "bg-accent/15",
+                ring: "ring-accent/30",
+                iconColor: "text-accent",
+                worry: "Cholesterol 280 — am I in trouble?",
+                reply: "High. Try oats and garden egg. Recheck in 8 weeks.",
+                tilt: "rotate-1",
+                replyTilt: "-rotate-2",
+              },
+            ].map((p, i) => (
+              <motion.div key={i} variants={fadeUp} className="flex flex-col items-center gap-4">
+                {/* Worry bubble */}
+                <motion.div
+                  variants={fadeUp}
+                  className={`bg-card border rounded-2xl rounded-bl-sm shadow-sm px-4 py-3 text-sm text-muted-foreground max-w-[220px] ${p.tilt}`}
+                >
+                  <p className="leading-snug">"{p.worry}"</p>
+                  <p className="text-[11px] text-muted-foreground/70 mt-1.5 font-medium">— {p.name}</p>
+                </motion.div>
+
+                {/* Connector */}
+                <svg className="w-12 h-6 text-muted-foreground/30" viewBox="0 0 48 24" fill="none" aria-hidden>
+                  <motion.path
+                    d="M4 4 Q 24 24 44 4"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeDasharray="3 4"
+                    initial={{ pathLength: 0 }}
+                    whileInView={{ pathLength: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.9, delay: 0.2 + i * 0.1 }}
+                  />
+                </svg>
+
+                {/* Portrait halo */}
+                <motion.div
+                  variants={scaleIn}
+                  className={`relative w-24 h-24 sm:w-28 sm:h-28 rounded-full ${p.halo} ring-4 ${p.ring} flex items-center justify-center group transition-transform hover:scale-105`}
+                >
+                  <p.Icon className={`w-10 h-10 sm:w-12 sm:h-12 ${p.iconColor}`} strokeWidth={1.6} />
+                  <span aria-hidden className="absolute -inset-1 rounded-full ring-1 ring-foreground/5" />
+                </motion.div>
+
+                <p className="text-xs font-medium text-muted-foreground -mt-1">{p.role}</p>
+
+                {/* Reply bubble */}
+                <motion.div
+                  variants={fadeUp}
+                  className={`relative bg-gradient-brand-soft border border-primary/20 rounded-2xl rounded-tr-sm shadow-sm px-4 py-3 text-sm text-foreground max-w-[240px] ${p.replyTilt}`}
+                >
+                  <span className="absolute left-0 top-3 bottom-3 w-1 rounded-full bg-primary" aria-hidden />
+                  <div className="flex items-start gap-2 pl-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                    <p className="leading-snug font-medium">{p.reply}</p>
+                  </div>
+                  <p className="text-[11px] text-primary/80 mt-1.5 font-semibold pl-6">— VeriDIA</p>
+                </motion.div>
+              </motion.div>
+            ))}
+          </div>
+
+          {/* CTA + social proof */}
+          <motion.div variants={fadeUp} className="flex flex-col items-center gap-5 pt-4">
+            <Button
+              onClick={goAuth}
+              size="lg"
+              className="bg-gradient-brand text-primary-foreground hover:opacity-95 text-base font-semibold px-10 rounded-full h-13 shadow-glow-primary border-0 transition-all hover:scale-[1.02]"
+            >
+              Get your plan free <ArrowRight className="w-5 h-5" />
+            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2.5">
+                {avatars.map((a, i) => (
+                  <div key={i} className={`w-8 h-8 rounded-full ${a.bg} ${a.fg} flex items-center justify-center text-[11px] font-bold ring-2 ring-background`}>
+                    {a.initials}
+                  </div>
+                ))}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Trusted by <span className="font-semibold text-foreground">500+ Nigerian families</span>
+              </p>
+            </div>
+          </motion.div>
+        </AnimatedSection>
+      </section>
+
       {/* ═══ Stats Bar ═══ */}
       <AnimatedSection className="py-10 px-4 border-y bg-card">
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">

@@ -74,11 +74,10 @@ const Index = () => {
 
         <div className="relative">
           <div className="flex items-center justify-between mb-7">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur flex items-center justify-center ring-1 ring-white/20">
-                <img src={veridiaLogo} alt="VeriDIA" className="h-5 w-auto brightness-0 invert" />
+            <div className="flex items-center">
+              <div className="bg-white/95 backdrop-blur px-2.5 py-1.5 rounded-lg ring-1 ring-white/30 shadow-sm">
+                <img src={veridiaLogo} alt="VeriDIA" className="h-6 w-auto" />
               </div>
-              <span className="text-primary-foreground/80 text-sm font-semibold tracking-wide">VeriDIA</span>
             </div>
             <button
               onClick={() => navigate("/profile")}
