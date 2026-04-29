@@ -30,10 +30,23 @@ const UploadLab = () => {
   const selectedPerson = activeProfileId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const explicitRetryId = searchParams.get("retry");
 
   const { data: failedResult } = useQuery({
-    queryKey: ["failed-result", user?.id],
+    queryKey: ["failed-result", user?.id, explicitRetryId],
     queryFn: async () => {
+      // If the user clicked "Auto-retry" from a result, target that exact row.
+      if (explicitRetryId) {
+        const { data } = await supabase
+          .from("lab_results")
+          .select("*")
+          .eq("id", explicitRetryId)
+          .eq("user_id", user!.id)
+          .single();
+        return data;
+      }
+      // Otherwise, surface the most recent generic failure.
       const { data } = await supabase
         .from("lab_results")
         .select("*")
