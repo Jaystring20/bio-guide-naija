@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { AppShell } from "@/components/AppShell";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -15,6 +16,7 @@ import History from "./pages/History";
 import Trends from "./pages/Trends";
 import BulkUpload from "./pages/BulkUpload";
 import Profile from "./pages/Profile";
+import Family from "./pages/Family";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 
@@ -47,13 +49,20 @@ const App = () => (
             <Route path="/landing" element={<Landing />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/onboarding" element={<Onboarding />} />
-            <Route element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+            <Route element={
+              <ProtectedRoute>
+                <ActiveProfileProvider>
+                  <AppShell />
+                </ActiveProfileProvider>
+              </ProtectedRoute>
+            }>
               <Route path="/" element={<Index />} />
               <Route path="/upload" element={<UploadLab />} />
               <Route path="/result/:id" element={<ResultReport />} />
               <Route path="/history" element={<History />} />
               <Route path="/trends" element={<Trends />} />
               <Route path="/bulk-upload" element={<BulkUpload />} />
+              <Route path="/family" element={<Family />} />
               <Route path="/profile" element={<Profile />} />
             </Route>
             <Route path="*" element={<NotFound />} />
