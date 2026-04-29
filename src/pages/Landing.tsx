@@ -292,7 +292,7 @@ const Landing = () => {
                 Icon: HeartPulse,
                 halo: "bg-accent/15",
                 ring: "ring-accent/30",
-                iconColor: "text-accent",
+                iconColor: "text-secondary-foreground",
                 worry: "Cholesterol 280 — am I in trouble?",
                 reply: "High. Try oats and garden egg. Recheck in 8 weeks.",
                 tilt: "rotate-1",
