@@ -41,6 +41,7 @@ const Profile = () => {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
   const { dependants, addDependant, updateDependant, deleteDependant } = useDependants();
+  const { resolvedTheme } = useTheme();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Dependant | null>(null);
 
