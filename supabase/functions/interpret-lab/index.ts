@@ -358,6 +358,7 @@ Extract all biomarkers with their values, units, reference ranges, status classi
         critical_alerts: criticalAlerts.length > 0 ? criticalAlerts : null,
         status: partialStatus,
         processing_steps: steps,
+        diet_status: "pending",
       }).eq("id", labResultId);
       if (partialErr) {
         console.error("Partial write failed:", partialErr.message, partialErr);
