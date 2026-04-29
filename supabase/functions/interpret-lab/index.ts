@@ -527,12 +527,20 @@ Content: ${JSON.stringify(pidginInput, null, 2)}`;
         }
       }
 
-      // Final: mark as completed and persist all step timings
+      // Final: mark as completed and persist all step timings.
+      // Re-assert biomarkers + summary so a transient earlier write failure can't leave NULLs.
       const finalStatus = hasCritical ? "critical" : "completed";
-      await supabase.from("lab_results").update({
+      const { error: finalErr } = await supabase.from("lab_results").update({
         status: finalStatus,
+        biomarkers,
+        ai_summary: summary || null,
+        has_critical_alert: hasCritical,
+        critical_alerts: criticalAlerts.length > 0 ? criticalAlerts : null,
         processing_steps: [...steps, { step: "total", ms: Date.now() - t0, ok: true }],
       }).eq("id", labResultId);
+      if (finalErr) {
+        console.error("Final write failed:", finalErr.message, finalErr);
+      }
     };
 
     // Fire-and-forget — but Deno edge runtime needs waitUntil for it to actually run.
