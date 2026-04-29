@@ -188,32 +188,36 @@ const Index = () => {
 
       {/* Quick stats — scoped to active profile */}
       <motion.div {...fade(0.1)} className="grid grid-cols-2 gap-3 mb-5">
-        <button
+        <Ripple
           onClick={() => navigate("/history")}
+          rippleColor="hsl(217 60% 27% / 0.18)"
           className="bg-card rounded-2xl p-5 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
         >
           <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center mb-3">
             <Clock className="w-5 h-5 text-secondary" />
           </div>
           <p className="text-xs text-muted-foreground font-medium">Results</p>
-          <p className="font-display text-lg font-bold mt-0.5">{stats.total}</p>
-        </button>
-        <button
+          <p className="font-display text-lg font-bold mt-0.5">
+            <CountUp to={stats.total} />
+          </p>
+        </Ripple>
+        <Ripple
           onClick={() => navigate("/trends")}
+          rippleColor="hsl(145 63% 49% / 0.2)"
           className="bg-card rounded-2xl p-5 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
         >
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stats.flagged > 0 ? "bg-destructive/10" : "bg-primary/10"}`}>
             {stats.flagged > 0 ? (
-              <AlertTriangle className="w-5 h-5 text-destructive" />
+              <AlertTriangle className="w-5 h-5 text-destructive animate-heartbeat" />
             ) : (
               <TrendingUp className="w-5 h-5 text-primary" />
             )}
           </div>
           <p className="text-xs text-muted-foreground font-medium">Flagged</p>
           <p className="font-display text-lg font-bold mt-0.5">
-            {stats.flagged > 0 ? stats.flagged : "All clear"}
+            {stats.flagged > 0 ? <CountUp to={stats.flagged} /> : "All clear"}
           </p>
-        </button>
+        </Ripple>
       </motion.div>
 
       {/* Latest result for active profile */}
