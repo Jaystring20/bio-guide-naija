@@ -166,7 +166,7 @@ const Landing = () => {
             <Button
               onClick={goAuth}
               size="lg"
-              className="bg-gradient-brand text-primary-foreground hover:opacity-95 text-base font-semibold px-10 rounded-full h-13 shadow-glow-primary border-0 transition-all hover:scale-[1.02]"
+              className="bg-gradient-brand text-primary-foreground hover:opacity-95 text-base font-semibold px-10 rounded-full h-13 shadow-glow-primary border-0 transition-all hover:scale-[1.02] animate-subtle-pulse"
             >
               Get Started Free <ArrowRight className="w-5 h-5" />
             </Button>
