@@ -101,12 +101,19 @@ const UploadLab = () => {
 
   const handleUpload = async () => {
     if (!file || !user) return;
+    if (quality && !quality.recoverable) {
+      toast.error(quality.reasonEn ?? "Please retake a clearer photo before uploading.");
+      return;
+    }
     setUploading(true);
 
     try {
+      setProcessingStep("Enhancing your photo...");
+      const uploadFile = file.type.startsWith("image/") ? await enhanceImage(file, quality) : file;
+
       setProcessingStep("Uploading your lab result...");
-      const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("lab-uploads").upload(filePath, file);
+      const filePath = `${user.id}/${Date.now()}-${uploadFile.name}`;
+      const { error: uploadError } = await supabase.storage.from("lab-uploads").upload(filePath, uploadFile);
       if (uploadError) throw uploadError;
 
       setProcessingStep("Creating your record...");
@@ -149,12 +156,19 @@ const UploadLab = () => {
 
   const handleRetry = async () => {
     if (!failedResult || !file || !user) return;
+    if (quality && !quality.recoverable) {
+      toast.error(quality.reasonEn ?? "Please retake a clearer photo before retrying.");
+      return;
+    }
     setRetrying(true);
 
     try {
+      setProcessingStep("Enhancing your photo...");
+      const uploadFile = file.type.startsWith("image/") ? await enhanceImage(file, quality) : file;
+
       setProcessingStep("Re-uploading your lab result...");
-      const filePath = `${user.id}/${Date.now()}-${file.name}`;
-      const { error: uploadError } = await supabase.storage.from("lab-uploads").upload(filePath, file);
+      const filePath = `${user.id}/${Date.now()}-${uploadFile.name}`;
+      const { error: uploadError } = await supabase.storage.from("lab-uploads").upload(filePath, uploadFile);
       if (uploadError) throw uploadError;
 
       setProcessingStep("AI is re-reading your lab result...");
