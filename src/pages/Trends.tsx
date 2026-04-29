@@ -166,7 +166,7 @@ const Trends = () => {
 
       <div className="flex flex-wrap gap-2 mb-6">
         <button
-          onClick={() => setSelectedPerson("myself")}
+          onClick={() => setActiveProfileId(null)}
           className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
             selectedPerson === "myself"
               ? "border-accent bg-accent/10 text-accent"
@@ -178,7 +178,7 @@ const Trends = () => {
         {dependants.map((d) => (
           <button
             key={d.id}
-            onClick={() => setSelectedPerson(d.id)}
+            onClick={() => setActiveProfileId(d.id)}
             className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
               selectedPerson === d.id
                 ? "border-accent bg-accent/10 text-accent"
