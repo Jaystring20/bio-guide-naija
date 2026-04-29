@@ -140,6 +140,24 @@ const ResultReport = () => {
   const processingSteps = ((result as any).processing_steps as Array<{ step: string; ms?: number; ok?: boolean; model?: string; note?: string }> | null) || null;
   const biomarkersEmpty = biomarkers.length === 0;
 
+  // ----- Diet/checklist generation lifecycle -----
+  // diet_status is the source of truth (added in 2026-04 migration). For legacy
+  // rows that predate the column, infer: if status is terminal AND the report is
+  // older than 5 minutes, treat null diet as 'failed' (worth offering regenerate)
+  // rather than spinning forever.
+  const rawDietStatus = (result as any).diet_status as "pending" | "done" | "failed" | undefined;
+  const ageMs = Date.now() - new Date(result.upload_date).getTime();
+  const inferredDietStatus: "pending" | "done" | "failed" =
+    rawDietStatus
+      ? rawDietStatus
+      : dietaryPlan
+        ? "done"
+        : (result.status === "completed" || result.status === "critical") && ageMs > 5 * 60 * 1000
+          ? "failed"
+          : "pending";
+  const dietPending = inferredDietStatus === "pending";
+  const dietFailed = inferredDietStatus === "failed";
+
   if (showEmergency && criticalAlerts.length > 0) {
     return (
       <EmergencyAlert alerts={criticalAlerts} onAcknowledge={() => setShowEmergency(false)} />
