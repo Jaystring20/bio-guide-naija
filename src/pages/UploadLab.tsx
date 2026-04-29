@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
 import { supabase } from "@/integrations/supabase/client";
