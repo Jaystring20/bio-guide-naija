@@ -359,6 +359,19 @@ const AdminDashboard = () => {
                   value={m.active_users_30d ? (m.results_30d / m.active_users_30d).toFixed(1) : "—"}
                   sub="Last 30 days"
                 />
+                <StatCard
+                  icon={MessageSquare}
+                  label="Feedback (7d)"
+                  value={m.feedback_7d}
+                  sub={`${m.feedback_total} total · ${m.feedback_unresolved_bugs} open bugs`}
+                />
+                <StatCard
+                  icon={Star}
+                  label="Avg rating (30d)"
+                  value={m.avg_rating_30d ?? "—"}
+                  sub={m.avg_nps_30d !== null ? `NPS avg: ${m.avg_nps_30d}` : "No NPS yet"}
+                  tone="success"
+                />
               </div>
 
               {/* Activity chart */}
