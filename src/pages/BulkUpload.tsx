@@ -244,7 +244,7 @@ const BulkUpload = () => {
                             key={d.id}
                             onClick={() => updateItem(item.id, { personId: d.id })}
                             className={`px-3 py-1 rounded-lg border text-xs font-medium transition-all ${
-                              item.personId === d.id ? "border-accent bg-accent/10 text-accent" : "border-border bg-background"
+                              item.personId === d.id ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-background"
                             }`}
                           >
                             {d.full_name}
