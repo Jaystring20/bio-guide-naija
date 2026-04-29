@@ -14,6 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { Ripple } from "@/components/Ripple";
 import { UploadPreviewOverlay } from "@/components/UploadPreviewOverlay";
+import { ReportProblemButton } from "@/components/feedback/InlineRatingPrompt";
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -272,6 +273,9 @@ const UploadLab = () => {
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Retry Analysis
                 </Button>
+                <div className="mt-2">
+                  <ReportProblemButton resultId={failedResult.id} />
+                </div>
               </div>
             </div>
           )}
