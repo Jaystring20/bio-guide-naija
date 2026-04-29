@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import veridiaLogo from "@/assets/veridia-logo.png";
+import { VeridiaLogo } from "@/components/VeridiaLogo";
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -37,7 +37,7 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <img src={veridiaLogo} alt="VeriDIA" className="h-24 sm:h-28 w-auto mx-auto mb-4 drop-shadow-md" />
+          <VeridiaLogo className="h-24 sm:h-28 w-auto mx-auto mb-4 drop-shadow-md" />
           <p className="text-muted-foreground mt-2">
             Your lab-to-nutrition companion
           </p>

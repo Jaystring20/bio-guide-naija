@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useProfileStats } from "@/hooks/useProfileStats";
 import { useDependants } from "@/hooks/useDependants";
 import { motion, useReducedMotion } from "framer-motion";
-import veridiaLogo from "@/assets/veridia-logo.png";
+import { VeridiaLogo } from "@/components/VeridiaLogo";
 import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { Ripple } from "@/components/Ripple";
@@ -83,7 +83,7 @@ const Index = () => {
           <div className="flex items-center justify-between mb-7">
             <div className="flex items-center">
               <div className="bg-white/95 backdrop-blur px-3.5 py-2.5 rounded-2xl ring-1 ring-white/40 shadow-lg">
-                <img src={veridiaLogo} alt="VeriDIA" className="h-11 sm:h-12 w-auto" />
+                <VeridiaLogo className="h-11 sm:h-12 w-auto" />
               </div>
             </div>
             <button

@@ -8,7 +8,7 @@ import {
   ClipboardList, Star, ChevronRight, Heart, Lock, Trash2, Menu, X,
   Users, Baby, Activity, Stethoscope, HeartPulse, ArrowRight, Sparkles, CheckCircle2
 } from "lucide-react";
-import veridiaLogo from "@/assets/veridia-logo.png";
+import { VeridiaLogo } from "@/components/VeridiaLogo";
 import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -64,11 +64,7 @@ const Landing = () => {
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16 md:h-20">
           <div className="flex items-center gap-2">
-            <img
-              src={veridiaLogo}
-              alt="VeriDIA"
-              className="h-12 sm:h-14 md:h-16 w-auto drop-shadow-md dark:bg-white/95 dark:rounded-xl dark:px-2 dark:py-1 dark:shadow-glow-primary"
-            />
+            <VeridiaLogo className="h-12 sm:h-14 md:h-16 w-auto drop-shadow-md" />
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
@@ -659,11 +655,7 @@ const Landing = () => {
       <footer className="border-t py-12 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <img
-              src={veridiaLogo}
-              alt="VeriDIA"
-              className="h-12 md:h-14 w-auto drop-shadow-md dark:bg-white/95 dark:rounded-xl dark:px-2 dark:py-1 dark:shadow-glow-primary"
-            />
+            <VeridiaLogo className="h-12 md:h-14 w-auto drop-shadow-md" />
           </div>
           <p className="text-xs text-muted-foreground text-center max-w-md">
             VeriDIA is not a substitute for professional medical advice. Always consult a qualified healthcare provider.
