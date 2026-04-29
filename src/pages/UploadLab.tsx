@@ -348,8 +348,30 @@ const UploadLab = () => {
                 </div>
               )}
 
-              <Ripple
-                onClick={() => cameraInputRef.current?.click()}
+              {/* Before-you-upload checklist */}
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                <p className="text-[11px] uppercase tracking-wider font-bold text-primary mb-2.5">
+                  Before you upload
+                </p>
+                <ul className="space-y-2">
+                  {[
+                    { Icon: Sun, text: "Bright, even light — no shadows or glare" },
+                    { Icon: Crop, text: "Whole page in frame — every edge visible" },
+                    { Icon: Type, text: "Numbers and units (mg/dL, %) sharp & readable" },
+                    { Icon: CheckCircle2, text: "Hold steady — let the camera focus first" },
+                  ].map(({ Icon, text }, i) => (
+                    <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                      <Icon className="w-4 h-4 mt-0.5 shrink-0 text-primary" />
+                      <span>{text}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[11px] text-muted-foreground mt-2.5 italic flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3" />
+                  We'll auto-enhance brightness and sharpness on upload.
+                </p>
+              </div>
+
                 rippleColor="hsl(0 0% 100% / 0.45)"
                 className="group relative w-full overflow-hidden bg-gradient-hero rounded-3xl p-6 flex items-center gap-4 touch-target shadow-elevated transition-transform hover:scale-[1.01] animate-breathe"
               >
