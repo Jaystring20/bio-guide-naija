@@ -72,60 +72,74 @@
   }
 
   .dark {
-    /* WhatsApp-inspired dark mode — deep teal-charcoal, lifted cards, soft text */
-    --background: 200 23% 7%;        /* #0B141A — chat backdrop */
-    --foreground: 180 10% 93%;       /* #E9EDEF — primary text */
+    /* VeriDIA Dark — premium, high-contrast, layered surfaces (inspired by WhatsApp + Linear) */
 
-    --card: 202 23% 11%;             /* #111B21 — chat bubble / surface */
-    --card-foreground: 180 10% 93%;
+    /* Surface tiers: bg < card < popover  (each step ~+4% lightness for clear elevation) */
+    --background: 200 18% 11%;       /* #172126 — warm charcoal, NOT near-black */
+    --foreground: 200 15% 96%;       /* #F1F4F5 — bright text, AAA on bg */
 
-    --popover: 200 18% 14%;          /* #1F2C33 — menus */
-    --popover-foreground: 180 10% 93%;
+    --card: 200 16% 15%;             /* #1F2A30 — lifted surface */
+    --card-foreground: 200 15% 96%;
 
-    --primary: 145 55% 52%;          /* Vital Green, slightly lifted for dark */
-    --primary-foreground: 200 23% 7%;
+    --popover: 200 14% 19%;          /* #2A363D — top-most layer (menus, dialogs) */
+    --popover-foreground: 200 15% 96%;
 
-    --secondary: 199 16% 18%;        /* #202C33 — incoming bubble */
-    --secondary-foreground: 180 10% 93%;
+    /* Vivid Vital Green — pops against dark, high contrast */
+    --primary: 145 70% 55%;          /* #3DDC84 */
+    --primary-foreground: 200 18% 8%;
 
-    --muted: 199 16% 18%;            /* #202C33 */
-    --muted-foreground: 198 9% 58%;  /* #8696A0 — meta text */
+    /* Secondary surface — incoming-bubble feel */
+    --secondary: 200 14% 22%;        /* #303D44 */
+    --secondary-foreground: 200 15% 96%;
 
-    --accent: 168 76% 36%;           /* WhatsApp teal-green accent for dark */
-    --accent-foreground: 180 10% 96%;
+    /* Muted surface for subtle chips/blocks */
+    --muted: 200 14% 19%;            /* #2A363D */
+    --muted-foreground: 200 12% 75%; /* #B6C2C7 — readable secondary text (AA+) */
 
-    --destructive: 6 70% 56%;
+    /* Accent: bright WhatsApp teal — vibrant call-to-action */
+    --accent: 168 76% 45%;           /* #1FD1A6 */
+    --accent-foreground: 200 18% 8%;
+
+    --destructive: 6 78% 62%;        /* brighter coral red, easier to spot */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 200 12% 22%;           /* #2A3942 — dividers */
-    --input: 200 12% 22%;
-    --ring: 145 55% 52%;
+    /* Borders: visible but soft — define every card edge clearly */
+    --border: 200 12% 28%;           /* #3B4B53 */
+    --input: 200 12% 28%;
+    --ring: 145 70% 55%;
 
-    --vital-pale: 145 40% 16%;
-    --clinical-pale: 200 18% 14%;
+    --vital-pale: 145 35% 18%;
+    --clinical-pale: 200 14% 19%;
 
-    --sidebar-background: 202 23% 9%;
-    --sidebar-foreground: 180 10% 93%;
-    --sidebar-primary: 145 55% 52%;
-    --sidebar-primary-foreground: 200 23% 7%;
-    --sidebar-accent: 199 16% 18%;
-    --sidebar-accent-foreground: 180 10% 93%;
-    --sidebar-border: 200 12% 18%;
-    --sidebar-ring: 145 55% 52%;
+    --vital-green: 145 70% 55%;
+    --clinical-navy: 200 14% 22%;
+    --forest-verification: 145 65% 48%;
+    --mid-navy: 200 14% 30%;
+    --emergency-red: 6 78% 62%;
+    --alert-amber: 38 92% 60%;
 
-    /* Re-tuned gradients for dark mode */
-    --gradient-brand: linear-gradient(135deg, hsl(145 55% 48%) 0%, hsl(145 55% 34%) 100%);
-    --gradient-brand-soft: linear-gradient(135deg, hsl(145 55% 48% / 0.18) 0%, hsl(145 55% 34% / 0.10) 100%);
-    --gradient-navy: linear-gradient(135deg, hsl(200 18% 16%) 0%, hsl(202 23% 10%) 100%);
-    --gradient-surface: linear-gradient(180deg, hsl(202 23% 11%) 0%, hsl(200 23% 7%) 100%);
-    --gradient-hero: linear-gradient(140deg, hsl(168 76% 30%) 0%, hsl(145 55% 32%) 55%, hsl(202 23% 11%) 100%);
+    --sidebar-background: 200 18% 13%;
+    --sidebar-foreground: 200 15% 96%;
+    --sidebar-primary: 145 70% 55%;
+    --sidebar-primary-foreground: 200 18% 8%;
+    --sidebar-accent: 200 14% 19%;
+    --sidebar-accent-foreground: 200 15% 96%;
+    --sidebar-border: 200 12% 22%;
+    --sidebar-ring: 145 70% 55%;
 
-    /* Deeper shadows on dark */
-    --shadow-soft: 0 1px 2px 0 hsl(0 0% 0% / 0.35), 0 1px 3px 0 hsl(0 0% 0% / 0.25);
-    --shadow-card: 0 2px 6px -1px hsl(0 0% 0% / 0.4), 0 6px 16px -4px hsl(0 0% 0% / 0.35);
-    --shadow-elevated: 0 10px 30px -8px hsl(0 0% 0% / 0.55), 0 4px 10px -2px hsl(0 0% 0% / 0.35);
-    --shadow-glow-primary: 0 8px 28px -6px hsl(145 55% 52% / 0.45);
-    --shadow-glow-accent: 0 8px 28px -6px hsl(168 76% 36% / 0.45);
+    /* Gradients — richer, more dimensional */
+    --gradient-brand: linear-gradient(135deg, hsl(145 70% 52%) 0%, hsl(168 76% 40%) 100%);
+    --gradient-brand-soft: linear-gradient(135deg, hsl(145 70% 55% / 0.20) 0%, hsl(168 76% 45% / 0.12) 100%);
+    --gradient-navy: linear-gradient(135deg, hsl(200 14% 24%) 0%, hsl(200 18% 14%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(200 16% 16%) 0%, hsl(200 18% 11%) 100%);
+    --gradient-hero: linear-gradient(140deg, hsl(168 76% 38%) 0%, hsl(145 65% 38%) 55%, hsl(200 18% 14%) 100%);
+
+    /* Shadows — softer & with subtle green ambient glow so cards feel lit, not dead */
+    --shadow-soft: 0 1px 2px 0 hsl(0 0% 0% / 0.4), 0 1px 3px 0 hsl(0 0% 0% / 0.3);
+    --shadow-card: 0 2px 8px -2px hsl(0 0% 0% / 0.45), 0 8px 20px -6px hsl(0 0% 0% / 0.4);
+    --shadow-elevated: 0 12px 36px -10px hsl(0 0% 0% / 0.6), 0 4px 12px -3px hsl(145 70% 30% / 0.18);
+    --shadow-glow-primary: 0 10px 32px -8px hsl(145 70% 55% / 0.55);
+    --shadow-glow-accent: 0 10px 32px -8px hsl(168 76% 45% / 0.5);
   }
 }
 
