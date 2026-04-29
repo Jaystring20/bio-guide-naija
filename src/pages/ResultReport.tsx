@@ -269,7 +269,14 @@ const ResultReport = () => {
             <SummaryTab biomarkers={biomarkers} aiSummary={aiSummary} aiSummaryPidgin={aiSummaryPidgin} uploadDate={result.upload_date} language={language} />
           )}
           {activeTab === "results" && (
-            <BiomarkersTab biomarkers={biomarkers} biomarkersPidgin={biomarkersPidgin} language={language} />
+            <BiomarkersTab
+              biomarkers={biomarkers}
+              biomarkersPidgin={biomarkersPidgin}
+              language={language}
+              status={result.status}
+              processingSteps={processingSteps}
+              resultId={id ?? null}
+            />
           )}
           {activeTab === "diet" && dietaryPlan && (
             <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
