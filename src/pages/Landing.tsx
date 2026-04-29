@@ -238,7 +238,7 @@ const Landing = () => {
 
         <AnimatedSection className="relative max-w-6xl mx-auto space-y-14">
           <motion.div variants={fadeUp} className="text-center space-y-3 max-w-2xl mx-auto">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Real People. Real Results.</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">Real People. Real Results.</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
               From confusing lab numbers<br className="hidden sm:block" /> to calm, clear action.
             </h2>
