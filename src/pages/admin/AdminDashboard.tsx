@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Shield,
   Users,
@@ -206,12 +208,31 @@ const AdminDashboard = () => {
     },
   });
 
+  // All critical results across the database (admins can read all via RLS)
+  const criticalQ = useQuery({
+    queryKey: ["admin-critical-user-ids"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("lab_results")
+        .select("user_id")
+        .eq("has_critical_alert", true);
+      return new Set((data || []).map((r) => r.user_id));
+    },
+  });
+
+  const [usersCriticalOnly, setUsersCriticalOnly] = useState(false);
+  const [resultsCriticalOnly, setResultsCriticalOnly] = useState(false);
+
   const m = metricsQ.data;
   const filteredUsers = (usersQ.data || []).filter(
     (u) =>
-      !search ||
-      u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.full_name?.toLowerCase().includes(search.toLowerCase())
+      (!search ||
+        u.email?.toLowerCase().includes(search.toLowerCase()) ||
+        u.full_name?.toLowerCase().includes(search.toLowerCase())) &&
+      (!usersCriticalOnly || criticalQ.data?.has(u.user_id))
+  );
+  const filteredResults = (resultsQ.data || []).filter(
+    (r) => !resultsCriticalOnly || r.has_critical_alert
   );
   const failedResults = (resultsQ.data || []).filter((r) => r.status === "failed");
   const successRate30 = m && m.results_30d > 0
@@ -374,7 +395,7 @@ const AdminDashboard = () => {
               disabled={!filteredUsers.length}
               onClick={() =>
                 downloadCSV(
-                  "veridia-users",
+                  usersCriticalOnly ? "veridia-users-critical" : "veridia-users",
                   ["Name", "Email", "Joined", "Last sign in", "Last activity", "Results", "Dependants", "Admin", "User ID"],
                   filteredUsers.map((u) => [
                     u.full_name,
@@ -394,6 +415,34 @@ const AdminDashboard = () => {
               Export CSV
             </Button>
           </div>
+
+          <label
+            htmlFor="users-critical-toggle"
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
+              usersCriticalOnly
+                ? "border-destructive/40 bg-destructive/5"
+                : "border-border bg-card"
+            )}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertTriangle className={cn("w-4 h-4 shrink-0", usersCriticalOnly ? "text-destructive" : "text-muted-foreground")} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Critical alerts only</p>
+                <p className="text-xs text-muted-foreground">
+                  {usersCriticalOnly
+                    ? `Showing ${filteredUsers.length} user${filteredUsers.length === 1 ? "" : "s"} with at least one critical result`
+                    : "Filter the list and export to users who triggered critical thresholds"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="users-critical-toggle"
+              checked={usersCriticalOnly}
+              onCheckedChange={setUsersCriticalOnly}
+              disabled={criticalQ.isLoading}
+            />
+          </label>
 
           {usersQ.isLoading ? (
             <div className="flex justify-center py-16">
@@ -454,16 +503,35 @@ const AdminDashboard = () => {
 
         {/* RESULTS */}
         <TabsContent value="results" className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label
+              htmlFor="results-critical-toggle"
+              className={cn(
+                "flex items-center gap-3 rounded-xl border px-4 py-2.5 cursor-pointer transition-colors",
+                resultsCriticalOnly
+                  ? "border-destructive/40 bg-destructive/5"
+                  : "border-border bg-card"
+              )}
+            >
+              <AlertTriangle className={cn("w-4 h-4", resultsCriticalOnly ? "text-destructive" : "text-muted-foreground")} />
+              <Label htmlFor="results-critical-toggle" className="text-sm font-semibold cursor-pointer">
+                Critical alerts only
+              </Label>
+              <Switch
+                id="results-critical-toggle"
+                checked={resultsCriticalOnly}
+                onCheckedChange={setResultsCriticalOnly}
+              />
+            </label>
             <Button
               variant="outline"
               className="h-11 gap-2"
-              disabled={!resultsQ.data?.length}
+              disabled={!filteredResults.length}
               onClick={() =>
                 downloadCSV(
-                  "veridia-recent-results",
+                  resultsCriticalOnly ? "veridia-critical-results" : "veridia-recent-results",
                   ["Upload date", "User name", "Email", "Status", "Critical", "Result ID", "User ID", "Dependant ID"],
-                  (resultsQ.data || []).map((r) => [
+                  filteredResults.map((r) => [
                     r.upload_date,
                     r.full_name,
                     r.email,
@@ -480,6 +548,11 @@ const AdminDashboard = () => {
               Export CSV
             </Button>
           </div>
+          {resultsCriticalOnly && (
+            <p className="text-xs text-muted-foreground px-1">
+              Showing the {filteredResults.length} critical {filteredResults.length === 1 ? "result" : "results"} from the most recent 100 uploads.
+            </p>
+          )}
           {resultsQ.isLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -499,7 +572,7 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(resultsQ.data || []).map((r) => (
+                    {filteredResults.map((r) => (
                       <tr key={r.id} className="border-t border-border hover:bg-muted/20">
                         <td className="px-4 py-3 text-muted-foreground">{fmtDateTime(r.upload_date)}</td>
                         <td className="px-4 py-3">
@@ -521,8 +594,10 @@ const AdminDashboard = () => {
                   </tbody>
                 </table>
               </div>
-              {(resultsQ.data || []).length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-8">No results yet.</p>
+              {filteredResults.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-8">
+                  {resultsCriticalOnly ? "No critical results in the recent window." : "No results yet."}
+                </p>
               )}
             </div>
           )}
