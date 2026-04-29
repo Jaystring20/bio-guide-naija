@@ -94,7 +94,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
                   onClick={() => setRelationship(r.value)}
                   className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                     relationship === r.value
-                      ? "border-accent bg-accent/10 text-accent"
+                      ? "border-accent bg-accent/10 text-secondary-foreground"
                       : "border-border bg-card"
                   }`}
                 >
@@ -123,7 +123,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
                     key={s}
                     onClick={() => setSex(s)}
                     className={`flex-1 h-12 rounded-xl border text-sm font-medium capitalize transition-all ${
-                      sex === s ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+                      sex === s ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-card"
                     }`}
                   >
                     {s}
@@ -142,7 +142,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
                   onClick={() => setZone(z.value as typeof zone)}
                   className={`px-3 py-2 rounded-lg border text-sm transition-all ${
                     zone === z.value
-                      ? "border-accent bg-accent/10 text-accent font-medium"
+                      ? "border-accent bg-accent/10 text-secondary-foreground font-medium"
                       : "border-border bg-card"
                   }`}
                 >

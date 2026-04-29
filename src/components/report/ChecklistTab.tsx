@@ -79,7 +79,7 @@ export const ChecklistTab = ({ checklist, checklistPidgin, language }: Checklist
                 onClick={() => structured ? setExpandedQ(expandedQ === i ? null : i) : undefined}
                 className={cn("w-full p-4 flex gap-3 text-left", structured && "touch-target")}
               >
-                <span className="w-7 h-7 rounded-full bg-accent/20 text-accent font-bold text-sm flex items-center justify-center flex-shrink-0">
+                <span className="w-7 h-7 rounded-full bg-accent/20 text-secondary-foreground font-bold text-sm flex items-center justify-center flex-shrink-0">
                   {i + 1}
                 </span>
                 <div className="flex-1">

@@ -337,7 +337,7 @@ const UploadLab = () => {
                 className="w-full bg-card border border-border rounded-2xl p-4 flex items-center gap-3 touch-target shadow-soft transition-all hover:shadow-card"
               >
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                  <Layers className="w-5 h-5 text-accent" />
+                  <Layers className="w-5 h-5 text-secondary-foreground" />
                 </div>
                 <div className="text-left flex-1">
                   <p className="font-semibold text-body-sm">Add Past Results</p>

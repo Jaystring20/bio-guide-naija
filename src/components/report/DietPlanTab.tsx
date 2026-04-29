@@ -120,7 +120,7 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language }: DietPl
             <div className="space-y-3 mt-3">
               {dietaryPlan.weekly_meal_plan.map((day, i) => (
                 <div key={i} className="bg-card rounded-xl p-4 border border-border">
-                  <p className="font-bold text-body text-accent mb-2">{day.day}</p>
+                  <p className="font-bold text-body text-secondary-foreground mb-2">{day.day}</p>
                   <div className="space-y-1.5 text-body-sm">
                     <p><span className="font-semibold text-muted-foreground">🌅 {isPidgin ? "Morning:" : "Breakfast:"}</span> {day.breakfast}</p>
                     <p><span className="font-semibold text-muted-foreground">☀️ {isPidgin ? "Afternoon:" : "Lunch:"}</span> {day.lunch}</p>

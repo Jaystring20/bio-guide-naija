@@ -169,7 +169,7 @@ const Trends = () => {
           onClick={() => setActiveProfileId(null)}
           className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
             selectedPerson === "myself"
-              ? "border-accent bg-accent/10 text-accent"
+              ? "border-accent bg-accent/10 text-secondary-foreground"
               : "border-border bg-card"
           }`}
         >
@@ -181,7 +181,7 @@ const Trends = () => {
             onClick={() => setActiveProfileId(d.id)}
             className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
               selectedPerson === d.id
-                ? "border-accent bg-accent/10 text-accent"
+                ? "border-accent bg-accent/10 text-secondary-foreground"
                 : "border-border bg-card"
             }`}
           >
@@ -192,7 +192,7 @@ const Trends = () => {
 
       {isLoading && (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-accent" />
+          <Loader2 className="w-8 h-8 animate-spin text-secondary-foreground" />
         </div>
       )}
 
@@ -207,7 +207,7 @@ const Trends = () => {
           </p>
           <button
             onClick={() => navigate("/upload")}
-            className="text-accent underline mt-3 touch-target text-body-sm"
+            className="text-secondary-foreground underline mt-3 touch-target text-body-sm"
           >
             Upload a result
           </button>

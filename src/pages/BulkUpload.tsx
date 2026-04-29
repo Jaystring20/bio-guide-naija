@@ -154,7 +154,7 @@ const BulkUpload = () => {
         disabled={processing}
         className="w-full bg-card border-2 border-dashed border-border rounded-2xl p-5 flex items-center gap-4 touch-target mb-5 disabled:opacity-50"
       >
-        <Plus className="w-7 h-7 text-accent" />
+        <Plus className="w-7 h-7 text-secondary-foreground" />
         <div className="text-left">
           <p className="font-bold text-body">Add Lab Results</p>
           <p className="text-muted-foreground text-body-sm">Select multiple images or PDFs</p>
@@ -191,7 +191,7 @@ const BulkUpload = () => {
               {/* File info row */}
               <div className="flex items-center gap-3 mb-3">
                 {item.status === "uploading" ? (
-                  <Loader2 className="w-5 h-5 text-accent animate-spin flex-shrink-0" />
+                  <Loader2 className="w-5 h-5 text-secondary-foreground animate-spin flex-shrink-0" />
                 ) : item.status === "done" ? (
                   <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
                 ) : item.status === "failed" ? (
@@ -216,7 +216,7 @@ const BulkUpload = () => {
                 {item.status === "done" && item.resultId && (
                   <button
                     onClick={() => navigate(`/result/${item.resultId}`)}
-                    className="text-accent text-xs font-medium"
+                    className="text-secondary-foreground text-xs font-medium"
                   >
                     View →
                   </button>
@@ -234,7 +234,7 @@ const BulkUpload = () => {
                         <button
                           onClick={() => updateItem(item.id, { personId: null })}
                           className={`px-3 py-1 rounded-lg border text-xs font-medium transition-all ${
-                            item.personId === null ? "border-accent bg-accent/10 text-accent" : "border-border bg-background"
+                            item.personId === null ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-background"
                           }`}
                         >
                           Myself
@@ -244,7 +244,7 @@ const BulkUpload = () => {
                             key={d.id}
                             onClick={() => updateItem(item.id, { personId: d.id })}
                             className={`px-3 py-1 rounded-lg border text-xs font-medium transition-all ${
-                              item.personId === d.id ? "border-accent bg-accent/10 text-accent" : "border-border bg-background"
+                              item.personId === d.id ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-background"
                             }`}
                           >
                             {d.full_name}
@@ -333,7 +333,7 @@ const BulkUpload = () => {
       {processing && (
         <div className="fixed bottom-20 left-0 right-0 px-5 pb-4 max-w-lg mx-auto">
           <div className="bg-card rounded-xl border border-accent p-4 flex items-center gap-3 shadow-lg">
-            <Loader2 className="w-5 h-5 text-accent animate-spin" />
+            <Loader2 className="w-5 h-5 text-secondary-foreground animate-spin" />
             <div>
               <p className="font-semibold text-sm">
                 Processing {currentIndex + 1} of {queue.length}...

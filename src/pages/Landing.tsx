@@ -238,7 +238,7 @@ const Landing = () => {
 
         <AnimatedSection className="relative max-w-6xl mx-auto space-y-14">
           <motion.div variants={fadeUp} className="text-center space-y-3 max-w-2xl mx-auto">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Real People. Real Results.</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">Real People. Real Results.</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
               From confusing lab numbers<br className="hidden sm:block" /> to calm, clear action.
             </h2>
@@ -292,7 +292,7 @@ const Landing = () => {
                 Icon: HeartPulse,
                 halo: "bg-accent/15",
                 ring: "ring-accent/30",
-                iconColor: "text-accent",
+                iconColor: "text-secondary-foreground",
                 worry: "Cholesterol 280 — am I in trouble?",
                 reply: "High. Try oats and garden egg. Recheck in 8 weeks.",
                 tilt: "rotate-1",
@@ -399,7 +399,7 @@ const Landing = () => {
       <section id="how-it-works" className="py-20 md:py-28 px-4 scroll-mt-20">
         <AnimatedSection className="max-w-5xl mx-auto space-y-12">
           <motion.div variants={fadeUp} className="text-center space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">How It Works</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">How It Works</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">From lab result to diet plan<br className="hidden sm:block" /> in minutes</h2>
             <p className="text-muted-foreground max-w-md mx-auto">No medical degree needed. Just upload, and we handle the rest.</p>
           </motion.div>
@@ -407,7 +407,7 @@ const Landing = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: UserPlus, title: "Sign Up", desc: "Create your free account in seconds", bg: "bg-primary/10", color: "text-primary", step: "01" },
-              { icon: Upload, title: "Upload Lab Result", desc: "Snap or upload your result — image or PDF", bg: "bg-accent/10", color: "text-accent", step: "02" },
+              { icon: Upload, title: "Upload Lab Result", desc: "Snap or upload your result — image or PDF", bg: "bg-accent/10", color: "text-secondary-foreground", step: "02" },
               { icon: Brain, title: "AI Interpretation", desc: "Every biomarker explained in plain English", bg: "bg-secondary/10", color: "text-secondary", step: "03" },
               { icon: Utensils, title: "Get Your Diet Plan", desc: "Nigerian foods mapped to your specific needs", bg: "bg-destructive/10", color: "text-destructive", step: "04" },
             ].map((step, i) => (
@@ -434,7 +434,7 @@ const Landing = () => {
       <section id="who-its-for" className="py-20 md:py-28 px-4 bg-card scroll-mt-20">
         <AnimatedSection className="max-w-5xl mx-auto space-y-12">
           <motion.div variants={fadeUp} className="text-center space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Who It's For</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">Who It's For</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">Built for every Nigerian<br className="hidden sm:block" /> who cares about health</h2>
           </motion.div>
 
@@ -456,7 +456,7 @@ const Landing = () => {
             {[
               {
                 title: "For You",
-                bg: "bg-accent/10", color: "text-accent", borderColor: "hover:border-accent/30",
+                bg: "bg-accent/10", color: "text-secondary-foreground", borderColor: "hover:border-accent/30",
                 icon: Heart,
                 points: ["Understand your own lab results", "Get a diet plan with foods you know", "Track your health over time"],
               },
@@ -483,7 +483,7 @@ const Landing = () => {
                     <ul className="space-y-3">
                       {c.points.map((pt, j) => (
                         <li key={j} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                          <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-4 h-4 text-secondary-foreground shrink-0 mt-0.5" />
                           {pt}
                         </li>
                       ))}
@@ -500,14 +500,14 @@ const Landing = () => {
       <section id="features" className="py-20 md:py-28 px-4 scroll-mt-20">
         <AnimatedSection className="max-w-5xl mx-auto space-y-12">
           <motion.div variants={fadeUp} className="text-center space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Features</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">Features</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">Built for Nigerian<br className="hidden sm:block" /> Health Needs</h2>
           </motion.div>
           <div className="grid md:grid-cols-3 gap-6">
             {[
               { icon: Leaf, title: "Nigerian Food Intelligence", desc: "Localized advice using foods from your region — Ugu, Ofada rice, Garden Egg, and more.", color: "text-primary", bg: "bg-primary/10", borderColor: "hover:border-primary/30" },
               { icon: AlertTriangle, title: "Emergency Safety Alerts", desc: "Critical values are flagged immediately with doctor contact guidance.", color: "text-destructive", bg: "bg-destructive/10", borderColor: "hover:border-destructive/30" },
-              { icon: ClipboardList, title: "Doctor Visit Checklist", desc: "Personalized questions to bring to your next appointment.", color: "text-accent", bg: "bg-accent/10", borderColor: "hover:border-accent/30" },
+              { icon: ClipboardList, title: "Doctor Visit Checklist", desc: "Personalized questions to bring to your next appointment.", color: "text-secondary-foreground", bg: "bg-accent/10", borderColor: "hover:border-accent/30" },
             ].map((f, i) => (
               <motion.div key={i} variants={fadeUp}>
                 <Card className={`text-left border shadow-sm hover:shadow-lg transition-all duration-300 group ${f.borderColor} h-full`}>
@@ -529,7 +529,7 @@ const Landing = () => {
       <section className="py-20 md:py-28 px-4 bg-card">
         <AnimatedSection className="max-w-4xl mx-auto text-center space-y-12">
           <motion.div variants={fadeUp}>
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent mb-2">Real Stories</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground mb-2">Real Stories</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">Nigerians are taking charge<br className="hidden sm:block" /> of their health</h2>
           </motion.div>
 
@@ -558,7 +558,7 @@ const Landing = () => {
       <section className="py-20 md:py-28 px-4">
         <AnimatedSection className="max-w-4xl mx-auto text-center space-y-12">
           <motion.div variants={fadeUp} className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Trust & Security</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">Trust & Security</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold max-w-2xl mx-auto">
               Your data is protected by the highest standards
             </h2>
@@ -585,7 +585,7 @@ const Landing = () => {
       <section id="testimonials" className="py-20 md:py-28 px-4 bg-card scroll-mt-20">
         <AnimatedSection className="max-w-5xl mx-auto text-center space-y-12">
           <motion.div variants={fadeUp}>
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent mb-2">Testimonials</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground mb-2">Testimonials</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">What Users Are Saying</h2>
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -600,7 +600,7 @@ const Landing = () => {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex gap-0.5">
                       {[...Array(5)].map((_, s) => (
-                        <Star key={s} className="w-4 h-4 fill-accent text-accent" />
+                        <Star key={s} className="w-4 h-4 fill-secondary-foreground text-secondary-foreground" />
                       ))}
                     </div>
                     <p className="text-sm text-muted-foreground italic leading-relaxed">"{t.quote}"</p>
@@ -634,7 +634,7 @@ const Landing = () => {
         <AnimatedSection className="max-w-3xl mx-auto text-center space-y-7 relative">
           <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
             Accessing better nutrition shouldn't be hard.{" "}
-            <span className="text-accent">Let's make it easy.</span>
+            <span className="text-secondary-foreground">Let's make it easy.</span>
           </motion.h2>
           <motion.p variants={fadeUp} className="text-primary-foreground/80 max-w-lg mx-auto text-lg">
             Join 500+ Nigerians already using VeriDIA to understand their health and eat better.

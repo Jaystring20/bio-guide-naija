@@ -81,7 +81,7 @@ const Onboarding = () => {
                   : "border-border bg-card"
               }`}
             >
-              <Icon className={`w-6 h-6 flex-shrink-0 ${role === r.value ? "text-accent" : "text-secondary"}`} />
+              <Icon className={`w-6 h-6 flex-shrink-0 ${role === r.value ? "text-secondary-foreground" : "text-secondary"}`} />
               <div>
                 <p className="font-semibold text-body">{r.label}</p>
                 <p className="text-body-sm text-muted-foreground">{r.desc}</p>
@@ -95,7 +95,7 @@ const Onboarding = () => {
     // Region
     <div key="region" className="w-full animate-slide-up">
       <div className="flex items-center gap-3 mb-6">
-        <MapPin className="w-6 h-6 text-accent" />
+        <MapPin className="w-6 h-6 text-secondary-foreground" />
         <h2 className="font-display text-2xl font-bold">Where are you from?</h2>
       </div>
       <p className="text-muted-foreground mb-6">
@@ -122,7 +122,7 @@ const Onboarding = () => {
     // Profile + Consent
     <div key="profile" className="w-full animate-slide-up">
       <div className="flex items-center gap-3 mb-6">
-        <User className="w-6 h-6 text-accent" />
+        <User className="w-6 h-6 text-secondary-foreground" />
         <h2 className="font-display text-2xl font-bold">Tell us about you</h2>
       </div>
 
@@ -145,7 +145,7 @@ const Onboarding = () => {
                 key={s}
                 onClick={() => setSex(s)}
                 className={`flex-1 h-14 rounded-xl border-2 font-semibold text-body capitalize transition-all touch-target ${
-                  sex === s ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+                  sex === s ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-card"
                 }`}
               >
                 {s}
