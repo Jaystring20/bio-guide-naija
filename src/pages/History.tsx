@@ -141,7 +141,7 @@ const History = () => {
                   })}
                 </p>
                 {depName && (
-                  <p className="text-xs text-accent flex items-center gap-1 mt-0.5">
+                  <p className="text-xs text-secondary-foreground flex items-center gap-1 mt-0.5">
                     <User className="w-3 h-3" /> {depName}
                   </p>
                 )}
