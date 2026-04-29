@@ -32,6 +32,9 @@ const REL_LABELS: Record<string, string> = {
   other: "Other",
 };
 
+const initials = (name?: string | null) =>
+  (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
+
 const Profile = () => {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -57,88 +60,83 @@ const Profile = () => {
   };
 
   return (
-    <div className="px-5 pt-8 pb-4 max-w-lg mx-auto">
-      <h1 className="font-display text-2xl font-bold mb-6">Your Profile</h1>
+    <div className="px-5 pt-6 pb-4 max-w-lg mx-auto">
+      <h1 className="font-display text-2xl font-extrabold tracking-tight mb-5">Profile</h1>
 
-      <div className="bg-card rounded-xl border border-border p-5 mb-4">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-7 h-7 text-primary" />
+      {/* Profile header — gradient avatar */}
+      <div className="bg-card rounded-3xl border border-border p-6 mb-4 shadow-card">
+        <div className="flex items-center gap-4 mb-5">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-primary/30 blur-xl" />
+            <div className="relative w-16 h-16 rounded-full bg-gradient-brand text-primary-foreground flex items-center justify-center font-display font-extrabold text-xl shadow-glow-primary">
+              {initials(profile?.full_name)}
+            </div>
           </div>
-          <div>
-            <p className="font-display font-bold text-lg">{profile?.full_name || "—"}</p>
-            <p className="text-body-sm text-muted-foreground">{user?.email}</p>
-          </div>
-        </div>
-        <div className="space-y-3 text-body-sm">
-          <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-secondary" />
-            <span>{profile?.geopolitical_zone ? ZONE_LABELS[profile.geopolitical_zone] : "Not set"}</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <User className="w-5 h-5 text-secondary" />
-            <span>
-              {profile?.age ? `${profile.age} years` : "Age not set"} • {profile?.sex ? profile.sex : "—"}
+          <div className="flex-1 min-w-0">
+            <p className="font-display font-extrabold text-lg truncate">{profile?.full_name || "—"}</p>
+            <p className="text-body-sm text-muted-foreground truncate">{user?.email}</p>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2.5 py-0.5 text-[11px] font-semibold text-secondary mt-1.5">
+              {ROLE_LABELS[profile?.user_role || "personal"]}
             </span>
           </div>
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-secondary" />
-            <span>{ROLE_LABELS[profile?.user_role || "personal"] || "Personal use"}</span>
+        </div>
+        <div className="grid grid-cols-2 gap-3 pt-4 border-t border-border">
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 flex items-center gap-1">
+              <MapPin className="w-3 h-3" /> Region
+            </p>
+            <p className="text-sm font-semibold">
+              {profile?.geopolitical_zone ? ZONE_LABELS[profile.geopolitical_zone] : "Not set"}
+            </p>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1 flex items-center gap-1">
+              <User className="w-3 h-3" /> Demographics
+            </p>
+            <p className="text-sm font-semibold">
+              {profile?.age ? `${profile.age}y` : "—"} · {profile?.sex || "—"}
+            </p>
           </div>
         </div>
       </div>
 
       {/* People I manage */}
-      <div className="bg-card rounded-xl border border-border p-5 mb-4">
+      <div className="bg-card rounded-3xl border border-border p-5 mb-4 shadow-soft">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-secondary" />
-            <p className="font-semibold">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center">
+              <Users className="w-4 h-4 text-secondary" />
+            </div>
+            <p className="font-display font-bold">
               {profile?.user_role === "professional" ? "My Patients" : "People I Manage"}
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setEditing(null); setDialogOpen(true); }}
-            className="text-accent"
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add
-          </Button>
         </div>
 
         {dependants.length === 0 ? (
-          <p className="text-body-sm text-muted-foreground">
+          <p className="text-body-sm text-muted-foreground mb-3">
             No {roleLabel}s added yet. Add someone to upload and track their lab results.
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2 mb-3">
             {dependants.map((d) => (
-              <div key={d.id} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                <div>
-                  <p className="font-semibold text-body-sm">{d.full_name}</p>
+              <div key={d.id} className="flex items-center gap-3 p-3 rounded-xl border border-border transition-colors hover:bg-muted/50">
+                <div className="w-10 h-10 rounded-full bg-gradient-brand text-primary-foreground flex items-center justify-center text-xs font-bold shadow-soft">
+                  {initials(d.full_name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{d.full_name}</p>
                   <p className="text-xs text-muted-foreground">
                     {REL_LABELS[d.relationship] || d.relationship}
-                    {d.age ? ` • ${d.age}yrs` : ""}
-                    {d.sex ? ` • ${d.sex}` : ""}
+                    {d.age ? ` · ${d.age}y` : ""}
+                    {d.sex ? ` · ${d.sex}` : ""}
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => { setEditing(d); setDialogOpen(true); }}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(d); setDialogOpen(true); }}>
                     <Pencil className="w-4 h-4" />
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => deleteDependant.mutate(d.id)}
-                  >
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteDependant.mutate(d.id)}>
                     <Trash2 className="w-4 h-4" />
                   </Button>
                 </div>
@@ -146,35 +144,39 @@ const Profile = () => {
             ))}
           </div>
         )}
+
+        <button
+          onClick={() => { setEditing(null); setDialogOpen(true); }}
+          className="w-full border-2 border-dashed border-border rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground touch-target transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/5"
+        >
+          <Plus className="w-4 h-4" />
+          Add {roleLabel}
+        </button>
       </div>
 
-      {/* Privacy */}
-      <div className="bg-card rounded-xl border border-border p-5 mb-4">
-        <div className="flex items-center gap-3 mb-3">
-          <Shield className="w-5 h-5 text-secondary" />
-          <p className="font-semibold">Privacy & Data</p>
+      {/* Privacy + Disclaimer combined */}
+      <div className="bg-card rounded-3xl border border-border p-5 mb-5 shadow-soft">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Shield className="w-4 h-4 text-primary" />
+          </div>
+          <p className="font-display font-bold">Privacy & disclaimer</p>
         </div>
-        <div className="space-y-2 text-body-sm text-muted-foreground">
-          <p>✅ NDPA 2023 compliant</p>
-          <p>✅ Lab images deleted after processing</p>
-          <p>✅ Your data is never shared</p>
-        </div>
-      </div>
-
-      {/* Disclaimer */}
-      <div className="bg-card rounded-xl border border-border p-5 mb-6">
-        <p className="font-semibold mb-2 text-body-sm">Medical Disclaimer</p>
-        <p className="text-xs text-muted-foreground">
-          VeriDIA provides nutritional guidance based on your lab results. It is NOT a substitute for
-          professional medical advice, diagnosis, or treatment. Always consult your doctor or qualified
-          healthcare provider with questions about your medical condition.
+        <ul className="space-y-1.5 text-body-sm text-muted-foreground mb-3">
+          <li>• NDPA 2023 compliant</li>
+          <li>• Lab images deleted after processing</li>
+          <li>• Your data is never shared</li>
+        </ul>
+        <p className="text-xs text-muted-foreground/90 leading-relaxed pt-3 border-t border-border">
+          VeriDIA provides nutritional guidance based on your lab results. It is not a substitute
+          for professional medical advice, diagnosis, or treatment. Always consult your doctor.
         </p>
       </div>
 
       <Button
         onClick={handleSignOut}
-        variant="outline"
-        className="w-full h-14 rounded-xl text-destructive border-destructive/30 touch-target"
+        variant="ghost"
+        className="w-full h-13 rounded-2xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 touch-target font-semibold"
       >
         <LogOut className="w-5 h-5 mr-2" />
         Sign Out
