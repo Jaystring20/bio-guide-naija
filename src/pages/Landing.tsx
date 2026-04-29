@@ -434,7 +434,7 @@ const Landing = () => {
       <section id="who-its-for" className="py-20 md:py-28 px-4 bg-card scroll-mt-20">
         <AnimatedSection className="max-w-5xl mx-auto space-y-12">
           <motion.div variants={fadeUp} className="text-center space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Who It's For</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">Who It's For</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">Built for every Nigerian<br className="hidden sm:block" /> who cares about health</h2>
           </motion.div>
 
