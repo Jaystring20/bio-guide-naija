@@ -129,24 +129,48 @@ export const EmptyBiomarkersBanner = ({
               </p>
             )}
 
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                size="sm"
-                onClick={() => navigate("/app/upload")}
-                className="bg-primary text-primary-foreground"
+            {isProcessing ? (
+              <div
+                className="flex items-center gap-2 rounded-lg border border-[hsl(var(--alert-amber))]/40 bg-[hsl(var(--alert-amber))]/10 px-3 py-2"
+                aria-live="polite"
               >
-                <RefreshCw className="w-4 h-4 mr-1.5" />
-                {t.reupload}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setFeedbackOpen(true)}
-              >
-                <MessageSquareWarning className="w-4 h-4 mr-1.5" />
-                {t.feedback}
-              </Button>
-            </div>
+                <Loader2 className="w-4 h-4 animate-spin text-[hsl(var(--alert-amber))]" />
+                <span className="text-body-sm font-semibold">{t.runningLabel}</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      navigate(
+                        resultId ? `/app/upload?retry=${resultId}` : "/app/upload",
+                      )
+                    }
+                    className="bg-primary text-primary-foreground"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1.5" />
+                    {t.autoRetry}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setFeedbackOpen(true)}
+                  >
+                    <MessageSquareWarning className="w-4 h-4 mr-1.5" />
+                    {t.feedback}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{t.autoRetryHint}</p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/app/upload")}
+                  className="text-xs font-semibold text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  {t.reupload}
+                </button>
+              </>
+            )}
 
             {processingSteps && processingSteps.length > 0 && (
               <div className="pt-1">
