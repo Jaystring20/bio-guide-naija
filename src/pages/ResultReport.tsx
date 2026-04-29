@@ -86,7 +86,7 @@ const ResultReport = () => {
       <div className="px-5 pt-12 text-center">
         <p className="text-destructive font-semibold text-body">We couldn't read your lab result</p>
         <p className="text-muted-foreground text-body-sm mt-2">Please try uploading a clearer image or PDF.</p>
-        <Button onClick={() => navigate("/upload")} className="mt-4 bg-accent text-accent-foreground">Try Again</Button>
+        <Button onClick={() => navigate("/app/upload")} className="mt-4 bg-accent text-accent-foreground">Try Again</Button>
       </div>
     );
   }
