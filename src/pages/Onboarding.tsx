@@ -145,7 +145,7 @@ const Onboarding = () => {
                 key={s}
                 onClick={() => setSex(s)}
                 className={`flex-1 h-14 rounded-xl border-2 font-semibold text-body capitalize transition-all touch-target ${
-                  sex === s ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+                  sex === s ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-card"
                 }`}
               >
                 {s}
