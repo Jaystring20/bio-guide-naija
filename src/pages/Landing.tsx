@@ -61,9 +61,9 @@ const Landing = () => {
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
       {/* ═══ Nav ═══ */}
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16 md:h-20">
           <div className="flex items-center gap-2">
-            <img src={veridiaLogo} alt="VeriDIA" className="h-9 w-auto" />
+            <img src={veridiaLogo} alt="VeriDIA" className="h-10 sm:h-12 md:h-14 w-auto drop-shadow-sm" />
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
