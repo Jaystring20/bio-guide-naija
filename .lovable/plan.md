@@ -1,119 +1,106 @@
 
-# Make VeriDIA feel surreal & emotionally captivating
+# Combined plan: New logo rollout + "Real People, Real Results" Landing section
 
-Goal: Lift VeriDIA from "polished" to "felt". The interface should breathe, respond, and reward — so a worried daughter uploading her mother's lab result feels calm, cared for, and hopeful, not anxious.
-
-We'll keep the brand (Vital Green / Clinical Navy, high-contrast, mobile-first 18pt+) but layer warmth, micro-interactions and a few "wow" moments. All motion respects `prefers-reduced-motion`.
+Two related polish passes, bundled into one approval.
 
 ---
 
-## Emotional pillars (drives every animation choice)
+## Part A — Replace the VeriDIA logo everywhere
 
-1. **Reassurance** — slow, soft entrances; nothing snaps. Easing curves are gentle (easeOut, spring with low stiffness).
-2. **Warmth** — golden-hour gradient washes, soft glows behind family avatars, a "heartbeat" pulse on the hero.
-3. **Hope & momentum** — upward motion on every key reveal (results, diet plan, stats counting up).
-4. **Care** — confetti-light celebration when an upload completes; gentle haptic-like scale on every tap.
+### Asset swap
+- Copy the uploaded transparent-background mark from `user-uploads://VeriDIA_logo.png` over `src/assets/veridia-logo.png` (overwrite).
+- Because every screen imports the logo via `import veridiaLogo from "@/assets/veridia-logo.png"`, the new artwork automatically flows into:
+  - `src/pages/Landing.tsx` (nav header line 66, footer line 510)
+  - `src/pages/Auth.tsx` (line 40)
+  - `src/pages/Onboarding.tsx` (line 55)
+  - `src/pages/Index.tsx` (Home hero, line 79)
 
----
+### Fix the Home hero rendering
+- `src/pages/Index.tsx` line 79 currently applies `brightness-0 invert` to force the old logo white on the dark navy hero. The new mark is multi-color (green checkmark/heartbeat ring + green "Veri" + navy "DIA"); inverting would destroy the brand colors.
+- Remove `brightness-0 invert`, bump size to `h-6` for legibility, and wrap in a slim translucent chip (`bg-white/90 px-2 py-1 rounded-md`) so both the green and navy parts read cleanly against the dark hero gradient.
 
-## What we'll build
+### Favicon + social preview
+- Delete the existing `public/favicon.ico` (browsers request `/favicon.ico` by default and would otherwise override the new one).
+- Generate from the new mark and write to `public/`:
+  - `favicon.png` (512×512, square crop on the circular checkmark/heartbeat — the wordmark is unreadable at 32px).
+  - `favicon.ico` (multi-size 16/32/48 from the same square crop).
+  - `og-image.png` (1200×630, full logo centered on a soft Vital Green → Clinical Navy aurora background, for richer link previews).
+- Update `index.html` (currently has zero favicon or OG image tags):
+  - `<link rel="icon" href="/favicon.png" type="image/png" />`
+  - `<meta property="og:image" content="/og-image.png" />`
+  - `<meta name="twitter:image" content="/og-image.png" />`
 
-### 1. Global motion system (`src/index.css` + new `src/lib/motion.ts`)
-- Add keyframes: `aurora` (slow drifting gradient), `heartbeat` (2-beat soft pulse), `breathe` (scale 1 → 1.02), `shimmer-text`, `draw-line` (SVG stroke), `ripple`, `count-up`.
-- Add utilities: `.bg-aurora`, `.animate-heartbeat`, `.animate-breathe`, `.text-shimmer`, `.tap-scale` (active:scale-[0.97] transition).
-- Export `framer-motion` variants: `fadeUp`, `fadeUpSoft`, `staggerKids`, `springPop`, `revealMask` for reuse.
-- Wrap motion in `useReducedMotion()` checks so accessibility is respected.
-
-### 2. Landing page — surreal hero
-- **Aurora background**: layered gradient blobs that slowly drift (40s loop) behind hero — green → navy → amber whispers.
-- **Hero headline**: word-by-word fade-up with slight blur-in (blur 8px → 0). "Life-Saving" gets the existing underline drawn in via animated SVG `pathLength`.
-- **Floating cards**: switch from CSS float to framer-motion with subtle 3D tilt on scroll (parallax y + rotateX).
-- **Avatar stack**: each avatar pops in with spring + soft glow ring; on hover, the stack fans out slightly.
-- **Stats bar**: numbers count up from 0 when scrolled into view.
-- **Section reveals**: each section uses a scroll-triggered "mask reveal" (clip-path inset 0 100% 0 0 → 0 0 0 0) for a cinematic wipe.
-- **Testimonial cards**: gentle continuous breathe animation; on hover, lift + glow.
-- **Footer CTA**: large gradient button with continuous soft glow pulse (the existing `subtle-pulse` extended).
-
-### 3. Home (`Index.tsx`) — your warm welcome
-- **Hero card**: gradient becomes a slow `aurora` (drifting hue). Adds a faint "heartbeat" ring around the avatar button — signals "alive, monitoring".
-- **Greeting**: typewriter-style reveal of name (~400ms), then waving emoji micro-bounces 3 times.
-- **Upload CTA glass card**: continuous soft `breathe` + arrow icon does a gentle "nudge right" loop every 4s.
-- **Family tiles**: stagger-in on mount (60ms each), hover lift already exists — add a soft glow halo behind avatar matching relationship color.
-- **Stat tiles**: numbers count up on first paint; tile taps trigger a quick ripple from touch point.
-- **Latest result card**: slide-in from right with spring; the "Latest" pill has a slow pulsing dot (already there — animate it).
-
-### 4. Upload flow (`UploadLab.tsx`) — the emotional centerpiece
-This is where users are most anxious. Make it feel like the app is *with* them.
-- **Pre-upload tiles**: gentle breathe on the camera/file tiles; on tap, a ripple + scale.
-- **Processing screen** (Uploading → Reading → Finalizing):
-  - Replace linear bar with a **circular orbit**: a small dot orbits a central pulsing heart icon while text rotates through reassuring phrases ("Reading your results carefully…", "Mapping to local foods…", "Almost there…").
-  - Background subtly shifts hue from navy → green as it progresses (color = hope rising).
-- **Success moment**: when interpretation completes, a soft confetti burst (5–8 particles, brand colors only — no clown vibes) + checkmark draws itself in + haptic-style scale bounce. Then auto-routes to report after 1.2s with a "Your plan is ready" line that fades up.
-
-### 5. Result Report (`ResultReport.tsx`) — clarity with feeling
-- **Tab switches**: framer-motion `AnimatePresence` with horizontal slide+fade between Summary / Biomarkers / Diet / Checklist.
-- **Biomarker rows**: stagger in; each value bar fills from 0 → actual with spring (visualises range position).
-- **Critical alerts**: red emergency cards already exist — add a slow attention pulse (NOT alarming — empathetic) and a subtle red aura behind the icon.
-- **Diet plan items**: each food card fades up with image-style hover lift; "local name" badge bounces in.
-
-### 6. Family Hub (`Family.tsx`) — the heart of the app
-- Member cards stagger in with spring; tapping a card triggers a satisfying scale + glow before navigation.
-- Add member button: dashed border breathes gently, inviting interaction.
-- Empty state (no dependants): a soft illustrated moment with floating heart particles and a warm "Add the people you care about" line that fades in word-by-word.
-
-### 7. Profile switcher (top sticky pill) — alive & friendly
-- Avatar inside the pill gets a faint pulsing ring when there are unread/critical results for that profile (uses existing `useProfileStats`).
-- Sheet open: bottom-sheet rises with a slight overshoot spring.
-- Profile rows: stagger in; selected row's check has a draw-in animation.
-
-### 8. Bottom Nav — tactile feedback
-- Active tab indicator (the dot) morphs between tabs with a layout animation (framer `layoutId`).
-- Center FAB: continuous soft glow pulse + on tap, a ripple expands outward.
-- Tab icons do a tiny "settle" bounce when becoming active.
-
-### 9. Page transitions
-- Wrap routes in `AnimatePresence` (in `App.tsx`) so navigation between Home / History / Family / Profile gets a soft cross-fade + 8px upward slide (~250ms). Subtle, not flashy.
+### Sanity check
+- Search confirms no other component embeds the logo as inline SVG or background-image (BottomNav, ProfileSwitcher, AppShell, EmergencyAlert all clean). No further wiring needed.
 
 ---
 
-## Accessibility & performance guardrails
+## Part B — "Real People, Real Results" section on Landing
 
-- Every animation guarded by `useReducedMotion()` — falls back to instant or simple opacity.
-- No animation longer than 700ms on interactive feedback; ambient loops use `transform`/`opacity` only (GPU-friendly).
-- Confetti uses canvas-free DOM particles (max 10) and unmounts after 1.5s.
-- All decorative motion has `pointer-events-none` and `aria-hidden`.
+Adapted from AwaDoc's portrait-constellation pattern, but recast to dramatize VeriDIA's actual job: turning a confusing lab number into a calm, culturally-grounded action.
+
+### Where it goes
+Inserted into `src/pages/Landing.tsx` **between the Hero (ends line 229) and the Stats Bar (starts line 232)** — the highest-impact spot, immediately after the headline, before "How It Works".
+
+### Content (4 personas, each with a paired worry → VeriDIA reply)
+
+| Persona | Halo color | Worry bubble | VeriDIA reply bubble |
+|---|---|---|---|
+| Aunty (caregiver) | amber `bg-destructive/10` | "Mum's BP 240/120 — what now?" | "Critical. Call her doctor today. Cut salt, add ugu & watermelon." |
+| Father (diabetic) | green `bg-primary/10` | "HbA1c 8.2 — is that bad?" | "High. Swap white rice for ofada. Walk 20 min daily." |
+| New mum | navy `bg-secondary/10` | "Iron 9.1 — feeling weak." | "Low. Add ugu, liver, and beans this week." |
+| Health-conscious | accent `bg-accent/10` | "Cholesterol 280 — am I in trouble?" | "High. Try oats + garden egg. Recheck in 8 weeks." |
+
+### Visual & motion details
+- Each persona is a circular halo disc with a Lucide icon inside (`Users`, `Activity`, `Baby`, `HeartPulse`) acting as a stylized portrait — keeps it on-brand and avoids stock-photo cost. (If you'd rather have AI-generated Nigerian portrait photos, say so and I'll add that step before building.)
+- Worry bubble: `bg-card`, muted text, slight `rotate-[-2deg]` tilt.
+- Reply bubble: `bg-gradient-brand-soft` with a left accent rail in `bg-primary`, tiny `Sparkles`/`CheckCircle2` icon, opposite tilt.
+- A subtle dotted SVG path connects each worry → reply, drawn in via `motion.path` `pathLength` on scroll-in (same trick as the existing hero underline).
+- Layered behind the section: low-intensity `<Aurora tone="brand" intensity={0.4} />` for warmth.
+- Stagger entrance: portraits scale-in (`springPop`), bubbles fade-up with 80ms stagger. All motion respects `prefers-reduced-motion` via the existing `src/lib/motion.ts` helpers.
+
+### Layout sketch
+
+```text
+              REAL PEOPLE. REAL RESULTS.
+   From confusing lab numbers to calm, clear action.
+
+  [worry]                                          [worry]
+   ↘  ◯ Aunty       ◯ Father     ◯ Mum     ◯ Health-conscious  ↙
+  [reply]                                          [reply]
+
+         [ Get Started Free → ]   (reuses existing CTA)
+   👥👥👥👥👥  Trusted by 500+ Nigerian families
+```
+
+Mobile (<sm): renders as a vertical stack — one persona per row with worry above and reply below. Desktop (≥md): 4-column constellation as drawn.
+
+### Implementation note
+All inside `src/pages/Landing.tsx` — adds a `<RealStoriesSection />` block plus two small local helpers (`PortraitCard`, `ChatBubble`). No new files, no new dependencies.
 
 ---
 
-## Files to change
+## Files
 
-Edit:
-- `src/index.css` — new keyframes, utilities, aurora gradient
-- `src/App.tsx` — `AnimatePresence` route wrapper
-- `src/pages/Landing.tsx` — aurora, word reveals, count-up, mask reveals
-- `src/pages/Index.tsx` — heartbeat, breathe CTA, count-up stats, ripple
-- `src/pages/UploadLab.tsx` — orbit processing, success confetti
-- `src/pages/ResultReport.tsx` — tab transitions, biomarker bars, alert aura
-- `src/pages/Family.tsx` — stagger, glow, empty-state warmth
-- `src/components/ProfileSwitcher.tsx` — pulsing ring, spring sheet
-- `src/components/BottomNav.tsx` — `layoutId` indicator, ripple FAB
-- `src/components/EmergencyAlert.tsx` — empathetic pulse
+**Replaced**
+- `src/assets/veridia-logo.png`
+- `public/favicon.ico` (deleted then regenerated from new mark)
 
-Create:
-- `src/lib/motion.ts` — shared variants + reduced-motion helpers
-- `src/components/CountUp.tsx` — accessible number-animator
-- `src/components/Confetti.tsx` — lightweight DOM confetti (brand colors)
-- `src/components/Ripple.tsx` — tap ripple wrapper
+**Created**
+- `public/favicon.png`
+- `public/og-image.png`
 
-No new dependencies needed (`framer-motion` is already used).
+**Edited**
+- `index.html` (favicon + OG/Twitter image meta tags)
+- `src/pages/Index.tsx` (drop invert filter on hero logo, add white chip wrapper)
+- `src/pages/Landing.tsx` (insert "Real People, Real Results" section between Hero and Stats Bar)
 
 ---
 
-## Out of scope (ask before adding)
+## Out of scope (ask if you want any)
+- AI-generated Nigerian portrait photos for the 4 personas (instead of Lucide icons).
+- Repeating the constellation pattern as a smaller widget on the Home dashboard hero.
+- Animated SVG version of the heartbeat mark inside the new logo.
+- Brand color token changes — the new logo matches existing Vital Green + Clinical Navy, so none needed.
 
-- Sound effects / haptics
-- Lottie / video assets
-- 3D / WebGL backgrounds
-- Changing the brand color palette
-
-Approve and I'll implement it end-to-end.
+Approve and I'll execute end-to-end in one pass.
