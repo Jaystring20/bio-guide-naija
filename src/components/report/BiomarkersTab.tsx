@@ -88,7 +88,7 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
                       <p className="text-xs font-bold text-accent uppercase tracking-wide">
                         {isPidgin ? "Wetin You Fit Do" : "Lifestyle Tip"}
                       </p>
-                    </div>
+          </motion.div>
                     <p className="text-body-sm">{tip}</p>
                   </div>
                 )}
