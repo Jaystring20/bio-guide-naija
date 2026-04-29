@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2 } from "lucide-react";
+import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDependants } from "@/hooks/useDependants";
 import AddDependantDialog from "@/components/AddDependantDialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/contexts/ThemeContext";
 import type { Dependant, DependantInput } from "@/hooks/useDependants";
 
 const ZONE_LABELS: Record<string, string> = {
@@ -39,6 +41,7 @@ const Profile = () => {
   const { profile, user, signOut } = useAuth();
   const navigate = useNavigate();
   const { dependants, addDependant, updateDependant, deleteDependant } = useDependants();
+  const { resolvedTheme } = useTheme();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Dependant | null>(null);
 
@@ -152,6 +155,24 @@ const Profile = () => {
           <Plus className="w-4 h-4" />
           Add {roleLabel}
         </button>
+      </div>
+
+      {/* Appearance */}
+      <div className="bg-card rounded-3xl border border-border p-5 mb-4 shadow-soft">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
+              <Palette className="w-4 h-4 text-accent" />
+            </div>
+            <div className="min-w-0">
+              <p className="font-display font-bold">Appearance</p>
+              <p className="text-xs text-muted-foreground">
+                {resolvedTheme === "dark" ? "Dark mode is on" : "Light mode is on"}
+              </p>
+            </div>
+          </div>
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Privacy + Disclaimer combined */}

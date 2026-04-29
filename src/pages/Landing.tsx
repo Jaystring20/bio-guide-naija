@@ -11,6 +11,7 @@ import {
 import veridiaLogo from "@/assets/veridia-logo.png";
 import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /* ── Animation helpers ── */
 const fadeUp = {
@@ -63,7 +64,7 @@ const Landing = () => {
       <nav className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-16 md:h-20">
           <div className="flex items-center gap-2">
-            <img src={veridiaLogo} alt="VeriDIA" className="h-10 sm:h-12 md:h-14 w-auto drop-shadow-sm" />
+            <img src={veridiaLogo} alt="VeriDIA" className="h-12 sm:h-14 md:h-16 w-auto drop-shadow-md" />
           </div>
 
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
@@ -73,7 +74,8 @@ const Landing = () => {
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle size="sm" />
             <Button onClick={goAuth} className="hidden sm:inline-flex bg-accent text-accent-foreground hover:bg-accent/90 font-semibold rounded-full px-6">
               Get Started
             </Button>
@@ -653,7 +655,7 @@ const Landing = () => {
       <footer className="border-t py-12 px-4">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <img src={veridiaLogo} alt="VeriDIA" className="h-10 md:h-12 w-auto drop-shadow-sm" />
+            <img src={veridiaLogo} alt="VeriDIA" className="h-12 md:h-14 w-auto drop-shadow-md" />
           </div>
           <p className="text-xs text-muted-foreground text-center max-w-md">
             VeriDIA is not a substitute for professional medical advice. Always consult a qualified healthcare provider.

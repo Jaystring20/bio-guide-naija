@@ -72,25 +72,60 @@
   }
 
   .dark {
-    --background: 217 60% 8%;
-    --foreground: 0 0% 98%;
-    --card: 217 50% 12%;
-    --card-foreground: 0 0% 98%;
-    --popover: 217 50% 12%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 145 63% 49%;
-    --primary-foreground: 217 60% 8%;
-    --secondary: 217 44% 38%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 217 30% 18%;
-    --muted-foreground: 217 15% 65%;
-    --accent: 145 63% 49%;
-    --accent-foreground: 217 60% 8%;
-    --destructive: 6 63% 50%;
+    /* WhatsApp-inspired dark mode — deep teal-charcoal, lifted cards, soft text */
+    --background: 200 23% 7%;        /* #0B141A — chat backdrop */
+    --foreground: 180 10% 93%;       /* #E9EDEF — primary text */
+
+    --card: 202 23% 11%;             /* #111B21 — chat bubble / surface */
+    --card-foreground: 180 10% 93%;
+
+    --popover: 200 18% 14%;          /* #1F2C33 — menus */
+    --popover-foreground: 180 10% 93%;
+
+    --primary: 145 55% 52%;          /* Vital Green, slightly lifted for dark */
+    --primary-foreground: 200 23% 7%;
+
+    --secondary: 199 16% 18%;        /* #202C33 — incoming bubble */
+    --secondary-foreground: 180 10% 93%;
+
+    --muted: 199 16% 18%;            /* #202C33 */
+    --muted-foreground: 198 9% 58%;  /* #8696A0 — meta text */
+
+    --accent: 168 76% 36%;           /* WhatsApp teal-green accent for dark */
+    --accent-foreground: 180 10% 96%;
+
+    --destructive: 6 70% 56%;
     --destructive-foreground: 0 0% 100%;
-    --border: 217 30% 20%;
-    --input: 217 30% 20%;
-    --ring: 145 63% 49%;
+
+    --border: 200 12% 22%;           /* #2A3942 — dividers */
+    --input: 200 12% 22%;
+    --ring: 145 55% 52%;
+
+    --vital-pale: 145 40% 16%;
+    --clinical-pale: 200 18% 14%;
+
+    --sidebar-background: 202 23% 9%;
+    --sidebar-foreground: 180 10% 93%;
+    --sidebar-primary: 145 55% 52%;
+    --sidebar-primary-foreground: 200 23% 7%;
+    --sidebar-accent: 199 16% 18%;
+    --sidebar-accent-foreground: 180 10% 93%;
+    --sidebar-border: 200 12% 18%;
+    --sidebar-ring: 145 55% 52%;
+
+    /* Re-tuned gradients for dark mode */
+    --gradient-brand: linear-gradient(135deg, hsl(145 55% 48%) 0%, hsl(145 55% 34%) 100%);
+    --gradient-brand-soft: linear-gradient(135deg, hsl(145 55% 48% / 0.18) 0%, hsl(145 55% 34% / 0.10) 100%);
+    --gradient-navy: linear-gradient(135deg, hsl(200 18% 16%) 0%, hsl(202 23% 10%) 100%);
+    --gradient-surface: linear-gradient(180deg, hsl(202 23% 11%) 0%, hsl(200 23% 7%) 100%);
+    --gradient-hero: linear-gradient(140deg, hsl(168 76% 30%) 0%, hsl(145 55% 32%) 55%, hsl(202 23% 11%) 100%);
+
+    /* Deeper shadows on dark */
+    --shadow-soft: 0 1px 2px 0 hsl(0 0% 0% / 0.35), 0 1px 3px 0 hsl(0 0% 0% / 0.25);
+    --shadow-card: 0 2px 6px -1px hsl(0 0% 0% / 0.4), 0 6px 16px -4px hsl(0 0% 0% / 0.35);
+    --shadow-elevated: 0 10px 30px -8px hsl(0 0% 0% / 0.55), 0 4px 10px -2px hsl(0 0% 0% / 0.35);
+    --shadow-glow-primary: 0 8px 28px -6px hsl(145 55% 52% / 0.45);
+    --shadow-glow-accent: 0 8px 28px -6px hsl(168 76% 36% / 0.45);
   }
 }
 
