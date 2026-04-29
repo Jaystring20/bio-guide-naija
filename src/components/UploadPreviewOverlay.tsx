@@ -207,9 +207,15 @@ export const UploadPreviewOverlay = ({ file, previewUrl }: Props) => {
           )}
         </div>
         {detection && !analyzing && (
-          <span className="text-[10px] font-medium text-muted-foreground shrink-0">
-            {isPdf
-              ? `${(file.size / 1024).toFixed(0)}KB`
+          <div className="flex items-center gap-1.5 shrink-0">
+            {fromCache && (
+              <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-secondary/15 text-secondary">
+                Cached
+              </span>
+            )}
+            <span className="text-[10px] font-medium text-muted-foreground">
+              {isPdf
+                ? `${(file.size / 1024).toFixed(0)}KB`
               : `${detection.resolution.w}×${detection.resolution.h}`}
           </span>
         )}
