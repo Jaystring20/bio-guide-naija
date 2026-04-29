@@ -191,7 +191,7 @@ const BulkUpload = () => {
               {/* File info row */}
               <div className="flex items-center gap-3 mb-3">
                 {item.status === "uploading" ? (
-                  <Loader2 className="w-5 h-5 text-accent animate-spin flex-shrink-0" />
+                  <Loader2 className="w-5 h-5 text-secondary-foreground animate-spin flex-shrink-0" />
                 ) : item.status === "done" ? (
                   <Check className="w-5 h-5 text-green-500 flex-shrink-0" />
                 ) : item.status === "failed" ? (
