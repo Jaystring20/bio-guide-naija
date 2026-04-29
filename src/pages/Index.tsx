@@ -12,6 +12,8 @@ import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { Ripple } from "@/components/Ripple";
 import { cn } from "@/lib/utils";
+import { InlineNPSPrompt } from "@/components/feedback/InlineRatingPrompt";
+import { useMyFeedbackCount } from "@/hooks/useFeedback";
 
 const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
@@ -20,8 +22,13 @@ const Index = () => {
   const { profile, user } = useAuth();
   const { activeProfile, activeProfileId } = useActiveProfile();
   const { dependants } = useDependants();
-  const { get } = useProfileStats();
+  const { get, raw } = useProfileStats();
+  const { data: myFeedbackCount } = useMyFeedbackCount();
   const navigate = useNavigate();
+
+  const completedCount = raw.filter((r: any) => r.status === "completed").length;
+  const showNPS = completedCount >= 3;
+  const showTesterBanner = (myFeedbackCount ?? 0) === 0;
 
   const { data: lastResult } = useQuery({
     queryKey: ["last-result", user?.id, activeProfileId],
