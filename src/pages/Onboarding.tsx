@@ -95,7 +95,7 @@ const Onboarding = () => {
     // Region
     <div key="region" className="w-full animate-slide-up">
       <div className="flex items-center gap-3 mb-6">
-        <MapPin className="w-6 h-6 text-accent" />
+        <MapPin className="w-6 h-6 text-secondary-foreground" />
         <h2 className="font-display text-2xl font-bold">Where are you from?</h2>
       </div>
       <p className="text-muted-foreground mb-6">
