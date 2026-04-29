@@ -114,18 +114,29 @@ export const UploadPreviewOverlay = ({ file, previewUrl }: Props) => {
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
   useEffect(() => {
+    // Cache hit — nothing to do, results were restored synchronously.
+    const hit = readCache(file);
+    if (hit) {
+      setDetection(hit);
+      setAnalyzing(false);
+      setFromCache(true);
+      return;
+    }
+    setFromCache(false);
+
     if (isPdf) {
-      // Rough estimate: ~50-150KB per page for typical lab PDFs
       const estPages = Math.max(1, Math.round(file.size / (120 * 1024)));
-      setDetection({
+      const result: DetectionResult = {
         regions: [],
         pages: estPages,
         isLikelyLab: true,
         textDensity: 1,
         resolution: { w: 0, h: 0 },
         note: "PDF — full content will be processed by the AI.",
-      });
+      };
+      setDetection(result);
       setAnalyzing(false);
+      writeCache(file, result);
       return;
     }
 
@@ -134,21 +145,22 @@ export const UploadPreviewOverlay = ({ file, previewUrl }: Props) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      let result: DetectionResult;
       try {
-        const result = analyzeImage(img);
-        setDetection(result);
-      } catch (e) {
-        setDetection({
+        result = analyzeImage(img);
+      } catch {
+        result = {
           regions: [],
           pages: 1,
           isLikelyLab: true,
           textDensity: 0.5,
           resolution: { w: img.naturalWidth, h: img.naturalHeight },
           note: "Couldn't pre-scan — AI will still process the full image.",
-        });
-      } finally {
-        setAnalyzing(false);
+        };
       }
+      setDetection(result);
+      setAnalyzing(false);
+      writeCache(file, result);
     };
     img.onerror = () => {
       setAnalyzing(false);
@@ -162,7 +174,7 @@ export const UploadPreviewOverlay = ({ file, previewUrl }: Props) => {
       });
     };
     img.src = previewUrl;
-  }, [previewUrl, isPdf, file.size]);
+  }, [previewUrl, isPdf, file]);
 
   return (
     <div className="rounded-2xl overflow-hidden border border-border shadow-soft bg-card">
