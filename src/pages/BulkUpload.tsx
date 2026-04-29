@@ -154,7 +154,7 @@ const BulkUpload = () => {
         disabled={processing}
         className="w-full bg-card border-2 border-dashed border-border rounded-2xl p-5 flex items-center gap-4 touch-target mb-5 disabled:opacity-50"
       >
-        <Plus className="w-7 h-7 text-accent" />
+        <Plus className="w-7 h-7 text-secondary-foreground" />
         <div className="text-left">
           <p className="font-bold text-body">Add Lab Results</p>
           <p className="text-muted-foreground text-body-sm">Select multiple images or PDFs</p>
