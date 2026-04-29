@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp, Loader2, CheckCircle2, Sun, Crop, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedbackSheet } from "@/components/feedback/FeedbackSheet";
 import type { Language } from "./types";
@@ -44,6 +44,14 @@ const COPY = {
     runningLabel: "Re-running AI…",
     feedbackContext:
       "Biomarker breakdown was empty on this report. Please describe what you uploaded so we can investigate.",
+    checklistTitle: "Before you upload again",
+    checklist: [
+      { icon: "sun", text: "Bright, even lighting — no shadows or glare on the page" },
+      { icon: "crop", text: "Whole page in frame — every edge of the lab report visible" },
+      { icon: "type", text: "Numbers and units (mg/dL, g/dL, %) are sharp and readable" },
+      { icon: "check", text: "Hold steady — wait for the camera to focus before snapping" },
+    ],
+    autoEnhanceNote: "We'll auto-enhance brightness and sharpness for you on upload.",
   },
   pidgin: {
     titleFailed: "We no fit read your lab numbers",
@@ -66,8 +74,18 @@ const COPY = {
     runningLabel: "AI dey run…",
     feedbackContext:
       "Biomarker breakdown was empty on this report. Please describe what you uploaded so we can investigate.",
+    checklistTitle: "Before you snap again",
+    checklist: [
+      { icon: "sun", text: "Make light bright well — no shadow or shine for the paper" },
+      { icon: "crop", text: "Make the full page enter the picture — no cut any side" },
+      { icon: "type", text: "The numbers and units (mg/dL, g/dL, %) suppose clear" },
+      { icon: "check", text: "Hold the phone steady — make camera focus before you snap" },
+    ],
+    autoEnhanceNote: "We go sharpen and brighten the picture small-small for you.",
   },
 } as const;
+
+const ICONS = { sun: Sun, crop: Crop, type: Type, check: CheckCircle2 } as const;
 
 export const EmptyBiomarkersBanner = ({
   status,
@@ -162,6 +180,26 @@ export const EmptyBiomarkersBanner = ({
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">{t.autoRetryHint}</p>
+
+                {/* Before-you-upload checklist */}
+                <div className="rounded-xl border border-border bg-background/60 p-3 mt-1">
+                  <p className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground mb-2">
+                    {t.checklistTitle}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {t.checklist.map((item, i) => {
+                      const Icon = ICONS[item.icon as keyof typeof ICONS] ?? CheckCircle2;
+                      return (
+                        <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                          <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
+                          <span>{item.text}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-[11px] text-muted-foreground mt-2 italic">{t.autoEnhanceNote}</p>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => navigate("/app/upload")}
