@@ -16,6 +16,21 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
 
   const getPidgin = (name: string) => biomarkersPidgin?.find(p => p.name === name);
 
+  if (!biomarkers || biomarkers.length === 0) {
+    return (
+      <div className="bg-card rounded-xl border border-border p-6 text-center space-y-3">
+        <p className="text-body font-semibold">
+          {isPidgin ? "Biomarker breakdown no dey here" : "Biomarker breakdown isn't available"}
+        </p>
+        <p className="text-body-sm text-muted-foreground">
+          {isPidgin
+            ? "Something happen during processing. Abeg upload the lab result again make we read am well."
+            : "Something went wrong while extracting the values from your lab. Please re-upload a clearer photo or PDF so we can read it properly."}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       {biomarkers.map((b, idx) => {
