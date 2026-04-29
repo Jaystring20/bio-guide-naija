@@ -585,7 +585,7 @@ const Landing = () => {
       <section id="testimonials" className="py-20 md:py-28 px-4 bg-card scroll-mt-20">
         <AnimatedSection className="max-w-5xl mx-auto text-center space-y-12">
           <motion.div variants={fadeUp}>
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent mb-2">Testimonials</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground mb-2">Testimonials</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">What Users Are Saying</h2>
           </motion.div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
