@@ -19,6 +19,7 @@ import {
   Loader2,
   RefreshCw,
   ShieldOff,
+  Download,
 } from "lucide-react";
 import {
   ResponsiveContainer,
