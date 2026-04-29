@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2 } from "lucide-react";
+import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDependants } from "@/hooks/useDependants";
 import AddDependantDialog from "@/components/AddDependantDialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { useTheme } from "@/contexts/ThemeContext";
 import type { Dependant, DependantInput } from "@/hooks/useDependants";
 
 const ZONE_LABELS: Record<string, string> = {
