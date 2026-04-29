@@ -181,7 +181,7 @@ const Trends = () => {
             onClick={() => setActiveProfileId(d.id)}
             className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
               selectedPerson === d.id
-                ? "border-accent bg-accent/10 text-accent"
+                ? "border-accent bg-accent/10 text-secondary-foreground"
                 : "border-border bg-card"
             }`}
           >
