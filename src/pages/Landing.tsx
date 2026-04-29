@@ -558,7 +558,7 @@ const Landing = () => {
       <section className="py-20 md:py-28 px-4">
         <AnimatedSection className="max-w-4xl mx-auto text-center space-y-12">
           <motion.div variants={fadeUp} className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">Trust & Security</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">Trust & Security</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold max-w-2xl mx-auto">
               Your data is protected by the highest standards
             </h2>
