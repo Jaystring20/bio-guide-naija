@@ -52,7 +52,7 @@ const Onboarding = () => {
   const screens = [
     // Welcome
     <div key="welcome" className="flex flex-col items-center text-center animate-slide-up">
-      <VeridiaLogo className="h-28 sm:h-32 w-auto mb-6 drop-shadow-md" />
+      <VeridiaLogo className="h-40 sm:h-48 w-auto mb-6 drop-shadow-md" />
       <h1 className="font-display text-3xl font-bold text-secondary mb-3">Welcome to VeriDIA</h1>
       <p className="text-muted-foreground text-body max-w-xs mb-2">
         Your personal lab-to-nutrition companion — built for Nigerians, by Nigerians.
