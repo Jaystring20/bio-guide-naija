@@ -399,7 +399,7 @@ const Landing = () => {
       <section id="how-it-works" className="py-20 md:py-28 px-4 scroll-mt-20">
         <AnimatedSection className="max-w-5xl mx-auto space-y-12">
           <motion.div variants={fadeUp} className="text-center space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent">How It Works</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground">How It Works</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">From lab result to diet plan<br className="hidden sm:block" /> in minutes</h2>
             <p className="text-muted-foreground max-w-md mx-auto">No medical degree needed. Just upload, and we handle the rest.</p>
           </motion.div>
