@@ -222,8 +222,26 @@ const ResultReport = () => {
           {activeTab === "diet" && dietaryPlan && (
             <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
           )}
-          {activeTab === "checklist" && (
+          {activeTab === "diet" && !dietaryPlan && (
+            <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
+              <p className="font-semibold text-body">Cooking your diet plan…</p>
+              <p className="text-muted-foreground text-body-sm mt-1">
+                We're matching your results to Nigerian foods. This usually takes another 10–20 seconds.
+              </p>
+            </div>
+          )}
+          {activeTab === "checklist" && checklist.length > 0 && (
             <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
+          )}
+          {activeTab === "checklist" && checklist.length === 0 && (
+            <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
+              <p className="font-semibold text-body">Preparing doctor questions…</p>
+              <p className="text-muted-foreground text-body-sm mt-1">
+                Personalised questions will appear here in a moment.
+              </p>
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
