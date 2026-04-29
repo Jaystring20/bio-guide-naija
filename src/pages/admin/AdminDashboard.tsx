@@ -22,6 +22,8 @@ import {
   RefreshCw,
   ShieldOff,
   Download,
+  MessageSquare,
+  Star,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -47,7 +49,29 @@ type Metrics = {
   failed_30d: number;
   completed_30d: number;
   active_users_30d: number;
+  feedback_total: number;
+  feedback_7d: number;
+  feedback_unresolved_bugs: number;
+  avg_rating_30d: number | null;
+  avg_nps_30d: number | null;
   daily_uploads: { day: string; count: number }[];
+};
+
+type FeedbackRow = {
+  id: string;
+  user_id: string;
+  email: string;
+  full_name: string;
+  category: string;
+  rating: number | null;
+  nps: number | null;
+  message: string;
+  screen: string | null;
+  result_id: string | null;
+  device_info: any;
+  status: string;
+  admin_notes: string | null;
+  created_at: string;
 };
 
 type AdminUser = {
