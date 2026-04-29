@@ -600,7 +600,7 @@ const Landing = () => {
                   <CardContent className="p-6 space-y-4">
                     <div className="flex gap-0.5">
                       {[...Array(5)].map((_, s) => (
-                        <Star key={s} className="w-4 h-4 fill-accent text-accent" />
+                        <Star key={s} className="w-4 h-4 fill-secondary-foreground text-secondary-foreground" />
                       ))}
                     </div>
                     <p className="text-sm text-muted-foreground italic leading-relaxed">"{t.quote}"</p>
