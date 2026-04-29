@@ -123,7 +123,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
                     key={s}
                     onClick={() => setSex(s)}
                     className={`flex-1 h-12 rounded-xl border text-sm font-medium capitalize transition-all ${
-                      sex === s ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
+                      sex === s ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-card"
                     }`}
                   >
                     {s}
