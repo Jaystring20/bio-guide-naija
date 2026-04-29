@@ -4,14 +4,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useDependants } from "@/hooks/useDependants";
-import { Loader2, FileText, AlertTriangle, User, TrendingUp } from "lucide-react";
+import { Loader2, FileText, AlertTriangle, User, TrendingUp, ArrowUpRight, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 const History = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { dependants } = useDependants();
-  const [personFilter, setPersonFilter] = useState<string>("all"); // "all", "myself", or dependant id
+  const [personFilter, setPersonFilter] = useState<string>("all");
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["lab-results", user?.id],
@@ -38,43 +40,40 @@ const History = () => {
   };
 
   return (
-    <div className="px-5 pt-8 pb-4 max-w-lg mx-auto">
-      <h1 className="font-display text-2xl font-bold mb-4">Your History</h1>
+    <div className="px-5 pt-6 pb-4 max-w-lg mx-auto">
+      <div className="mb-5">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2.5 py-1 text-[11px] font-semibold text-secondary mb-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+          History
+        </span>
+        <h1 className="font-display text-2xl font-extrabold tracking-tight">Your lab history</h1>
+      </div>
 
-      {/* Person filter */}
+      {/* Person filter — segmented */}
       {dependants.length > 0 && (
-        <div className="flex flex-wrap gap-2 mb-5">
-          <button
-            onClick={() => setPersonFilter("all")}
-            className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-              personFilter === "all" ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setPersonFilter("myself")}
-            className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-              personFilter === "myself" ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
-            }`}
-          >
-            Myself
-          </button>
-          {dependants.map((d) => (
+        <div className="flex flex-wrap gap-1 p-1 bg-muted rounded-2xl mb-4">
+          {[
+            { key: "all", label: "All" },
+            { key: "myself", label: "Myself" },
+            ...dependants.map((d) => ({ key: d.id, label: d.full_name.split(" ")[0] })),
+          ].map((opt) => (
             <button
-              key={d.id}
-              onClick={() => setPersonFilter(d.id)}
-              className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
-                personFilter === d.id ? "border-accent bg-accent/10 text-accent" : "border-border bg-card"
-              }`}
+              key={opt.key}
+              onClick={() => setPersonFilter(opt.key)}
+              className={cn(
+                "px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all",
+                personFilter === opt.key
+                  ? "bg-card text-foreground shadow-soft"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
             >
-              {d.full_name}
+              {opt.label}
             </button>
           ))}
         </div>
       )}
 
-      {/* View Trends button */}
+      {/* View Trends */}
       <button
         onClick={() =>
           navigate(
@@ -83,81 +82,110 @@ const History = () => {
               : `/trends?person=${personFilter}`
           )
         }
-        className="w-full flex items-center gap-3 bg-accent/10 border border-accent/30 rounded-xl p-4 mb-5 text-left"
+        className="group w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 mb-5 text-left shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
       >
-        <TrendingUp className="w-5 h-5 text-accent flex-shrink-0" />
-        <div>
-          <p className="font-semibold text-body text-accent">View Trends</p>
-          <p className="text-body-sm text-muted-foreground">Track biomarkers over time</p>
+        <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center">
+          <TrendingUp className="w-5 h-5 text-accent" />
         </div>
+        <div className="flex-1">
+          <p className="font-semibold text-body">View Trends</p>
+          <p className="text-xs text-muted-foreground">Track biomarkers over time</p>
+        </div>
+        <ArrowUpRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
       </button>
 
       {isLoading && (
         <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-accent" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       )}
 
       {!isLoading && filteredResults?.length === 0 && (
-        <div className="text-center py-20">
-          <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground text-body">No lab results yet</p>
-          <button
-            onClick={() => navigate("/upload")}
-            className="text-accent underline mt-2 touch-target text-body-sm"
-          >
-            Upload your first result
-          </button>
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-hero p-8 text-center shadow-elevated">
+          <div className="absolute inset-0 grid-bg opacity-50 pointer-events-none" />
+          <div className="absolute -top-12 -right-12 w-40 h-40 rounded-full bg-white/10 blur-2xl pointer-events-none" />
+          <div className="relative">
+            <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-7 h-7 text-primary-foreground" />
+            </div>
+            <p className="font-display font-bold text-primary-foreground text-lg">No lab results yet</p>
+            <p className="text-primary-foreground/80 text-sm mt-1 mb-5">
+              Upload your first result to see it here.
+            </p>
+            <Button
+              onClick={() => navigate("/upload")}
+              className="bg-white text-primary hover:bg-white/90 rounded-xl font-bold h-12 px-6"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              Upload now
+            </Button>
+          </div>
         </div>
       )}
 
       <div className="space-y-3">
-        {filteredResults?.map((r) => {
+        {filteredResults?.map((r, i) => {
           const biomarkers = (r.biomarkers as any[] | null) || [];
           const abnormalCount = biomarkers.filter((b: any) => b.status !== "normal").length;
+          const normalCount = biomarkers.length - abnormalCount;
           const depName = getDependantName(r.dependant_id);
           const displayDate = r.test_date || r.upload_date;
+          const accentColor = r.has_critical_alert
+            ? "bg-destructive"
+            : abnormalCount > 0
+            ? "bg-[hsl(var(--alert-amber))]"
+            : "bg-primary";
 
           return (
-            <button
+            <motion.button
               key={r.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.3) }}
               onClick={() => navigate(`/result/${r.id}`)}
-              className="w-full bg-card rounded-xl p-5 border border-border text-left touch-target flex items-center gap-4"
+              className="group relative w-full bg-card rounded-2xl pl-5 pr-4 py-4 border border-border text-left touch-target flex items-center gap-3 overflow-hidden shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
             >
+              <span className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full", accentColor)} />
               <div className={cn(
-                "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0",
-                r.has_critical_alert ? "bg-destructive/20" : "bg-secondary/20"
+                "w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0",
+                r.has_critical_alert ? "bg-destructive/15" : "bg-secondary/10"
               )}>
                 {r.has_critical_alert ? (
-                  <AlertTriangle className="w-6 h-6 text-destructive" />
+                  <AlertTriangle className="w-5 h-5 text-destructive" />
                 ) : (
-                  <FileText className="w-6 h-6 text-secondary" />
+                  <FileText className="w-5 h-5 text-secondary" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-body">
+                <p className="font-display font-bold">
                   {new Date(displayDate).toLocaleDateString("en-NG", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
+                    day: "numeric", month: "short", year: "numeric",
                   })}
                 </p>
                 {depName && (
-                  <p className="text-xs text-accent flex items-center gap-1">
-                    <User className="w-3 h-3" />
-                    {depName}
+                  <p className="text-xs text-accent flex items-center gap-1 mt-0.5">
+                    <User className="w-3 h-3" /> {depName}
                   </p>
                 )}
-                <p className="text-body-sm text-muted-foreground">
-                  {r.status === "processing"
-                    ? "Processing..."
-                    : r.status === "failed"
-                    ? "Failed to read"
-                    : `${biomarkers.length} biomarkers • ${abnormalCount} flagged`}
-                </p>
+                {r.status === "processing" ? (
+                  <p className="text-xs text-muted-foreground mt-1">Processing...</p>
+                ) : r.status === "failed" ? (
+                  <p className="text-xs text-destructive mt-1">Failed to read</p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">
+                      {normalCount} normal
+                    </span>
+                    {abnormalCount > 0 && (
+                      <span className="inline-flex items-center rounded-full bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive">
+                        {abnormalCount} flagged
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
-              <span className="text-muted-foreground text-body-sm">→</span>
-            </button>
+              <ArrowUpRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            </motion.button>
           );
         })}
       </div>
