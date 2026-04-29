@@ -147,6 +147,29 @@ const Index = () => {
         </div>
       </motion.div>
 
+      {showTesterBanner && (
+        <motion.div {...fade(0.04)} className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <Activity className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-primary">MVP tester</p>
+              <p className="font-display font-bold text-sm mt-0.5">You're shaping VeriDIA early.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Tap the green Feedback button anywhere — your notes go straight to the team.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {showNPS && (
+        <motion.div {...fade(0.05)}>
+          <InlineNPSPrompt promptKey="nps-v1" />
+        </motion.div>
+      )}
+
       {/* Family quick access */}
       {dependants.length > 0 && (
         <motion.div {...fade(0.05)} className="mb-5">
