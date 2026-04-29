@@ -74,7 +74,8 @@ const Landing = () => {
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <ThemeToggle size="sm" />
             <Button onClick={goAuth} className="hidden sm:inline-flex bg-accent text-accent-foreground hover:bg-accent/90 font-semibold rounded-full px-6">
               Get Started
             </Button>
