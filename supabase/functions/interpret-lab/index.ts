@@ -119,15 +119,21 @@ serve(async (req) => {
     }
 
     const arrayBuffer = await fileRes.data.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
+    const rawBytes = new Uint8Array(arrayBuffer);
+
+    // OCR preprocessing — downscale large JPEGs so Gemini gets a tighter, sharper input.
+    const preStart = Date.now();
+    const { bytes, mimeType, note: preNote } = await preprocessImage(rawBytes, filePath);
+    logStep("preprocess", preStart, true, undefined, preNote);
+
+    // Chunked base64 encode (avoids stack overflow on large buffers).
     const CHUNK = 8192;
     let binaryStr = "";
     for (let i = 0; i < bytes.length; i += CHUNK) {
       binaryStr += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, Math.min(i + CHUNK, bytes.length))));
     }
     const base64 = btoa(binaryStr);
-    const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
-    logStep("setup", setupStart, true, undefined, `${(bytes.length / 1024).toFixed(0)}KB`);
+    logStep("setup", setupStart, true, undefined, `raw=${(rawBytes.length / 1024).toFixed(0)}KB sent=${(bytes.length / 1024).toFixed(0)}KB`);
 
     // ---- Step 1: Biomarker extraction (BLOCKING — user waits for this) ----
     const systemPrompt = `You are VeriDIA's Lab Interpretation Engine for Nigerian users. You're like a caring, knowledgeable big sister or brother explaining health results.
