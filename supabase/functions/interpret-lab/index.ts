@@ -63,18 +63,8 @@ function extractFunctionCall(aiData: any): any | null {
   return aiData?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall?.args ?? null;
 }
 
-// Lightweight runtime validation for biomarker output
-function validateBiomarkerPayload(args: any): { ok: boolean; reason?: string } {
-  if (!args || typeof args !== "object") return { ok: false, reason: "no args" };
-  if (typeof args.summary !== "string" || args.summary.length < 5) return { ok: false, reason: "missing summary" };
-  if (!Array.isArray(args.biomarkers) || args.biomarkers.length === 0) return { ok: false, reason: "no biomarkers" };
-  for (const b of args.biomarkers) {
-    if (!b.name || typeof b.value !== "number" || !b.unit || !b.status) {
-      return { ok: false, reason: `invalid biomarker: ${JSON.stringify(b).slice(0, 80)}` };
-    }
-  }
-  return { ok: true };
-}
+// Note: validateBiomarkers + preprocessImage live in ./preprocess.ts
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
