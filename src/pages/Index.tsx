@@ -11,6 +11,7 @@ import veridiaLogo from "@/assets/veridia-logo.png";
 import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { Ripple } from "@/components/Ripple";
+import { cn } from "@/lib/utils";
 
 const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
