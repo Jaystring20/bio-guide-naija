@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Biomarker, BiomarkerPidgin, Language, STATUS_COLORS, STATUS_LABELS } from "./types";
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Lightbulb, TrendingUp } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface BiomarkersTabProps {
   biomarkers: Biomarker[];
@@ -17,18 +18,37 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
 
   return (
     <div className="space-y-3">
-      {biomarkers.map((b) => {
+      {biomarkers.map((b, idx) => {
         const pidgin = getPidgin(b.name);
         const explanation = isPidgin && pidgin ? pidgin.explanation : b.explanation;
         const whyMatters = isPidgin && pidgin ? pidgin.why_it_matters : b.why_it_matters;
         const tip = isPidgin && pidgin ? pidgin.lifestyle_tip : b.lifestyle_tip;
         const trend = isPidgin && pidgin ? pidgin.trend_context : b.trend_context;
+        const isFlagged = b.status !== "normal";
+        const accent =
+          b.status === "critical" ? "bg-destructive" :
+          b.status === "high" || b.status === "low" ? "bg-[hsl(var(--alert-amber))]" :
+          "bg-primary";
 
         return (
-          <div key={b.name} className="bg-card rounded-xl border border-border overflow-hidden">
+          <motion.div
+            key={b.name}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: Math.min(idx * 0.05, 0.3), ease: [0.22, 1, 0.36, 1] }}
+            className="relative bg-card rounded-xl border border-border overflow-hidden"
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "absolute left-0 top-0 bottom-0 w-1",
+                accent,
+                isFlagged && "animate-heartbeat"
+              )}
+            />
             <button
               onClick={() => setExpanded(expanded === b.name ? null : b.name)}
-              className="w-full p-4 flex items-center justify-between gap-2 touch-target"
+              className="w-full p-4 flex items-center justify-between gap-2 touch-target tap-scale"
             >
               <div className="text-left min-w-0 flex-1">
                 <p className="font-semibold text-body truncate">{b.name}</p>
