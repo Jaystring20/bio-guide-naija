@@ -162,7 +162,7 @@ const Profile = () => {
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center shrink-0">
-              <Palette className="w-4 h-4 text-accent" />
+              <Palette className="w-4 h-4 text-secondary-foreground" />
             </div>
             <div className="min-w-0">
               <p className="font-display font-bold">Appearance</p>
