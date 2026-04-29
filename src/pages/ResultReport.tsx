@@ -50,13 +50,18 @@ const ResultReport = () => {
     },
     enabled: !!id && !!user,
     refetchInterval: (query) => {
-      const data = query.state.data;
-      // Keep polling while still processing or background work hasn't finished.
-      if (data?.status === "processing") return 3000;
-      if (data?.status === "partial") return 4000;
+      const data: any = query.state.data;
+      if (!data) return 3000;
+      // Keep polling while OCR is running.
+      if (data.status === "processing") return 3000;
+      // Once OCR is done, keep polling only while diet generation is still in flight.
+      // diet_status is one of: 'pending' | 'done' | 'failed'.
+      if (data.diet_status === "pending") return 4000;
       return false;
     },
   });
+
+  const { regenerate: regenerateDiet, loading: regenerating } = useRegenerateDiet(id, () => refetch());
 
   // If admin is viewing someone else's result, fetch the owner's name/email for context.
   const isAdminViewing = !!result && !!user && result.user_id !== user.id && isAdmin;
