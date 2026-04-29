@@ -299,9 +299,13 @@ const UploadLab = () => {
                 <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-semibold text-sm">Previous analysis failed</p>
+                    <p className="font-semibold text-sm">
+                      {explicitRetryId ? "Retrying lab analysis" : "Previous analysis failed"}
+                    </p>
                     <p className="text-muted-foreground text-xs mt-1">
-                      Re-upload the same lab result to retry.
+                      {explicitRetryId
+                        ? "Pick a clearer photo or PDF — we'll re-run the AI on your existing report."
+                        : "Re-upload the same lab result to retry."}
                     </p>
                   </div>
                 </div>
