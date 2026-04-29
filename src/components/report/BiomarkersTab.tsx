@@ -26,8 +26,8 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
         const trend = isPidgin && pidgin ? pidgin.trend_context : b.trend_context;
         const isFlagged = b.status !== "normal";
         const accent =
-          b.status === "critical" ? "bg-destructive" :
-          b.status === "high" || b.status === "low" ? "bg-[hsl(var(--alert-amber))]" :
+          b.status === "deranged-high" || b.status === "deranged-low" ? "bg-destructive" :
+          b.status === "borderline" ? "bg-[hsl(var(--alert-amber))]" :
           "bg-primary";
 
         return (
