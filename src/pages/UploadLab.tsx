@@ -13,6 +13,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { Ripple } from "@/components/Ripple";
+import { UploadPreviewOverlay } from "@/components/UploadPreviewOverlay";
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -349,16 +350,10 @@ const UploadLab = () => {
             </div>
           ) : (
             <div className="space-y-4">
-              {preview && (
-                <div className="rounded-2xl overflow-hidden border border-border shadow-soft bg-card">
-                  <img
-                    src={preview}
-                    alt="Lab result preview"
-                    className="w-full max-h-72 object-contain"
-                  />
-                </div>
+              {(preview || file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) && (
+                <UploadPreviewOverlay file={file} previewUrl={preview} />
               )}
-              {!preview && (
+              {!preview && !(file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) && (
                 <div className="w-full rounded-2xl border border-border p-6 bg-card text-center shadow-soft">
                   <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center mx-auto mb-3">
                     <FileUp className="w-6 h-6 text-secondary" />
