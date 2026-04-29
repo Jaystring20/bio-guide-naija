@@ -407,7 +407,7 @@ const Landing = () => {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: UserPlus, title: "Sign Up", desc: "Create your free account in seconds", bg: "bg-primary/10", color: "text-primary", step: "01" },
-              { icon: Upload, title: "Upload Lab Result", desc: "Snap or upload your result — image or PDF", bg: "bg-accent/10", color: "text-accent", step: "02" },
+              { icon: Upload, title: "Upload Lab Result", desc: "Snap or upload your result — image or PDF", bg: "bg-accent/10", color: "text-secondary-foreground", step: "02" },
               { icon: Brain, title: "AI Interpretation", desc: "Every biomarker explained in plain English", bg: "bg-secondary/10", color: "text-secondary", step: "03" },
               { icon: Utensils, title: "Get Your Diet Plan", desc: "Nigerian foods mapped to your specific needs", bg: "bg-destructive/10", color: "text-destructive", step: "04" },
             ].map((step, i) => (
