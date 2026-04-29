@@ -145,6 +145,63 @@
   100% { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Surreal / emotional motion ── */
+@keyframes aurora {
+  0%   { transform: translate3d(0,0,0) rotate(0deg) scale(1); opacity: 0.55; }
+  33%  { transform: translate3d(2%, -3%, 0) rotate(40deg) scale(1.08); opacity: 0.7; }
+  66%  { transform: translate3d(-3%, 2%, 0) rotate(-30deg) scale(0.95); opacity: 0.6; }
+  100% { transform: translate3d(0,0,0) rotate(0deg) scale(1); opacity: 0.55; }
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); opacity: 0.55; }
+  20%      { transform: scale(1.18); opacity: 0.85; }
+  40%      { transform: scale(1); opacity: 0.55; }
+  60%      { transform: scale(1.10); opacity: 0.7; }
+  80%      { transform: scale(1); opacity: 0.55; }
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.018); }
+}
+
+@keyframes nudge-right {
+  0%, 70%, 100% { transform: translateX(0); }
+  85%           { transform: translateX(4px); }
+}
+
+@keyframes shimmer-text {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes ripple-out {
+  0%   { transform: scale(0); opacity: 0.6; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@keyframes confetti-fall {
+  0%   { transform: translate3d(0, -20px, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translate3d(var(--cx, 40px), 220px, 0) rotate(720deg); opacity: 0; }
+}
+
+@keyframes draw {
+  to { stroke-dashoffset: 0; }
+}
+
+@keyframes pop-in {
+  0%   { transform: scale(0.6); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50%      { transform: translateY(-12px) translateX(6px); }
+}
+
 @layer utilities {
   .bg-gradient-brand { background-image: var(--gradient-brand); }
   .bg-gradient-hero { background-image: var(--gradient-hero); }
@@ -157,6 +214,30 @@
   .shadow-glow-primary { box-shadow: var(--shadow-glow-primary); }
   .shadow-glow-accent { box-shadow: var(--shadow-glow-accent); }
   .animate-fade-up { animation: fade-up 0.5s ease-out both; }
+  .animate-heartbeat { animation: heartbeat 2.4s ease-in-out infinite; }
+  .animate-breathe { animation: breathe 4.5s ease-in-out infinite; }
+  .animate-nudge-right { animation: nudge-right 4s ease-in-out infinite; }
+  .animate-pop-in { animation: pop-in 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+  .animate-float-soft { animation: float-soft 9s ease-in-out infinite; }
+  .animate-subtle-pulse { animation: subtle-pulse 3.2s ease-in-out infinite; }
+  .tap-scale { transition: transform 120ms ease-out; }
+  .tap-scale:active { transform: scale(0.97); }
+
+  .text-shimmer {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--primary)) 45%,
+      hsl(var(--secondary)) 55%,
+      hsl(var(--foreground)) 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: shimmer-text 6s linear infinite;
+  }
+
   .glass-card {
     background: hsl(0 0% 100% / 0.14);
     backdrop-filter: blur(12px);
@@ -168,5 +249,43 @@
       linear-gradient(hsl(0 0% 100% / 0.06) 1px, transparent 1px),
       linear-gradient(90deg, hsl(0 0% 100% / 0.06) 1px, transparent 1px);
     background-size: 28px 28px;
+  }
+
+  /* Aurora ambient background — drifting gradient blobs */
+  .aurora-layer {
+    position: absolute;
+    inset: -20%;
+    pointer-events: none;
+    filter: blur(60px);
+    opacity: 0.55;
+    will-change: transform, opacity;
+  }
+  .aurora-blob {
+    position: absolute;
+    border-radius: 50%;
+    will-change: transform, opacity;
+  }
+  .aurora-green  { background: radial-gradient(circle, hsl(145 75% 55% / 0.55), transparent 70%); }
+  .aurora-navy   { background: radial-gradient(circle, hsl(217 70% 45% / 0.45), transparent 70%); }
+  .aurora-amber  { background: radial-gradient(circle, hsl(36 90% 60% / 0.35), transparent 70%); }
+  .aurora-mint   { background: radial-gradient(circle, hsl(160 70% 60% / 0.4),  transparent 70%); }
+
+  .animate-aurora-1 { animation: aurora 28s ease-in-out infinite; }
+  .animate-aurora-2 { animation: aurora 36s ease-in-out infinite reverse; }
+  .animate-aurora-3 { animation: aurora 44s ease-in-out infinite; }
+}
+
+/* Respect reduced motion globally for purely decorative loops */
+@media (prefers-reduced-motion: reduce) {
+  .animate-heartbeat,
+  .animate-breathe,
+  .animate-nudge-right,
+  .animate-float-soft,
+  .animate-subtle-pulse,
+  .animate-aurora-1,
+  .animate-aurora-2,
+  .animate-aurora-3,
+  .text-shimmer {
+    animation: none !important;
   }
 }
