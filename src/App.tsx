@@ -18,6 +18,8 @@ import Trends from "./pages/Trends";
 import BulkUpload from "./pages/BulkUpload";
 import Profile from "./pages/Profile";
 import Family from "./pages/Family";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import { AdminRoute } from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
@@ -98,6 +100,7 @@ const AnimatedRoutes = () => {
           <Route path="bulk-upload" element={<PageFade><BulkUpload /></PageFade>} />
           <Route path="family" element={<PageFade><Family /></PageFade>} />
           <Route path="profile" element={<PageFade><Profile /></PageFade>} />
+          <Route path="admin" element={<AdminRoute><PageFade><AdminDashboard /></PageFade></AdminRoute>} />
         </Route>
 
         {/* Back-compat redirects for old top-level app paths */}
