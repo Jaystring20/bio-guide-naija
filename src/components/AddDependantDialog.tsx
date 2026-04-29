@@ -94,7 +94,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
                   onClick={() => setRelationship(r.value)}
                   className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                     relationship === r.value
-                      ? "border-accent bg-accent/10 text-accent"
+                      ? "border-accent bg-accent/10 text-secondary-foreground"
                       : "border-border bg-card"
                   }`}
                 >
