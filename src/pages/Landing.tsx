@@ -634,7 +634,7 @@ const Landing = () => {
         <AnimatedSection className="max-w-3xl mx-auto text-center space-y-7 relative">
           <motion.h2 variants={fadeUp} className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
             Accessing better nutrition shouldn't be hard.{" "}
-            <span className="text-accent">Let's make it easy.</span>
+            <span className="text-secondary-foreground">Let's make it easy.</span>
           </motion.h2>
           <motion.p variants={fadeUp} className="text-primary-foreground/80 max-w-lg mx-auto text-lg">
             Join 500+ Nigerians already using VeriDIA to understand their health and eat better.
