@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
+import AdminLogin from "./pages/AdminLogin";
 import Onboarding from "./pages/Onboarding";
 import UploadLab from "./pages/UploadLab";
 import ResultReport from "./pages/ResultReport";
@@ -82,6 +83,7 @@ const AnimatedRoutes = () => {
         <Route path="/landing" element={<Navigate to="/" replace />} />
 
         <Route path="/auth" element={<PageFade><Auth /></PageFade>} />
+        <Route path="/admin-login" element={<PageFade><AdminLogin /></PageFade>} />
         <Route path="/onboarding" element={<PageFade><Onboarding /></PageFade>} />
 
         {/* Authenticated app under /app */}
