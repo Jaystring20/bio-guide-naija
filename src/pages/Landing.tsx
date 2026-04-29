@@ -11,6 +11,7 @@ import {
 import veridiaLogo from "@/assets/veridia-logo.png";
 import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /* ── Animation helpers ── */
 const fadeUp = {
