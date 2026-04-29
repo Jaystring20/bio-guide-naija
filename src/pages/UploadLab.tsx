@@ -287,20 +287,21 @@ const UploadLab = () => {
                 </div>
               )}
 
-              <button
+              <Ripple
                 onClick={() => cameraInputRef.current?.click()}
-                className="group relative w-full overflow-hidden bg-gradient-hero rounded-3xl p-6 flex items-center gap-4 touch-target shadow-elevated transition-transform hover:scale-[1.01]"
+                rippleColor="hsl(0 0% 100% / 0.45)"
+                className="group relative w-full overflow-hidden bg-gradient-hero rounded-3xl p-6 flex items-center gap-4 touch-target shadow-elevated transition-transform hover:scale-[1.01] animate-breathe"
               >
                 <div className="absolute inset-0 grid-bg opacity-50 pointer-events-none" />
                 <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-                <div className="relative w-14 h-14 rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center">
+                <div className="relative w-14 h-14 rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center shrink-0">
                   <Camera className="w-7 h-7 text-primary-foreground" />
                 </div>
                 <div className="relative text-left flex-1">
                   <p className="font-bold text-primary-foreground text-lg">Take a Photo</p>
                   <p className="text-primary-foreground/80 text-body-sm">Snap with your camera</p>
                 </div>
-              </button>
+              </Ripple>
               <input
                 ref={cameraInputRef}
                 type="file"
@@ -310,18 +311,19 @@ const UploadLab = () => {
                 className="hidden"
               />
 
-              <button
+              <Ripple
                 onClick={() => fileInputRef.current?.click()}
+                rippleColor="hsl(217 60% 27% / 0.18)"
                 className="group w-full bg-card border-2 border-dashed border-secondary/30 rounded-3xl p-6 flex items-center gap-4 touch-target transition-all hover:border-secondary/60 hover:bg-secondary/5"
               >
-                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center shrink-0">
                   <FileUp className="w-7 h-7 text-secondary" />
                 </div>
                 <div className="text-left flex-1">
                   <p className="font-bold text-body">Upload a File</p>
                   <p className="text-muted-foreground text-body-sm">JPG, PNG or PDF · max 10MB</p>
                 </div>
-              </button>
+              </Ripple>
               <input
                 ref={fileInputRef}
                 type="file"
