@@ -420,25 +420,33 @@ RULES:
               toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_plan"] } },
             };
 
-            const { response, model } = await callGeminiWithRetry(dietBody, geminiApiKey);
-            if (response.ok) {
-              const data = await response.json();
-              const args = extractFunctionCall(data);
-              if (args?.dietary_plan) {
-                await supabase.from("lab_results").update({
-                  dietary_plan: args.dietary_plan,
-                  consultation_checklist: args.consultation_checklist,
-                }).eq("id", labResultId);
-                logStep("diet_call", dietStart, true, model);
-                return { dietary_plan: args.dietary_plan, consultation_checklist: args.consultation_checklist };
-              }
+            // Use the function-call-aware retry helper. This is critical:
+            // gemini-2.5-flash-lite frequently returns 200 OK with plain text and
+            // no functionCall for the diet schema. callGeminiWithRetry only switched
+            // models on HTTP failures, so we'd silently lose the diet plan.
+            const { args, model, note } = await callGeminiForFunction(dietBody, geminiApiKey);
+            if (args?.dietary_plan) {
+              await supabase.from("lab_results").update({
+                dietary_plan: args.dietary_plan,
+                consultation_checklist: args.consultation_checklist,
+                diet_status: "done",
+              }).eq("id", labResultId);
+              logStep("diet_call", dietStart, true, model);
+              return { dietary_plan: args.dietary_plan, consultation_checklist: args.consultation_checklist };
             }
-            logStep("diet_call", dietStart, false, model, "no function call");
+            logStep("diet_call", dietStart, false, model, note || "no function call");
+            await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
           } catch (e) {
             logStep("diet_call", dietStart, false, undefined, (e as Error).message);
+            await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
           }
           return null;
         })());
+      } else {
+        // Emergency: we intentionally skip diet generation. Mark as failed so the
+        // UI shows a clear "regenerate when ready" affordance instead of an
+        // infinite spinner.
+        await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
       }
 
       // Pidgin translation (parallel with diet)
