@@ -219,14 +219,17 @@ Extract all biomarkers with their values, units, reference ranges, status classi
         }
         const aiData = await response.json();
         const args = extractFunctionCall(aiData);
-        const validation = validateBiomarkerPayload(args);
+        const validation = validateBiomarkers(args);
+        if (validation.dropped.length) {
+          console.log(`Dropped ${validation.dropped.length} invalid biomarkers:`, JSON.stringify(validation.dropped));
+        }
         if (!validation.ok) {
           lastErr = `validation: ${validation.reason}`;
           console.log(`Biomarker validation failed (attempt ${attempt}): ${validation.reason}`);
           continue;
         }
-        biomarkers = args.biomarkers;
-        summary = args.summary;
+        biomarkers = validation.biomarkers;
+        summary = validation.summary;
         break;
       } catch (e) {
         lastErr = (e as Error).message;
@@ -238,6 +241,16 @@ Extract all biomarkers with their values, units, reference ranges, status classi
       logStep("biomarker_call", bioStart, false, bioModel, lastErr);
       await supabase.from("lab_results").update({ status: "failed", processing_steps: steps }).eq("id", labResultId);
       return new Response(JSON.stringify({ error: "MODEL_UNAVAILABLE", message: "We couldn't read the lab result. Please try a clearer photo or PDF." }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Page-detection guard — refuse non-lab uploads (selfies, food labels, etc.)
+    const pageCheck = looksLikeLabReport(biomarkers);
+    if (!pageCheck.ok) {
+      logStep("biomarker_call", bioStart, false, bioModel, `not-lab:${pageCheck.reason}`);
+      await supabase.from("lab_results").update({ status: "failed", processing_steps: steps }).eq("id", labResultId);
+      return new Response(JSON.stringify({ error: "NOT_A_LAB_REPORT", message: pageCheck.reason }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
