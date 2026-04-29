@@ -216,7 +216,7 @@ const BulkUpload = () => {
                 {item.status === "done" && item.resultId && (
                   <button
                     onClick={() => navigate(`/result/${item.resultId}`)}
-                    className="text-accent text-xs font-medium"
+                    className="text-secondary-foreground text-xs font-medium"
                   >
                     View →
                   </button>
