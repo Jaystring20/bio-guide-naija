@@ -13,6 +13,8 @@ import { BiomarkersTab } from "@/components/report/BiomarkersTab";
 import { DietPlanTab } from "@/components/report/DietPlanTab";
 import { ChecklistTab } from "@/components/report/ChecklistTab";
 import { generatePDF, sharePDF } from "@/components/report/PDFExport";
+import { AnimatePresence, motion } from "framer-motion";
+import { OrbitProcessing } from "@/components/OrbitProcessing";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
@@ -73,12 +75,8 @@ const ResultReport = () => {
 
   if (result.status === "processing") {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen px-6">
-        <Loader2 className="w-12 h-12 text-accent animate-spin mb-6" />
-        <p className="font-display text-lg font-semibold">Analyzing your results...</p>
-        <p className="text-muted-foreground text-body-sm mt-2 text-center">
-          Our AI is reading your lab result and preparing your personalized health report.
-        </p>
+      <div className="px-5 pt-6 max-w-lg mx-auto">
+        <OrbitProcessing step={1} label="Analyzing your results" />
       </div>
     );
   }
@@ -190,21 +188,28 @@ const ResultReport = () => {
         ))}
       </div>
 
-      {activeTab === "summary" && (
-        <SummaryTab biomarkers={biomarkers} aiSummary={aiSummary} aiSummaryPidgin={aiSummaryPidgin} uploadDate={result.upload_date} language={language} />
-      )}
-
-      {activeTab === "results" && (
-        <BiomarkersTab biomarkers={biomarkers} biomarkersPidgin={biomarkersPidgin} language={language} />
-      )}
-
-      {activeTab === "diet" && dietaryPlan && (
-        <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
-      )}
-
-      {activeTab === "checklist" && (
-        <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
-      )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, x: 14 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -14 }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {activeTab === "summary" && (
+            <SummaryTab biomarkers={biomarkers} aiSummary={aiSummary} aiSummaryPidgin={aiSummaryPidgin} uploadDate={result.upload_date} language={language} />
+          )}
+          {activeTab === "results" && (
+            <BiomarkersTab biomarkers={biomarkers} biomarkersPidgin={biomarkersPidgin} language={language} />
+          )}
+          {activeTab === "diet" && dietaryPlan && (
+            <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
+          )}
+          {activeTab === "checklist" && (
+            <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       {/* Floating action buttons */}
       <div className="fixed bottom-24 right-4 z-40 flex flex-col items-center gap-2">
