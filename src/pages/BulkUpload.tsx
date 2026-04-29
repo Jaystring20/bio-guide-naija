@@ -333,7 +333,7 @@ const BulkUpload = () => {
       {processing && (
         <div className="fixed bottom-20 left-0 right-0 px-5 pb-4 max-w-lg mx-auto">
           <div className="bg-card rounded-xl border border-accent p-4 flex items-center gap-3 shadow-lg">
-            <Loader2 className="w-5 h-5 text-accent animate-spin" />
+            <Loader2 className="w-5 h-5 text-secondary-foreground animate-spin" />
             <div>
               <p className="font-semibold text-sm">
                 Processing {currentIndex + 1} of {queue.length}...
