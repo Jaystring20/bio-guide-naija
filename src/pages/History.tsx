@@ -63,7 +63,7 @@ const History = () => {
         className="group w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 mb-5 text-left shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
       >
         <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center">
-          <TrendingUp className="w-5 h-5 text-accent" />
+          <TrendingUp className="w-5 h-5 text-secondary-foreground" />
         </div>
         <div className="flex-1">
           <p className="font-semibold text-body">View Trends</p>
