@@ -142,7 +142,7 @@ const AddDependantDialog = ({ open, onOpenChange, onSubmit, editing, roleLabel =
                   onClick={() => setZone(z.value as typeof zone)}
                   className={`px-3 py-2 rounded-lg border text-sm transition-all ${
                     zone === z.value
-                      ? "border-accent bg-accent/10 text-accent font-medium"
+                      ? "border-accent bg-accent/10 text-secondary-foreground font-medium"
                       : "border-border bg-card"
                   }`}
                 >
