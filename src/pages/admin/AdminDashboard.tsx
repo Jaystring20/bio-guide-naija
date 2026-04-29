@@ -114,6 +114,27 @@ const fmtDate = (s: string | null) =>
 const fmtDateTime = (s: string | null) =>
   s ? new Date(s).toLocaleString("en-NG", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—";
 
+const csvEscape = (v: unknown): string => {
+  if (v === null || v === undefined) return "";
+  const s = String(v);
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
+const downloadCSV = (filename: string, headers: string[], rows: (string | number | null | undefined)[][]) => {
+  const lines = [headers.map(csvEscape).join(","), ...rows.map((r) => r.map(csvEscape).join(","))];
+  // BOM so Excel opens UTF-8 correctly
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const stamp = new Date().toISOString().slice(0, 10);
+  a.href = url;
+  a.download = `${filename}-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -337,14 +358,41 @@ const AdminDashboard = () => {
 
         {/* USERS */}
         <TabsContent value="users" className="space-y-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by name or email"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 h-11"
-            />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10 h-11"
+              />
+            </div>
+            <Button
+              variant="outline"
+              className="h-11 gap-2 shrink-0"
+              disabled={!filteredUsers.length}
+              onClick={() =>
+                downloadCSV(
+                  "veridia-users",
+                  ["Name", "Email", "Joined", "Last sign in", "Last activity", "Results", "Dependants", "Admin", "User ID"],
+                  filteredUsers.map((u) => [
+                    u.full_name,
+                    u.email,
+                    u.created_at,
+                    u.last_sign_in,
+                    u.last_activity,
+                    u.results_count,
+                    u.dependants_count,
+                    rolesQ.data?.has(u.user_id) ? "yes" : "no",
+                    u.user_id,
+                  ])
+                )
+              }
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </Button>
           </div>
 
           {usersQ.isLoading ? (
@@ -406,6 +454,32 @@ const AdminDashboard = () => {
 
         {/* RESULTS */}
         <TabsContent value="results" className="space-y-3">
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              className="h-11 gap-2"
+              disabled={!resultsQ.data?.length}
+              onClick={() =>
+                downloadCSV(
+                  "veridia-recent-results",
+                  ["Upload date", "User name", "Email", "Status", "Critical", "Result ID", "User ID", "Dependant ID"],
+                  (resultsQ.data || []).map((r) => [
+                    r.upload_date,
+                    r.full_name,
+                    r.email,
+                    r.status,
+                    r.has_critical_alert ? "yes" : "no",
+                    r.id,
+                    r.user_id,
+                    r.dependant_id,
+                  ])
+                )
+              }
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </Button>
+          </div>
           {resultsQ.isLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
