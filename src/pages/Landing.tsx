@@ -456,7 +456,7 @@ const Landing = () => {
             {[
               {
                 title: "For You",
-                bg: "bg-accent/10", color: "text-accent", borderColor: "hover:border-accent/30",
+                bg: "bg-accent/10", color: "text-secondary-foreground", borderColor: "hover:border-accent/30",
                 icon: Heart,
                 points: ["Understand your own lab results", "Get a diet plan with foods you know", "Track your health over time"],
               },
