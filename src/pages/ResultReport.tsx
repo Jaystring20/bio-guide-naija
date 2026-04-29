@@ -130,6 +130,8 @@ const ResultReport = () => {
   const criticalAlerts = (result.critical_alerts as any[] | null) || [];
   const aiSummary = result.ai_summary as string | null;
   const aiSummaryPidgin = (result as any).ai_summary_pidgin as string | null;
+  const processingSteps = ((result as any).processing_steps as Array<{ step: string; ms?: number; ok?: boolean; model?: string; note?: string }> | null) || null;
+  const biomarkersEmpty = biomarkers.length === 0;
 
   if (showEmergency && criticalAlerts.length > 0) {
     return (
