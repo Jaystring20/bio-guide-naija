@@ -229,6 +229,16 @@ const ResultReport = () => {
         />
       )}
 
+      {biomarkersEmpty && result.status !== "processing" && (
+        <EmptyBiomarkersBanner
+          variant="compact"
+          status={result.status}
+          processingSteps={processingSteps}
+          resultId={id ?? null}
+          language={language}
+        />
+      )}
+
       {/* Tabs */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {TABS.map((tab) => (
