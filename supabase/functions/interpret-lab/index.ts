@@ -63,6 +63,45 @@ function extractFunctionCall(aiData: any): any | null {
   return aiData?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall?.args ?? null;
 }
 
+// Try each model; on each model retry transient HTTP errors AND retry once if
+// the response was 200 OK but the model produced no functionCall.
+// gemini-2.5-flash-lite frequently ignores function-calling for the larger diet
+// schema — so for diet we deliberately use this helper instead of the raw
+// callGeminiWithRetry which only switches models on HTTP failures.
+async function callGeminiForFunction(body: unknown, apiKey: string): Promise<{ args: any | null; model: string; note?: string }> {
+  let lastNote = "no models tried";
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        if (!response.ok) {
+          if ((response.status === 503 || response.status === 429) && attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1500 * attempt));
+            continue;
+          }
+          lastNote = `http_${response.status}`;
+          break; // try next model
+        }
+        const data = await response.json();
+        const args = extractFunctionCall(data);
+        if (args) return { args, model };
+        lastNote = "no function call";
+        if (attempt < MAX_RETRIES) continue; // retry same model once more
+      } catch (e) {
+        lastNote = (e as Error).message;
+        if (attempt < MAX_RETRIES) continue;
+      }
+    }
+  }
+  return { args: null, model: GEMINI_MODELS[GEMINI_MODELS.length - 1], note: lastNote };
+}
+
 // Note: validateBiomarkers + preprocessImage live in ./preprocess.ts
 
 
@@ -319,6 +358,7 @@ Extract all biomarkers with their values, units, reference ranges, status classi
         critical_alerts: criticalAlerts.length > 0 ? criticalAlerts : null,
         status: partialStatus,
         processing_steps: steps,
+        diet_status: "pending",
       }).eq("id", labResultId);
       if (partialErr) {
         console.error("Partial write failed:", partialErr.message, partialErr);
@@ -381,25 +421,33 @@ RULES:
               toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_plan"] } },
             };
 
-            const { response, model } = await callGeminiWithRetry(dietBody, geminiApiKey);
-            if (response.ok) {
-              const data = await response.json();
-              const args = extractFunctionCall(data);
-              if (args?.dietary_plan) {
-                await supabase.from("lab_results").update({
-                  dietary_plan: args.dietary_plan,
-                  consultation_checklist: args.consultation_checklist,
-                }).eq("id", labResultId);
-                logStep("diet_call", dietStart, true, model);
-                return { dietary_plan: args.dietary_plan, consultation_checklist: args.consultation_checklist };
-              }
+            // Use the function-call-aware retry helper. This is critical:
+            // gemini-2.5-flash-lite frequently returns 200 OK with plain text and
+            // no functionCall for the diet schema. callGeminiWithRetry only switched
+            // models on HTTP failures, so we'd silently lose the diet plan.
+            const { args, model, note } = await callGeminiForFunction(dietBody, geminiApiKey);
+            if (args?.dietary_plan) {
+              await supabase.from("lab_results").update({
+                dietary_plan: args.dietary_plan,
+                consultation_checklist: args.consultation_checklist,
+                diet_status: "done",
+              }).eq("id", labResultId);
+              logStep("diet_call", dietStart, true, model);
+              return { dietary_plan: args.dietary_plan, consultation_checklist: args.consultation_checklist };
             }
-            logStep("diet_call", dietStart, false, model, "no function call");
+            logStep("diet_call", dietStart, false, model, note || "no function call");
+            await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
           } catch (e) {
             logStep("diet_call", dietStart, false, undefined, (e as Error).message);
+            await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
           }
           return null;
         })());
+      } else {
+        // Emergency: we intentionally skip diet generation. Mark as failed so the
+        // UI shows a clear "regenerate when ready" affordance instead of an
+        // infinite spinner.
+        await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
       }
 
       // Pidgin translation (parallel with diet)

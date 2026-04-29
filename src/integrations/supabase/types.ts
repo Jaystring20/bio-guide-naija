@@ -115,6 +115,7 @@ export type Database = {
           created_at: string
           critical_alerts: Json | null
           dependant_id: string | null
+          diet_status: string
           dietary_plan: Json | null
           dietary_plan_pidgin: Json | null
           has_critical_alert: boolean
@@ -136,6 +137,7 @@ export type Database = {
           created_at?: string
           critical_alerts?: Json | null
           dependant_id?: string | null
+          diet_status?: string
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean
@@ -157,6 +159,7 @@ export type Database = {
           created_at?: string
           critical_alerts?: Json | null
           dependant_id?: string | null
+          diet_status?: string
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean

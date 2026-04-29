@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useRegenerateDiet } from "@/hooks/useRegenerateDiet";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Share2, MessageCircle, Mail, ShieldCheck } from "lucide-react";
+import { Loader2, Download, Share2, MessageCircle, Mail, ShieldCheck, RefreshCw, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Biomarker, BiomarkerPidgin, DietaryPlan, DietaryPlanPidgin, ChecklistItem, ChecklistItemPidgin, Language } from "@/components/report/types";
 import { SummaryTab } from "@/components/report/SummaryTab";
@@ -49,13 +50,18 @@ const ResultReport = () => {
     },
     enabled: !!id && !!user,
     refetchInterval: (query) => {
-      const data = query.state.data;
-      // Keep polling while still processing or background work hasn't finished.
-      if (data?.status === "processing") return 3000;
-      if (data?.status === "partial") return 4000;
+      const data: any = query.state.data;
+      if (!data) return 3000;
+      // Keep polling while OCR is running.
+      if (data.status === "processing") return 3000;
+      // Once OCR is done, keep polling only while diet generation is still in flight.
+      // diet_status is one of: 'pending' | 'done' | 'failed'.
+      if (data.diet_status === "pending") return 4000;
       return false;
     },
   });
+
+  const { regenerate: regenerateDiet, loading: regenerating } = useRegenerateDiet(id, () => refetch());
 
   // If admin is viewing someone else's result, fetch the owner's name/email for context.
   const isAdminViewing = !!result && !!user && result.user_id !== user.id && isAdmin;
@@ -133,6 +139,24 @@ const ResultReport = () => {
   const aiSummaryPidgin = (result as any).ai_summary_pidgin as string | null;
   const processingSteps = ((result as any).processing_steps as Array<{ step: string; ms?: number; ok?: boolean; model?: string; note?: string }> | null) || null;
   const biomarkersEmpty = biomarkers.length === 0;
+
+  // ----- Diet/checklist generation lifecycle -----
+  // diet_status is the source of truth (added in 2026-04 migration). For legacy
+  // rows that predate the column, infer: if status is terminal AND the report is
+  // older than 5 minutes, treat null diet as 'failed' (worth offering regenerate)
+  // rather than spinning forever.
+  const rawDietStatus = (result as any).diet_status as "pending" | "done" | "failed" | undefined;
+  const ageMs = Date.now() - new Date(result.upload_date).getTime();
+  const inferredDietStatus: "pending" | "done" | "failed" =
+    rawDietStatus
+      ? rawDietStatus
+      : dietaryPlan
+        ? "done"
+        : (result.status === "completed" || result.status === "critical") && ageMs > 5 * 60 * 1000
+          ? "failed"
+          : "pending";
+  const dietPending = inferredDietStatus === "pending";
+  const dietFailed = inferredDietStatus === "failed";
 
   if (showEmergency && criticalAlerts.length > 0) {
     return (
@@ -281,7 +305,7 @@ const ResultReport = () => {
           {activeTab === "diet" && dietaryPlan && (
             <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
           )}
-          {activeTab === "diet" && !dietaryPlan && (
+          {activeTab === "diet" && !dietaryPlan && dietPending && !regenerating && (
             <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
               <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
               <p className="font-semibold text-body">Cooking your diet plan…</p>
@@ -290,16 +314,64 @@ const ResultReport = () => {
               </p>
             </div>
           )}
+          {activeTab === "diet" && !dietaryPlan && (dietFailed || regenerating) && (
+            <div className="rounded-2xl border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-6 shadow-soft">
+              <div className="flex items-start gap-3 mb-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-body">Diet plan didn't finish</p>
+                  <p className="text-muted-foreground text-body-sm mt-1">
+                    The AI couldn't write a full diet plan for this report. Tap below to try again — your biomarkers are saved.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={regenerateDiet}
+                disabled={regenerating}
+                className="w-full bg-primary text-primary-foreground touch-target"
+              >
+                {regenerating ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Regenerating…</>
+                ) : (
+                  <><RefreshCw className="w-4 h-4 mr-2" /> Regenerate diet & doctor questions</>
+                )}
+              </Button>
+            </div>
+          )}
           {activeTab === "checklist" && checklist.length > 0 && (
             <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
           )}
-          {activeTab === "checklist" && checklist.length === 0 && (
+          {activeTab === "checklist" && checklist.length === 0 && dietPending && !regenerating && (
             <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
               <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
               <p className="font-semibold text-body">Preparing doctor questions…</p>
               <p className="text-muted-foreground text-body-sm mt-1">
                 Personalised questions will appear here in a moment.
               </p>
+            </div>
+          )}
+          {activeTab === "checklist" && checklist.length === 0 && (dietFailed || regenerating) && (
+            <div className="rounded-2xl border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-6 shadow-soft">
+              <div className="flex items-start gap-3 mb-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-body">Doctor questions weren't generated</p>
+                  <p className="text-muted-foreground text-body-sm mt-1">
+                    They'll be created together with your diet plan. Tap below to retry.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={regenerateDiet}
+                disabled={regenerating}
+                className="w-full bg-primary text-primary-foreground touch-target"
+              >
+                {regenerating ? (
+                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Regenerating…</>
+                ) : (
+                  <><RefreshCw className="w-4 h-4 mr-2" /> Regenerate diet & doctor questions</>
+                )}
+              </Button>
             </div>
           )}
         </motion.div>
