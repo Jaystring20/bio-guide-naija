@@ -21,6 +21,71 @@ type DetectionResult = {
   note: string;
 };
 
+// ---------------------------------------------------------------------------
+// Persistence: cache detection results so a refresh / re-select of the same
+// file skips the canvas scan. Keyed by name + size + lastModified.
+// ---------------------------------------------------------------------------
+const CACHE_PREFIX = "veridia:ocr-preview:";
+const CACHE_VERSION = 1;
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+type CacheEntry = { v: number; t: number; result: DetectionResult };
+
+function cacheKey(file: File): string {
+  return `${CACHE_PREFIX}${file.name}|${file.size}|${file.lastModified}`;
+}
+
+function readCache(file: File): DetectionResult | null {
+  try {
+    const raw = localStorage.getItem(cacheKey(file));
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as CacheEntry;
+    if (entry.v !== CACHE_VERSION) return null;
+    if (Date.now() - entry.t > CACHE_TTL_MS) {
+      localStorage.removeItem(cacheKey(file));
+      return null;
+    }
+    return entry.result;
+  } catch {
+    return null;
+  }
+}
+
+function writeCache(file: File, result: DetectionResult): void {
+  try {
+    const entry: CacheEntry = { v: CACHE_VERSION, t: Date.now(), result };
+    localStorage.setItem(cacheKey(file), JSON.stringify(entry));
+    pruneCache();
+  } catch {
+    /* quota exceeded — ignore */
+  }
+}
+
+function pruneCache(): void {
+  try {
+    const now = Date.now();
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(CACHE_PREFIX)) keys.push(k);
+    }
+    for (const k of keys) {
+      try {
+        const raw = localStorage.getItem(k);
+        if (!raw) continue;
+        const entry = JSON.parse(raw) as CacheEntry;
+        if (entry.v !== CACHE_VERSION || now - entry.t > CACHE_TTL_MS) {
+          localStorage.removeItem(k);
+        }
+      } catch {
+        localStorage.removeItem(k);
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 type Props = {
   file: File;
   previewUrl: string | null;
@@ -41,8 +106,10 @@ type Props = {
 export const UploadPreviewOverlay = ({ file, previewUrl }: Props) => {
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [detection, setDetection] = useState<DetectionResult | null>(null);
-  const [analyzing, setAnalyzing] = useState(true);
+  const cached = readCache(file);
+  const [detection, setDetection] = useState<DetectionResult | null>(cached);
+  const [analyzing, setAnalyzing] = useState(cached === null);
+  const [fromCache, setFromCache] = useState(cached !== null);
 
   const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
 
