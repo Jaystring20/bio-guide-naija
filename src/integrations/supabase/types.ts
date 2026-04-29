@@ -71,6 +71,7 @@ export type Database = {
           dietary_plan_pidgin: Json | null
           has_critical_alert: boolean
           id: string
+          processing_steps: Json | null
           status: string
           test_date: string | null
           updated_at: string
@@ -91,6 +92,7 @@ export type Database = {
           dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean
           id?: string
+          processing_steps?: Json | null
           status?: string
           test_date?: string | null
           updated_at?: string
@@ -111,6 +113,7 @@ export type Database = {
           dietary_plan_pidgin?: Json | null
           has_critical_alert?: boolean
           id?: string
+          processing_steps?: Json | null
           status?: string
           test_date?: string | null
           updated_at?: string

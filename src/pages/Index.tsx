@@ -220,7 +220,7 @@ const Index = () => {
       </motion.div>
 
       {/* Latest result for active profile */}
-      {lastResult && lastResult.status === "completed" && (
+      {lastResult && (lastResult.status === "completed" || lastResult.status === "partial" || lastResult.status === "critical") && (
         <motion.button
           {...fade(0.15)}
           onClick={() => navigate(`/app/result/${lastResult.id}`)}

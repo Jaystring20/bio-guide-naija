@@ -33,7 +33,7 @@ const ResultReport = () => {
   const [language, setLanguage] = useState<Language>("en");
   const [showShareMenu, setShowShareMenu] = useState(false);
 
-  const { data: result, isLoading } = useQuery({
+  const { data: result, isLoading, refetch } = useQuery({
     queryKey: ["lab-result", id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -48,9 +48,26 @@ const ResultReport = () => {
     enabled: !!id && !!user,
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.status === "processing" ? 3000 : false;
+      // Keep polling while still processing or background work hasn't finished.
+      if (data?.status === "processing") return 3000;
+      if (data?.status === "partial") return 4000;
+      return false;
     },
   });
+
+  // Realtime: react to background diet/Pidgin updates without waiting for poll.
+  useEffect(() => {
+    if (!id || !user) return;
+    const channel = supabase
+      .channel(`lab-result-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "lab_results", filter: `id=eq.${id}` },
+        () => { refetch(); }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [id, user, refetch]);
 
   useEffect(() => {
     if (result?.has_critical_alert) setShowEmergency(true);
@@ -205,8 +222,26 @@ const ResultReport = () => {
           {activeTab === "diet" && dietaryPlan && (
             <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
           )}
-          {activeTab === "checklist" && (
+          {activeTab === "diet" && !dietaryPlan && (
+            <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
+              <p className="font-semibold text-body">Cooking your diet plan…</p>
+              <p className="text-muted-foreground text-body-sm mt-1">
+                We're matching your results to Nigerian foods. This usually takes another 10–20 seconds.
+              </p>
+            </div>
+          )}
+          {activeTab === "checklist" && checklist.length > 0 && (
             <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
+          )}
+          {activeTab === "checklist" && checklist.length === 0 && (
+            <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
+              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
+              <p className="font-semibold text-body">Preparing doctor questions…</p>
+              <p className="text-muted-foreground text-body-sm mt-1">
+                Personalised questions will appear here in a moment.
+              </p>
+            </div>
           )}
         </motion.div>
       </AnimatePresence>
