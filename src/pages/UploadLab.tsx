@@ -160,7 +160,6 @@ const UploadLab = () => {
   };
 
   const isProcessing = uploading || retrying;
-  const hasDependants = dependants.length > 0;
 
   const steps = [
     { key: "upload", label: "Uploading" },
@@ -233,35 +232,31 @@ const UploadLab = () => {
         </div>
       ) : (
         <>
-          {/* Person selector — segmented control */}
-          {hasDependants && (
-            <div className="mb-5">
-              <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">For whom?</label>
-              <div className="flex flex-wrap gap-2 p-1 bg-muted rounded-2xl">
-                <button
-                  onClick={() => setSelectedPerson(null)}
-                  className={cn(
-                    "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-                    selectedPerson === null ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
-                  )}
-                >
-                  Myself
-                </button>
-                {dependants.map((d) => (
-                  <button
-                    key={d.id}
-                    onClick={() => setSelectedPerson(d.id)}
-                    className={cn(
-                      "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-                      selectedPerson === d.id ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
-                    )}
-                  >
-                    {d.full_name.split(" ")[0]}
-                  </button>
-                ))}
+          {/* Active profile chip — driven by switcher at top */}
+          <div className="mb-5">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">For whom?</label>
+            <div className={cn(
+              "flex items-center gap-3 rounded-2xl border p-3",
+              activeProfile.isSelf ? "border-secondary/30 bg-secondary/5" : "border-primary/30 bg-primary/5"
+            )}>
+              <div className={cn(
+                "w-10 h-10 rounded-full text-primary-foreground flex items-center justify-center text-xs font-bold shrink-0",
+                activeProfile.isSelf ? "bg-gradient-navy" : "bg-gradient-brand"
+              )}>
+                <User className="w-5 h-5" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm truncate">
+                  {activeProfile.isSelf ? "Yourself" : activeProfile.name}
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {REL_LABELS[activeProfile.relationship] || activeProfile.relationship}
+                  {activeProfile.age ? ` · ${activeProfile.age}y` : ""}
+                  {" · use the profile pill at the top to switch"}
+                </p>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Test date */}
           <div className="mb-5">
