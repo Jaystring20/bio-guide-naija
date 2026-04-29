@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Camera, FileUp, Loader2, Upload, RefreshCw, AlertTriangle, CalendarIcon, Layers, User } from "lucide-react";
+import { Camera, FileUp, Loader2, Upload, RefreshCw, AlertTriangle, CalendarIcon, Layers, User, Sun, Crop, Type, CheckCircle2, Sparkles } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -15,6 +15,7 @@ import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { Ripple } from "@/components/Ripple";
 import { UploadPreviewOverlay } from "@/components/UploadPreviewOverlay";
 import { ReportProblemButton } from "@/components/feedback/InlineRatingPrompt";
+import { inspectImage, enhanceImage, type QualityReport } from "@/lib/imageQuality";
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -23,6 +24,8 @@ const UploadLab = () => {
   const [retrying, setRetrying] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
   const [testDate, setTestDate] = useState<Date | undefined>(undefined);
+  const [quality, setQuality] = useState<QualityReport | null>(null);
+  const [inspecting, setInspecting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { user } = useAuth();
@@ -60,7 +63,7 @@ const UploadLab = () => {
     enabled: !!user,
   });
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const f = e.target.files?.[0];
       if (!f) return;
@@ -69,7 +72,27 @@ const UploadLab = () => {
       const isValidType = validTypes.includes(f.type) || f.name.match(/\.(jpg|jpeg|png|webp|heic|pdf)$/i);
       if (!isValidType) { toast.error("Unsupported file type. Please use JPG, PNG, or PDF."); return; }
       setFile(f);
-      if (f.type.startsWith("image/")) { setPreview(URL.createObjectURL(f)); } else { setPreview(null); }
+      setQuality(null);
+      if (f.type.startsWith("image/")) {
+        setPreview(URL.createObjectURL(f));
+        // Run quality inspection in the background
+        setInspecting(true);
+        try {
+          const report = await inspectImage(f);
+          setQuality(report);
+          if (report && !report.recoverable) {
+            toast.error(report.reasonEn ?? "Photo quality is too low. Please retake.");
+          } else if (report && report.issues.length > 0) {
+            toast.message("We'll auto-enhance this photo before reading it.");
+          }
+        } catch (err) {
+          console.warn("Quality inspect failed", err);
+        } finally {
+          setInspecting(false);
+        }
+      } else {
+        setPreview(null);
+      }
     } catch (err) {
       console.error("File selection error:", err);
       toast.error("Could not read that file. Please try a different one.");
