@@ -232,13 +232,15 @@ const Landing = () => {
       <AnimatedSection className="py-10 px-4 border-y bg-card">
         <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
-            { value: "500+", label: "Active Users" },
-            { value: "50+", label: "Biomarkers Tracked" },
-            { value: "6", label: "Nigerian Zones" },
-            { value: "100%", label: "NDPA Compliant" },
+            { to: 500, suffix: "+", label: "Active Users" },
+            { to: 50,  suffix: "+", label: "Biomarkers Tracked" },
+            { to: 6,   suffix: "",  label: "Nigerian Zones" },
+            { to: 100, suffix: "%", label: "NDPA Compliant" },
           ].map((stat, i) => (
             <motion.div key={i} variants={fadeUp}>
-              <p className="text-2xl sm:text-3xl font-extrabold text-primary">{stat.value}</p>
+              <p className="text-2xl sm:text-3xl font-extrabold text-primary">
+                <CountUp to={stat.to} suffix={stat.suffix} />
+              </p>
               <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
             </motion.div>
           ))}
