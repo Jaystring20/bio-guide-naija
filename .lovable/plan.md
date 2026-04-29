@@ -1,78 +1,61 @@
-## Why users aren't loading
+# Fix: Empty biomarkers / missing summary on completed scans
 
-The Control Room / Users tab calls the `admin_list_users()` Postgres function. That function declares an OUT parameter named `user_id` (because of `RETURNS TABLE(user_id uuid, …)`) **and** has two inline subqueries (`r` and `d`) that each also expose a column named `user_id`. Inside the join condition `ON r.user_id = u.id`, Postgres can't tell which `user_id` you mean — the OUT parameter or the subquery column — so it raises:
+## What you're seeing (root cause)
 
-```
-column reference "user_id" is ambiguous
-```
+When you opened your most recent two reports, the **diet plan, meal ideas, and Pidgin tabs** showed up — but the **English biomarker breakdown was empty** and the overall summary was blank.
 
-That's the red banner you're seeing. It has nothing to do with RLS or auth — the SQL itself is broken.
+I checked your account in the database. Both recent scans (`d54ae954…` and `100df7e6…`) have:
+- `biomarkers = NULL` (English breakdown missing)
+- `ai_summary = NULL` (summary missing)
+- `biomarkers_pidgin` populated (7–8 entries)
+- `dietary_plan` populated on one of them
+- `status = completed`
 
-## The fix
+That mismatch is impossible by accident — the Pidgin step **derives from** the English biomarkers, so they existed in memory but never got saved.
 
-Rewrite `public.admin_list_users()` so the subquery columns are renamed (e.g. `uid` instead of `user_id`), removing the collision with the function's OUT parameter. Behaviour, return shape, and the admin role check stay identical.
+## Why it happens
 
-### Migration (SQL)
+In `supabase/functions/interpret-lab/index.ts` the pipeline does two writes:
 
-```sql
-CREATE OR REPLACE FUNCTION public.admin_list_users()
-RETURNS TABLE (
-  user_id uuid,
-  email text,
-  full_name text,
-  created_at timestamptz,
-  last_sign_in timestamptz,
-  results_count bigint,
-  dependants_count bigint,
-  last_activity timestamptz
-)
-LANGUAGE plpgsql
-STABLE SECURITY DEFINER
-SET search_path TO 'public'
-AS $$
-BEGIN
-  IF NOT public.has_role(auth.uid(), 'admin') THEN
-    RAISE EXCEPTION 'Access denied';
-  END IF;
+1. **Partial write** (line ~311): saves `biomarkers`, `ai_summary`, `critical_alerts`, and sets `status = 'partial'`.
+2. **Final write** (line ~525): sets `status = 'completed'` (or `'critical'`) only.
 
-  RETURN QUERY
-  SELECT
-    u.id                              AS user_id,
-    u.email::text,
-    COALESCE(p.full_name, '')::text   AS full_name,
-    u.created_at,
-    u.last_sign_in_at                 AS last_sign_in,
-    COALESCE(r.cnt, 0)                AS results_count,
-    COALESCE(d.cnt, 0)                AS dependants_count,
-    r.last_upload                     AS last_activity
-  FROM auth.users u
-  LEFT JOIN public.profiles p
-    ON p.user_id = u.id
-  LEFT JOIN (
-    SELECT lr.user_id  AS uid,
-           COUNT(*)    AS cnt,
-           MAX(lr.upload_date) AS last_upload
-    FROM public.lab_results lr
-    GROUP BY lr.user_id
-  ) r ON r.uid = u.id
-  LEFT JOIN (
-    SELECT dp.user_id AS uid,
-           COUNT(*)   AS cnt
-    FROM public.dependants dp
-    GROUP BY dp.user_id
-  ) d ON d.uid = u.id
-  ORDER BY u.created_at DESC;
-END;
-$$;
+The `lab_results.status` column has this CHECK constraint:
+
+```text
+CHECK (status = ANY (ARRAY['processing','completed','failed','critical']))
 ```
 
-## What I'll do once approved
+`'partial'` is **not allowed**, so write #1 silently rejects the entire UPDATE — biomarkers and summary never land. The background Pidgin/diet tasks still run because they read in-memory data, then write their own columns successfully. Final write succeeds because `'completed'` is valid, leaving you with a "completed" row that has no English biomarkers.
 
-1. Run the migration above to replace `admin_list_users()` with the unambiguous version.
-2. No frontend changes needed — `AdminDashboard.tsx` and the new `ControlRoom.tsx` already consume the same return shape.
-3. Quick verification by calling the RPC and checking that the Users tab + Control Room render rows again.
+This affects every successful scan since the partial-write code was added.
 
-## Out of scope (intentionally)
+## Fix plan
 
-- No changes to RLS, roles, auth flow, or any other RPC.
-- No UI changes — the existing "Failed to load users" toast simply won't fire anymore once the SQL succeeds.
+### 1. Stop the bug (edge function)
+In `supabase/functions/interpret-lab/index.ts`:
+- Replace `partialStatus = hasCritical ? "critical" : "partial"` with `"processing"` (or `"critical"` for critical results) so the write satisfies the CHECK constraint.
+- Add error checking on every `supabase.from("lab_results").update(...)` call — log the Postgres error instead of silently swallowing it. This would have surfaced the constraint failure immediately.
+- Make the final write **also include** `biomarkers`, `ai_summary`, `has_critical_alert`, and `critical_alerts` again, so even if the partial write ever fails for any reason, the final write recovers the data.
+
+### 2. Recover your two affected reports
+Re-run the `interpret-lab` edge function for the two affected scans so the English biomarkers and summary populate. The Pidgin and diet data will be regenerated cleanly. The original lab images may already be gone (NDPA deletion); if so, we'll mark those two as `failed` with a clear message and prompt re-upload — and we'll check first before deciding.
+
+### 3. Empty-state guard (UI)
+In `src/pages/ResultReport.tsx` / `BiomarkersTab.tsx`: if `biomarkers.length === 0` on a `completed` result, show a friendly empty state ("Biomarker breakdown is still loading or wasn't extracted — tap to retry") instead of a blank tab. Prevents this from looking silent in the future.
+
+### 4. (Optional safety) Migration
+Add `'partial'` as an allowed value to the CHECK constraint so the original intent (showing the user a partial result mid-processing) works. This is optional — fix #1 alone resolves the bug.
+
+## Technical summary
+
+| Change | File |
+|---|---|
+| `partialStatus` uses CHECK-valid values; surface update errors | `supabase/functions/interpret-lab/index.ts` |
+| Final UPDATE re-asserts biomarkers + summary | same file |
+| Backfill the two affected `lab_results` rows | one-shot recovery |
+| Empty-state UI for biomarkers tab when array is empty | `src/components/report/BiomarkersTab.tsx`, `ResultReport.tsx` |
+
+No schema changes are required for the core fix. No RLS changes. Existing approved scans (`45fa3f28`, `693a1e92`, `830075f6`) are untouched and remain correct.
+
+Approve and I'll apply the fix and recover your two reports.

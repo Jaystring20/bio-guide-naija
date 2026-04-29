@@ -308,15 +308,22 @@ Extract all biomarkers with their values, units, reference ranges, status classi
     const hasEmergency = criticalAlerts.some((a: any) => a.severity === "emergency");
 
     // ---- WRITE PARTIAL RESULT — user can navigate to result page now ----
-    const partialStatus = hasCritical ? "critical" : "partial";
-    await supabase.from("lab_results").update({
-      biomarkers,
-      ai_summary: summary || null,
-      has_critical_alert: hasCritical,
-      critical_alerts: criticalAlerts.length > 0 ? criticalAlerts : null,
-      status: partialStatus,
-      processing_steps: steps,
-    }).eq("id", labResultId);
+    // Use 'processing' (or 'critical') so we satisfy the status CHECK constraint.
+    // 'partial' was rejected silently and wiped biomarkers from previous scans.
+    const partialStatus = hasCritical ? "critical" : "processing";
+    {
+      const { error: partialErr } = await supabase.from("lab_results").update({
+        biomarkers,
+        ai_summary: summary || null,
+        has_critical_alert: hasCritical,
+        critical_alerts: criticalAlerts.length > 0 ? criticalAlerts : null,
+        status: partialStatus,
+        processing_steps: steps,
+      }).eq("id", labResultId);
+      if (partialErr) {
+        console.error("Partial write failed:", partialErr.message, partialErr);
+      }
+    }
 
     // ---- Background tasks: diet plan + Pidgin in parallel ----
     const backgroundWork = async () => {
