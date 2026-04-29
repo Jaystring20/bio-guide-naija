@@ -12,6 +12,8 @@ import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { Ripple } from "@/components/Ripple";
 import { cn } from "@/lib/utils";
+import { InlineNPSPrompt } from "@/components/feedback/InlineRatingPrompt";
+import { useMyFeedbackCount } from "@/hooks/useFeedback";
 
 const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
@@ -20,8 +22,13 @@ const Index = () => {
   const { profile, user } = useAuth();
   const { activeProfile, activeProfileId } = useActiveProfile();
   const { dependants } = useDependants();
-  const { get } = useProfileStats();
+  const { get, raw } = useProfileStats();
+  const { data: myFeedbackCount } = useMyFeedbackCount();
   const navigate = useNavigate();
+
+  const completedCount = raw.filter((r: any) => r.status === "completed").length;
+  const showNPS = completedCount >= 3;
+  const showTesterBanner = (myFeedbackCount ?? 0) === 0;
 
   const { data: lastResult } = useQuery({
     queryKey: ["last-result", user?.id, activeProfileId],
@@ -139,6 +146,29 @@ const Index = () => {
           </Ripple>
         </div>
       </motion.div>
+
+      {showTesterBanner && (
+        <motion.div {...fade(0.04)} className="mb-5 rounded-2xl border border-primary/30 bg-primary/5 p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center shrink-0">
+              <Activity className="w-4 h-4 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-primary">MVP tester</p>
+              <p className="font-display font-bold text-sm mt-0.5">You're shaping VeriDIA early.</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Tap the green Feedback button anywhere — your notes go straight to the team.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {showNPS && (
+        <motion.div {...fade(0.05)}>
+          <InlineNPSPrompt promptKey="nps-v1" />
+        </motion.div>
+      )}
 
       {/* Family quick access */}
       {dependants.length > 0 && (

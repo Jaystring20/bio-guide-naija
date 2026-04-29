@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Share2, MessageCircle, Mail } from "lucide-react";
+import { Loader2, Download, Share2, MessageCircle, Mail, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Biomarker, BiomarkerPidgin, DietaryPlan, DietaryPlanPidgin, ChecklistItem, ChecklistItemPidgin, Language } from "@/components/report/types";
 import { SummaryTab } from "@/components/report/SummaryTab";
@@ -15,6 +16,7 @@ import { ChecklistTab } from "@/components/report/ChecklistTab";
 import { generatePDF, sharePDF } from "@/components/report/PDFExport";
 import { AnimatePresence, motion } from "framer-motion";
 import { OrbitProcessing } from "@/components/OrbitProcessing";
+import { InlineRatingPrompt } from "@/components/feedback/InlineRatingPrompt";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
@@ -27,6 +29,7 @@ const TAB_LABELS: Record<Language, Record<Tab, string>> = {
 const ResultReport = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
+  const { isAdmin } = useUserRole();
   const navigate = useNavigate();
   const [showEmergency, setShowEmergency] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("summary");
@@ -34,14 +37,12 @@ const ResultReport = () => {
   const [showShareMenu, setShowShareMenu] = useState(false);
 
   const { data: result, isLoading, refetch } = useQuery({
-    queryKey: ["lab-result", id],
+    queryKey: ["lab-result", id, isAdmin],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("lab_results")
-        .select("*")
-        .eq("id", id!)
-        .eq("user_id", user!.id)
-        .single();
+      // Admins can view any result (RLS allows). Regular users are scoped to their own.
+      let q = supabase.from("lab_results").select("*").eq("id", id!);
+      if (!isAdmin) q = q.eq("user_id", user!.id);
+      const { data, error } = await q.single();
       if (error) throw error;
       return data;
     },
@@ -52,6 +53,18 @@ const ResultReport = () => {
       if (data?.status === "processing") return 3000;
       if (data?.status === "partial") return 4000;
       return false;
+    },
+  });
+
+  // If admin is viewing someone else's result, fetch the owner's name/email for context.
+  const isAdminViewing = !!result && !!user && result.user_id !== user.id && isAdmin;
+  const { data: ownerInfo } = useQuery({
+    queryKey: ["result-owner", id],
+    enabled: isAdminViewing,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_get_result_owner", { _result_id: id! });
+      if (error) throw error;
+      return (data && data[0]) || null;
     },
   });
 
@@ -154,6 +167,23 @@ const ResultReport = () => {
         ← Back
       </button>
 
+      {isAdminViewing && (
+        <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-3 mb-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-secondary/15 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-secondary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-secondary">Admin viewer · read-only</p>
+            <p className="text-sm font-semibold truncate">
+              {ownerInfo?.full_name || ownerInfo?.email || "Loading patient…"}
+            </p>
+            {ownerInfo?.email && ownerInfo?.full_name && (
+              <p className="text-xs text-muted-foreground truncate">{ownerInfo.email}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="mb-1">
         <h1 className="font-display text-2xl font-bold">
           {language === "pidgin" ? "Your Lab Report" : "Your Lab Report"}
@@ -186,6 +216,15 @@ const ResultReport = () => {
           day: "numeric", month: "long", year: "numeric",
         })}
       </p>
+
+      {!isAdminViewing && result.status === "completed" && (
+        <InlineRatingPrompt
+          promptKey="post-result-v1"
+          title="How was your VeriDIA report?"
+          subtitle="One tap helps us improve faster — your rating goes straight to the team."
+          resultId={id}
+        />
+      )}
 
       {/* Tabs */}
       <div className="grid grid-cols-2 gap-2 mb-6">
