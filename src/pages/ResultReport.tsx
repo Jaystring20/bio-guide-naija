@@ -17,6 +17,7 @@ import { generatePDF, sharePDF } from "@/components/report/PDFExport";
 import { AnimatePresence, motion } from "framer-motion";
 import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { InlineRatingPrompt } from "@/components/feedback/InlineRatingPrompt";
+import { EmptyBiomarkersBanner } from "@/components/report/EmptyBiomarkersBanner";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
