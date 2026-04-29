@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { OrbitProcessing } from "@/components/OrbitProcessing";
+import { Ripple } from "@/components/Ripple";
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -187,49 +189,7 @@ const UploadLab = () => {
       </div>
 
       {isProcessing ? (
-        <div className="bg-card border border-border rounded-3xl p-8 shadow-card">
-          <div className="flex flex-col items-center text-center">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" />
-              <div className="relative w-16 h-16 rounded-2xl bg-gradient-brand flex items-center justify-center shadow-glow-primary">
-                <Loader2 className="w-7 h-7 text-primary-foreground animate-spin" />
-              </div>
-            </div>
-            <p className="font-display text-lg font-bold">{processingStep || "Working..."}</p>
-            <p className="text-muted-foreground text-body-sm mt-1.5">Hang tight — don't close this page.</p>
-
-            <div className="mt-7 w-full">
-              <div className="flex items-center justify-between gap-2">
-                {steps.map((s, i) => {
-                  const done = i < activeStepIndex;
-                  const active = i === activeStepIndex;
-                  return (
-                    <div key={s.key} className="flex-1 flex flex-col items-center">
-                      <div className={cn(
-                        "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-all",
-                        done && "bg-primary border-primary text-primary-foreground",
-                        active && "bg-primary/15 border-primary text-primary animate-pulse",
-                        !done && !active && "border-border text-muted-foreground"
-                      )}>
-                        {done ? "✓" : i + 1}
-                      </div>
-                      <span className={cn(
-                        "text-[11px] mt-1.5 font-medium",
-                        active ? "text-foreground" : "text-muted-foreground"
-                      )}>{s.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-brand transition-all duration-500"
-                  style={{ width: `${((activeStepIndex + 1) / steps.length) * 100}%` }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+        <OrbitProcessing step={activeStepIndex} label={processingStep} />
       ) : (
         <>
           {/* Active profile chip — driven by switcher at top */}
@@ -327,20 +287,21 @@ const UploadLab = () => {
                 </div>
               )}
 
-              <button
+              <Ripple
                 onClick={() => cameraInputRef.current?.click()}
-                className="group relative w-full overflow-hidden bg-gradient-hero rounded-3xl p-6 flex items-center gap-4 touch-target shadow-elevated transition-transform hover:scale-[1.01]"
+                rippleColor="hsl(0 0% 100% / 0.45)"
+                className="group relative w-full overflow-hidden bg-gradient-hero rounded-3xl p-6 flex items-center gap-4 touch-target shadow-elevated transition-transform hover:scale-[1.01] animate-breathe"
               >
                 <div className="absolute inset-0 grid-bg opacity-50 pointer-events-none" />
                 <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-white/10 blur-2xl pointer-events-none" />
-                <div className="relative w-14 h-14 rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center">
+                <div className="relative w-14 h-14 rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center shrink-0">
                   <Camera className="w-7 h-7 text-primary-foreground" />
                 </div>
                 <div className="relative text-left flex-1">
                   <p className="font-bold text-primary-foreground text-lg">Take a Photo</p>
                   <p className="text-primary-foreground/80 text-body-sm">Snap with your camera</p>
                 </div>
-              </button>
+              </Ripple>
               <input
                 ref={cameraInputRef}
                 type="file"
@@ -350,18 +311,19 @@ const UploadLab = () => {
                 className="hidden"
               />
 
-              <button
+              <Ripple
                 onClick={() => fileInputRef.current?.click()}
+                rippleColor="hsl(217 60% 27% / 0.18)"
                 className="group w-full bg-card border-2 border-dashed border-secondary/30 rounded-3xl p-6 flex items-center gap-4 touch-target transition-all hover:border-secondary/60 hover:bg-secondary/5"
               >
-                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-secondary/10 flex items-center justify-center shrink-0">
                   <FileUp className="w-7 h-7 text-secondary" />
                 </div>
                 <div className="text-left flex-1">
                   <p className="font-bold text-body">Upload a File</p>
                   <p className="text-muted-foreground text-body-sm">JPG, PNG or PDF · max 10MB</p>
                 </div>
-              </button>
+              </Ripple>
               <input
                 ref={fileInputRef}
                 type="file"

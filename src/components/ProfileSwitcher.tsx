@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const ProfileSwitcher = () => {
-  const { activeProfile, setActiveProfileId } = useActiveProfile();
+  const { activeProfile, activeProfileId, setActiveProfileId } = useActiveProfile();
   const { profile } = useAuth();
   const { dependants, addDependant } = useDependants();
   const { get } = useProfileStats();
@@ -30,6 +30,8 @@ export const ProfileSwitcher = () => {
 
   const ownName = profile?.full_name?.split(" ")[0] || "You";
   const selfStats = get(null);
+  const activeStats = get(activeProfileId);
+  const hasFlags = activeStats.flagged > 0;
 
   return (
     <>
@@ -37,14 +39,19 @@ export const ProfileSwitcher = () => {
         <Sheet open={open} onOpenChange={setOpen}>
           <SheetTrigger asChild>
             <button
-              className="w-full max-w-lg mx-auto flex items-center gap-3 bg-card border border-border rounded-full pl-1.5 pr-4 py-1.5 shadow-soft touch-target transition-all hover:shadow-card active:scale-[0.99]"
+              className="w-full max-w-lg mx-auto flex items-center gap-3 bg-card border border-border rounded-full pl-1.5 pr-4 py-1.5 shadow-soft touch-target transition-all hover:shadow-card tap-scale"
               aria-label="Switch active profile"
             >
-              <div className={cn(
-                "w-9 h-9 rounded-full text-primary-foreground flex items-center justify-center text-xs font-bold shadow-soft shrink-0",
-                activeProfile.isSelf ? "bg-gradient-navy" : "bg-gradient-brand"
-              )}>
-                {initialsOf(activeProfile.name)}
+              <div className="relative shrink-0">
+                {hasFlags && (
+                  <span aria-hidden className="absolute -inset-1 rounded-full bg-destructive/40 blur-md animate-heartbeat" />
+                )}
+                <div className={cn(
+                  "relative w-9 h-9 rounded-full text-primary-foreground flex items-center justify-center text-xs font-bold shadow-soft",
+                  activeProfile.isSelf ? "bg-gradient-navy" : "bg-gradient-brand"
+                )}>
+                  {initialsOf(activeProfile.name)}
+                </div>
               </div>
               <div className="flex-1 text-left min-w-0">
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold leading-none">

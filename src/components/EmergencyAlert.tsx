@@ -18,16 +18,22 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
   const hasEmergency = alerts.some((a) => a.severity === "emergency");
 
   return (
-    <div className="fixed inset-0 z-[100] bg-destructive flex flex-col items-center justify-center p-6 text-destructive-foreground">
-      <div className="animate-pulse-gentle mb-6">
-        <AlertTriangle className="w-20 h-20" />
+    <div className="fixed inset-0 z-[100] bg-destructive flex flex-col items-center justify-center p-6 text-destructive-foreground overflow-hidden">
+      {/* Empathetic ambient aura */}
+      <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[120vmin] h-[120vmin] rounded-full bg-destructive-foreground/10 blur-3xl animate-heartbeat" />
       </div>
 
-      <h1 className="font-display text-3xl font-bold text-center mb-4">
+      <div className="relative mb-6">
+        <span aria-hidden className="absolute inset-0 rounded-full bg-destructive-foreground/30 blur-2xl animate-heartbeat" />
+        <AlertTriangle className="relative w-20 h-20" />
+      </div>
+
+      <h1 className="font-display text-3xl font-bold text-center mb-4 relative">
         {hasEmergency ? "🚨 EMERGENCY" : "⚠️ URGENT ALERT"}
       </h1>
 
-      <p className="text-center text-lg mb-6 max-w-sm">
+      <p className="text-center text-lg mb-6 max-w-sm relative">
         {hasEmergency
           ? "Some of your lab values are dangerously abnormal. Please contact a doctor immediately."
           : "Some of your lab values need urgent medical attention."}

@@ -88,20 +88,29 @@ const Family = () => {
 
         {/* Empty state for caregivers with no dependants yet */}
         {dependants.length === 0 && (
-          <div className="bg-card border border-border rounded-3xl p-6 text-center shadow-soft">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-              <Users className="w-7 h-7 text-primary" />
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative overflow-hidden bg-gradient-brand-soft border border-primary/20 rounded-3xl p-7 text-center"
+          >
+            <div aria-hidden className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary/15 blur-3xl animate-heartbeat" />
+            <div aria-hidden className="absolute -bottom-12 -left-8 w-40 h-40 rounded-full bg-secondary/15 blur-3xl" />
+            <div className="relative">
+              <div className="w-16 h-16 rounded-2xl bg-white shadow-soft flex items-center justify-center mx-auto mb-4 animate-breathe">
+                <Users className="w-8 h-8 text-primary" />
+              </div>
+              <p className="font-display font-bold text-lg">Bring your loved ones along</p>
+              <p className="text-body-sm text-muted-foreground mt-2 max-w-xs mx-auto">
+                Add a parent, child or anyone you care for. Track their results and feel a little more in control.
+              </p>
             </div>
-            <p className="font-display font-bold">No family members yet</p>
-            <p className="text-body-sm text-muted-foreground mt-1 mb-4">
-              Add a parent, child, or anyone you care for to upload and track their lab results.
-            </p>
-          </div>
+          </motion.div>
         )}
 
         <button
           onClick={() => { setEditing(null); setDialogOpen(true); }}
-          className="w-full mt-2 border-2 border-dashed border-border rounded-2xl p-4 flex items-center justify-center gap-2 text-sm font-semibold text-muted-foreground touch-target transition-colors hover:border-primary/40 hover:text-primary hover:bg-primary/5"
+          className="w-full mt-2 border-2 border-dashed border-primary/30 rounded-2xl p-4 flex items-center justify-center gap-2 text-sm font-semibold text-primary touch-target transition-colors hover:border-primary/60 hover:bg-primary/5 animate-breathe"
         >
           <Plus className="w-4 h-4" />
           Add family member
