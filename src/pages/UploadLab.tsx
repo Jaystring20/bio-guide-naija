@@ -1,12 +1,12 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useDependants } from "@/hooks/useDependants";
-import { Camera, FileUp, Loader2, Upload, RefreshCw, AlertTriangle, CalendarIcon, Layers } from "lucide-react";
+import { Camera, FileUp, Loader2, Upload, RefreshCw, AlertTriangle, CalendarIcon, Layers, User } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
@@ -18,14 +18,14 @@ const UploadLab = () => {
   const [uploading, setUploading] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [processingStep, setProcessingStep] = useState("");
-  const [selectedPerson, setSelectedPerson] = useState<string | null>(null); // null = myself
   const [testDate, setTestDate] = useState<Date | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const { activeProfile, activeProfileId } = useActiveProfile();
+  const selectedPerson = activeProfileId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { dependants } = useDependants();
 
   const { data: failedResult } = useQuery({
     queryKey: ["failed-result", user?.id],
