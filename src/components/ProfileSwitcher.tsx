@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 export const ProfileSwitcher = () => {
-  const { activeProfile, setActiveProfileId } = useActiveProfile();
+  const { activeProfile, activeProfileId, setActiveProfileId } = useActiveProfile();
   const { profile } = useAuth();
   const { dependants, addDependant } = useDependants();
   const { get } = useProfileStats();
