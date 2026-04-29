@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Shield,
   Users,
@@ -393,7 +395,7 @@ const AdminDashboard = () => {
               disabled={!filteredUsers.length}
               onClick={() =>
                 downloadCSV(
-                  "veridia-users",
+                  usersCriticalOnly ? "veridia-users-critical" : "veridia-users",
                   ["Name", "Email", "Joined", "Last sign in", "Last activity", "Results", "Dependants", "Admin", "User ID"],
                   filteredUsers.map((u) => [
                     u.full_name,
@@ -413,6 +415,34 @@ const AdminDashboard = () => {
               Export CSV
             </Button>
           </div>
+
+          <label
+            htmlFor="users-critical-toggle"
+            className={cn(
+              "flex items-center justify-between gap-3 rounded-xl border px-4 py-3 cursor-pointer transition-colors",
+              usersCriticalOnly
+                ? "border-destructive/40 bg-destructive/5"
+                : "border-border bg-card"
+            )}
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertTriangle className={cn("w-4 h-4 shrink-0", usersCriticalOnly ? "text-destructive" : "text-muted-foreground")} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">Critical alerts only</p>
+                <p className="text-xs text-muted-foreground">
+                  {usersCriticalOnly
+                    ? `Showing ${filteredUsers.length} user${filteredUsers.length === 1 ? "" : "s"} with at least one critical result`
+                    : "Filter the list and export to users who triggered critical thresholds"}
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="users-critical-toggle"
+              checked={usersCriticalOnly}
+              onCheckedChange={setUsersCriticalOnly}
+              disabled={criticalQ.isLoading}
+            />
+          </label>
 
           {usersQ.isLoading ? (
             <div className="flex justify-center py-16">
