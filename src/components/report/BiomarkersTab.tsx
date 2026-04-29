@@ -84,8 +84,8 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
                 {tip && (
                   <div className="bg-accent/10 rounded-lg p-3 border border-accent/20">
                     <div className="flex items-center gap-2 mb-1">
-                      <Lightbulb className="w-4 h-4 text-accent" />
-                      <p className="text-xs font-bold text-accent uppercase tracking-wide">
+                      <Lightbulb className="w-4 h-4 text-secondary-foreground" />
+                      <p className="text-xs font-bold text-secondary-foreground uppercase tracking-wide">
                         {isPidgin ? "Wetin You Fit Do" : "Lifestyle Tip"}
                       </p>
                     </div>
