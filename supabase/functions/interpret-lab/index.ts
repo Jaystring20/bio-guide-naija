@@ -63,6 +63,45 @@ function extractFunctionCall(aiData: any): any | null {
   return aiData?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall?.args ?? null;
 }
 
+// Try each model; on each model retry transient HTTP errors AND retry once if
+// the response was 200 OK but the model produced no functionCall.
+// gemini-2.5-flash-lite frequently ignores function-calling for the larger diet
+// schema — so for diet we deliberately use this helper instead of the raw
+// callGeminiWithRetry which only switches models on HTTP failures.
+async function callGeminiForFunction(body: unknown, apiKey: string): Promise<{ args: any | null; model: string; note?: string }> {
+  let lastNote = "no models tried";
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        if (!response.ok) {
+          if ((response.status === 503 || response.status === 429) && attempt < MAX_RETRIES) {
+            await new Promise(r => setTimeout(r, 1500 * attempt));
+            continue;
+          }
+          lastNote = `http_${response.status}`;
+          break; // try next model
+        }
+        const data = await response.json();
+        const args = extractFunctionCall(data);
+        if (args) return { args, model };
+        lastNote = "no function call";
+        if (attempt < MAX_RETRIES) continue; // retry same model once more
+      } catch (e) {
+        lastNote = (e as Error).message;
+        if (attempt < MAX_RETRIES) continue;
+      }
+    }
+  }
+  return { args: null, model: GEMINI_MODELS[GEMINI_MODELS.length - 1], note: lastNote };
+}
+
 // Note: validateBiomarkers + preprocessImage live in ./preprocess.ts
 
 
