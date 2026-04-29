@@ -41,7 +41,7 @@ export const ThemeToggle = ({ className, size = "md" }: ThemeToggleProps) => {
           {isDark ? (
             <Moon className={cn(icon, "text-primary")} />
           ) : (
-            <Sun className={cn(icon, "text-accent")} />
+            <Sun className={cn(icon, "text-secondary-foreground")} />
           )}
         </motion.span>
       </AnimatePresence>
