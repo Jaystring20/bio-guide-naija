@@ -9,6 +9,8 @@ import {
   Users, Baby, Activity, Stethoscope, HeartPulse, ArrowRight, Sparkles, CheckCircle2
 } from "lucide-react";
 import veridiaLogo from "@/assets/veridia-logo.png";
+import { Aurora } from "@/components/Aurora";
+import { CountUp } from "@/components/CountUp";
 
 /* ── Animation helpers ── */
 const fadeUp = {
@@ -115,6 +117,10 @@ const Landing = () => {
 
       {/* ═══ Hero ═══ */}
       <section className="relative py-20 md:py-32 px-4 overflow-hidden">
+        {/* Surreal aurora backdrop */}
+        <div className="absolute inset-0 pointer-events-none">
+          <Aurora tone="brand" intensity={0.7} />
+        </div>
         {/* Background gradient orbs */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-accent/5 rounded-full blur-3xl pointer-events-none" />
@@ -125,16 +131,28 @@ const Landing = () => {
           variants={stagger}
           className="max-w-3xl mx-auto text-center space-y-7 relative"
         >
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full bg-gradient-brand-soft border border-primary/20 px-4 py-1.5 text-sm font-semibold text-primary">
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full bg-gradient-brand-soft border border-primary/20 px-4 py-1.5 text-sm font-semibold text-primary animate-breathe">
             <Sparkles className="w-4 h-4" /> AI-powered • For Nigerians, by Nigerians
           </motion.div>
 
-          <motion.h1 variants={fadeUp} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight">
+          <motion.h1
+            variants={fadeUp}
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.1] tracking-tight"
+          >
             Turn Lab Results Into{" "}
             <span className="relative inline-block">
-              <span className="text-accent">Life-Saving</span>
+              <span className="text-shimmer">Life-Saving</span>
               <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 200 8" fill="none">
-                <path d="M2 6C50 2 150 2 198 6" stroke="hsl(var(--accent))" strokeWidth="3" strokeLinecap="round" opacity="0.4" />
+                <motion.path
+                  d="M2 6C50 2 150 2 198 6"
+                  stroke="hsl(var(--accent))"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  opacity="0.55"
+                  initial={{ pathLength: 0 }}
+                  animate={{ pathLength: 1 }}
+                  transition={{ duration: 1.2, delay: 0.7, ease: [0.65, 0, 0.35, 1] }}
+                />
               </svg>
             </span>{" "}
             Action.
