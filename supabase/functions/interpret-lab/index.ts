@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { preprocessImage, validateBiomarkers, looksLikeLabReport } from "./preprocess.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,18 +63,8 @@ function extractFunctionCall(aiData: any): any | null {
   return aiData?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall?.args ?? null;
 }
 
-// Lightweight runtime validation for biomarker output
-function validateBiomarkerPayload(args: any): { ok: boolean; reason?: string } {
-  if (!args || typeof args !== "object") return { ok: false, reason: "no args" };
-  if (typeof args.summary !== "string" || args.summary.length < 5) return { ok: false, reason: "missing summary" };
-  if (!Array.isArray(args.biomarkers) || args.biomarkers.length === 0) return { ok: false, reason: "no biomarkers" };
-  for (const b of args.biomarkers) {
-    if (!b.name || typeof b.value !== "number" || !b.unit || !b.status) {
-      return { ok: false, reason: `invalid biomarker: ${JSON.stringify(b).slice(0, 80)}` };
-    }
-  }
-  return { ok: true };
-}
+// Note: validateBiomarkers + preprocessImage live in ./preprocess.ts
+
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -128,15 +119,21 @@ serve(async (req) => {
     }
 
     const arrayBuffer = await fileRes.data.arrayBuffer();
-    const bytes = new Uint8Array(arrayBuffer);
+    const rawBytes = new Uint8Array(arrayBuffer);
+
+    // OCR preprocessing — downscale large JPEGs so Gemini gets a tighter, sharper input.
+    const preStart = Date.now();
+    const { bytes, mimeType, note: preNote } = await preprocessImage(rawBytes, filePath);
+    logStep("preprocess", preStart, true, undefined, preNote);
+
+    // Chunked base64 encode (avoids stack overflow on large buffers).
     const CHUNK = 8192;
     let binaryStr = "";
     for (let i = 0; i < bytes.length; i += CHUNK) {
       binaryStr += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, Math.min(i + CHUNK, bytes.length))));
     }
     const base64 = btoa(binaryStr);
-    const mimeType = filePath.endsWith(".pdf") ? "application/pdf" : "image/jpeg";
-    logStep("setup", setupStart, true, undefined, `${(bytes.length / 1024).toFixed(0)}KB`);
+    logStep("setup", setupStart, true, undefined, `raw=${(rawBytes.length / 1024).toFixed(0)}KB sent=${(bytes.length / 1024).toFixed(0)}KB`);
 
     // ---- Step 1: Biomarker extraction (BLOCKING — user waits for this) ----
     const systemPrompt = `You are VeriDIA's Lab Interpretation Engine for Nigerian users. You're like a caring, knowledgeable big sister or brother explaining health results.
@@ -222,14 +219,17 @@ Extract all biomarkers with their values, units, reference ranges, status classi
         }
         const aiData = await response.json();
         const args = extractFunctionCall(aiData);
-        const validation = validateBiomarkerPayload(args);
+        const validation = validateBiomarkers(args);
+        if (validation.dropped.length) {
+          console.log(`Dropped ${validation.dropped.length} invalid biomarkers:`, JSON.stringify(validation.dropped));
+        }
         if (!validation.ok) {
           lastErr = `validation: ${validation.reason}`;
           console.log(`Biomarker validation failed (attempt ${attempt}): ${validation.reason}`);
           continue;
         }
-        biomarkers = args.biomarkers;
-        summary = args.summary;
+        biomarkers = validation.biomarkers;
+        summary = validation.summary;
         break;
       } catch (e) {
         lastErr = (e as Error).message;
@@ -241,6 +241,16 @@ Extract all biomarkers with their values, units, reference ranges, status classi
       logStep("biomarker_call", bioStart, false, bioModel, lastErr);
       await supabase.from("lab_results").update({ status: "failed", processing_steps: steps }).eq("id", labResultId);
       return new Response(JSON.stringify({ error: "MODEL_UNAVAILABLE", message: "We couldn't read the lab result. Please try a clearer photo or PDF." }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Page-detection guard — refuse non-lab uploads (selfies, food labels, etc.)
+    const pageCheck = looksLikeLabReport(biomarkers);
+    if (!pageCheck.ok) {
+      logStep("biomarker_call", bioStart, false, bioModel, `not-lab:${pageCheck.reason}`);
+      await supabase.from("lab_results").update({ status: "failed", processing_steps: steps }).eq("id", labResultId);
+      return new Response(JSON.stringify({ error: "NOT_A_LAB_REPORT", message: pageCheck.reason }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
