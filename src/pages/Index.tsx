@@ -6,8 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useProfileStats } from "@/hooks/useProfileStats";
 import { useDependants } from "@/hooks/useDependants";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import veridiaLogo from "@/assets/veridia-logo.png";
+import { Aurora } from "@/components/Aurora";
+import { CountUp } from "@/components/CountUp";
+import { Ripple } from "@/components/Ripple";
 
 const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
@@ -56,10 +59,14 @@ const Index = () => {
     transition: { duration: 0.45, ease: "easeOut", delay },
   });
 
+  const reduce = useReducedMotion();
+
   return (
     <div className="px-5 pt-4 pb-4 max-w-lg mx-auto">
       {/* Hero gradient card */}
       <motion.div {...fade(0)} className="relative overflow-hidden rounded-3xl bg-gradient-hero p-6 mb-5 shadow-elevated">
+        {/* Drifting aurora behind everything */}
+        <Aurora tone="warm" intensity={0.9} />
         <div className="absolute inset-0 grid-bg opacity-50 pointer-events-none" />
         <div className="absolute -top-16 -right-16 w-56 h-56 rounded-full bg-white/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -left-10 w-56 h-56 rounded-full bg-secondary/30 blur-3xl pointer-events-none" />
@@ -74,16 +81,30 @@ const Index = () => {
             </div>
             <button
               onClick={() => navigate("/profile")}
-              className="w-10 h-10 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center text-primary-foreground font-bold text-sm touch-target"
+              className="relative w-10 h-10 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center text-primary-foreground font-bold text-sm touch-target tap-scale"
             >
-              {initials(profile?.full_name)}
+              <span aria-hidden className="absolute inset-0 rounded-full bg-white/30 animate-heartbeat" />
+              <span className="relative">{initials(profile?.full_name)}</span>
             </button>
           </div>
 
           <p className="text-primary-foreground/75 text-sm">{greeting()},</p>
-          <h1 className="font-display text-3xl font-extrabold text-primary-foreground tracking-tight">
-            {ownFirstName} <span className="inline-block">👋</span>
-          </h1>
+          <motion.h1
+            initial={{ opacity: 0, y: 8, filter: reduce ? "none" : "blur(6px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+            className="font-display text-3xl font-extrabold text-primary-foreground tracking-tight"
+          >
+            {ownFirstName}{" "}
+            <motion.span
+              initial={{ rotate: 0 }}
+              animate={reduce ? {} : { rotate: [0, 14, -8, 14, 0] }}
+              transition={{ duration: 1.2, delay: 0.6, ease: "easeInOut" }}
+              className="inline-block origin-[70%_70%]"
+            >
+              👋
+            </motion.span>
+          </motion.h1>
 
           {!activeProfile.isSelf ? (
             <p className="text-primary-foreground/85 text-body-sm mt-2 max-w-[18rem]">
@@ -97,11 +118,15 @@ const Index = () => {
           )}
 
           {/* Glass CTA */}
-          <button
+          <Ripple
             onClick={() => navigate("/upload")}
-            className="group mt-6 w-full glass-card rounded-2xl p-4 flex items-center gap-4 text-left touch-target transition-all hover:bg-white/20"
+            rippleColor="hsl(0 0% 100% / 0.4)"
+            className={cn(
+              "group mt-6 w-full glass-card rounded-2xl p-4 flex items-center gap-4 text-left touch-target transition-all hover:bg-white/20",
+              !reduce && "animate-breathe"
+            )}
           >
-            <div className="w-12 h-12 rounded-xl bg-white text-primary flex items-center justify-center shadow-lg">
+            <div className="w-12 h-12 rounded-xl bg-white text-primary flex items-center justify-center shadow-lg shrink-0">
               <Upload className="w-5 h-5" />
             </div>
             <div className="flex-1">
@@ -110,8 +135,8 @@ const Index = () => {
               </p>
               <p className="text-primary-foreground/75 text-xs">Photo or PDF · ~30 sec analysis</p>
             </div>
-            <ArrowUpRight className="w-5 h-5 text-primary-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </button>
+            <ArrowUpRight className={cn("w-5 h-5 text-primary-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5", !reduce && "animate-nudge-right")} />
+          </Ripple>
         </div>
       </motion.div>
 
