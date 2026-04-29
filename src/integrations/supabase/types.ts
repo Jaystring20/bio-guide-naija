@@ -178,14 +178,69 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          dependants_count: number
+          email: string
+          full_name: string
+          last_activity: string
+          last_sign_in: string
+          results_count: number
+          user_id: string
+        }[]
+      }
+      admin_overview_metrics: { Args: never; Returns: Json }
+      admin_recent_results: {
+        Args: { _limit?: number }
+        Returns: {
+          dependant_id: string
+          email: string
+          full_name: string
+          has_critical_alert: boolean
+          id: string
+          status: string
+          upload_date: string
+          user_id: string
+        }[]
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "user"
       geopolitical_zone:
         | "south-south"
         | "south-west"
@@ -321,6 +376,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       geopolitical_zone: [
         "south-south",
         "south-west",

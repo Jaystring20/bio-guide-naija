@@ -223,7 +223,7 @@ const Index = () => {
       {lastResult && lastResult.status === "completed" && (
         <motion.button
           {...fade(0.15)}
-          onClick={() => navigate(`/result/${lastResult.id}`)}
+          onClick={() => navigate(`/app/result/${lastResult.id}`)}
           className="group w-full bg-card rounded-2xl p-5 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
         >
           <div className="flex items-center justify-between mb-3">

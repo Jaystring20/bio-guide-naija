@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette } from "lucide-react";
+import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette, BarChart3, ArrowUpRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDependants } from "@/hooks/useDependants";
 import AddDependantDialog from "@/components/AddDependantDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import type { Dependant, DependantInput } from "@/hooks/useDependants";
 
 const ZONE_LABELS: Record<string, string> = {
@@ -42,6 +43,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { dependants, addDependant, updateDependant, deleteDependant } = useDependants();
   const { resolvedTheme } = useTheme();
+  const { isAdmin } = useUserRole();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Dependant | null>(null);
 
@@ -156,6 +158,25 @@ const Profile = () => {
           Add {roleLabel}
         </button>
       </div>
+
+      {/* Super Admin entry — admins only */}
+      {isAdmin && (
+        <button
+          onClick={() => navigate("/app/admin")}
+          className="group w-full bg-gradient-to-br from-secondary to-secondary/80 text-secondary-foreground rounded-3xl p-5 mb-4 shadow-card text-left transition-all hover:shadow-elevated hover:-translate-y-0.5"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <p className="font-display font-extrabold">Super Admin</p>
+              <p className="text-xs opacity-85">Metrics, users & all uploads</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </div>
+        </button>
+      )}
 
       {/* Appearance */}
       <div className="bg-card rounded-3xl border border-border p-5 mb-4 shadow-soft">

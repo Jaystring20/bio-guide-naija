@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
@@ -9,11 +10,14 @@ import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
+type Scope = "all" | "active";
+
 const History = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { dependants } = useDependants();
   const { activeProfile, activeProfileId } = useActiveProfile();
+  const [scope, setScope] = useState<Scope>("all"); // default: show everything
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["lab-results", user?.id],
@@ -28,37 +32,71 @@ const History = () => {
     enabled: !!user,
   });
 
-  const filteredResults = results?.filter((r) =>
-    activeProfileId ? r.dependant_id === activeProfileId : !r.dependant_id
-  );
+  const filteredResults =
+    scope === "all"
+      ? results
+      : results?.filter((r) =>
+          activeProfileId ? r.dependant_id === activeProfileId : !r.dependant_id
+        );
 
-  const getDependantName = (depId: string | null) => {
-    if (!depId) return null;
+  const getOwnerLabel = (depId: string | null) => {
+    if (!depId) return profile?.full_name?.split(" ")[0] || "You";
     return dependants.find((d) => d.id === depId)?.full_name || "Unknown";
   };
 
   return (
     <div className="px-5 pt-4 pb-4 max-w-lg mx-auto">
-      <div className="mb-5">
+      <div className="mb-4">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2.5 py-1 text-[11px] font-semibold text-secondary mb-2">
           <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
           History
         </span>
         <h1 className="font-display text-2xl font-extrabold tracking-tight">
-          {activeProfile.isSelf ? "Your lab history" : `${activeProfile.name.split(" ")[0]}'s history`}
+          {scope === "all"
+            ? "All lab results"
+            : activeProfile.isSelf
+            ? "Your lab history"
+            : `${activeProfile.name.split(" ")[0]}'s history`}
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Showing results for <span className="font-semibold text-foreground">{activeProfile.isSelf ? "you" : activeProfile.name}</span>
-          {" · "}
-          <span>{REL_LABELS[activeProfile.relationship] || activeProfile.relationship}</span>
-          {" · use the profile pill above to switch"}
+          {scope === "all"
+            ? "Showing every result you've uploaded — yours and any dependants."
+            : (
+              <>
+                Filtered to <span className="font-semibold text-foreground">{activeProfile.isSelf ? "you" : activeProfile.name}</span>
+                {" · "}
+                <span>{REL_LABELS[activeProfile.relationship] || activeProfile.relationship}</span>
+              </>
+            )}
         </p>
+      </div>
+
+      {/* Scope toggle */}
+      <div className="inline-flex p-1 mb-4 rounded-xl bg-muted gap-1">
+        <button
+          onClick={() => setScope("all")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
+            scope === "all" ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
+          )}
+        >
+          All profiles
+        </button>
+        <button
+          onClick={() => setScope("active")}
+          className={cn(
+            "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
+            scope === "active" ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
+          )}
+        >
+          {activeProfile.isSelf ? "Just me" : `Just ${activeProfile.name.split(" ")[0]}`}
+        </button>
       </div>
 
       {/* View Trends */}
       <button
         onClick={() =>
-          navigate(activeProfileId ? `/trends?person=${activeProfileId}` : "/trends")
+          navigate(activeProfileId ? `/app/trends?person=${activeProfileId}` : "/app/trends")
         }
         className="group w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 mb-5 text-left shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
       >
@@ -86,9 +124,13 @@ const History = () => {
             <div className="w-14 h-14 rounded-2xl bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center mx-auto mb-4">
               <FileText className="w-7 h-7 text-primary-foreground" />
             </div>
-            <p className="font-display font-bold text-primary-foreground text-lg">No lab results yet</p>
+            <p className="font-display font-bold text-primary-foreground text-lg">
+              {scope === "all" ? "No lab results yet" : "Nothing for this profile yet"}
+            </p>
             <p className="text-primary-foreground/80 text-sm mt-1 mb-5">
-              Upload your first result to see it here.
+              {scope === "all"
+                ? "Upload your first result to see it here."
+                : "Try the All profiles tab — your other results may be there."}
             </p>
             <Button
               onClick={() => navigate("/app/upload")}
@@ -106,7 +148,7 @@ const History = () => {
           const biomarkers = (r.biomarkers as any[] | null) || [];
           const abnormalCount = biomarkers.filter((b: any) => b.status !== "normal").length;
           const normalCount = biomarkers.length - abnormalCount;
-          const depName = getDependantName(r.dependant_id);
+          const ownerLabel = getOwnerLabel(r.dependant_id);
           const displayDate = r.test_date || r.upload_date;
           const accentColor = r.has_critical_alert
             ? "bg-destructive"
@@ -120,7 +162,7 @@ const History = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.3) }}
-              onClick={() => navigate(`/result/${r.id}`)}
+              onClick={() => navigate(`/app/result/${r.id}`)}
               className="group relative w-full bg-card rounded-2xl pl-5 pr-4 py-4 border border-border text-left touch-target flex items-center gap-3 overflow-hidden shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
             >
               <span className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full", accentColor)} />
@@ -140,11 +182,9 @@ const History = () => {
                     day: "numeric", month: "short", year: "numeric",
                   })}
                 </p>
-                {depName && (
-                  <p className="text-xs text-secondary-foreground flex items-center gap-1 mt-0.5">
-                    <User className="w-3 h-3" /> {depName}
-                  </p>
-                )}
+                <p className="text-xs text-secondary-foreground flex items-center gap-1 mt-0.5">
+                  <User className="w-3 h-3" /> For: {ownerLabel}
+                </p>
                 {r.status === "processing" ? (
                   <p className="text-xs text-muted-foreground mt-1">Processing...</p>
                 ) : r.status === "failed" ? (
