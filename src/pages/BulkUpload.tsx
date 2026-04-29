@@ -234,7 +234,7 @@ const BulkUpload = () => {
                         <button
                           onClick={() => updateItem(item.id, { personId: null })}
                           className={`px-3 py-1 rounded-lg border text-xs font-medium transition-all ${
-                            item.personId === null ? "border-accent bg-accent/10 text-accent" : "border-border bg-background"
+                            item.personId === null ? "border-accent bg-accent/10 text-secondary-foreground" : "border-border bg-background"
                           }`}
                         >
                           Myself
