@@ -207,7 +207,7 @@ const Trends = () => {
           </p>
           <button
             onClick={() => navigate("/upload")}
-            className="text-accent underline mt-3 touch-target text-body-sm"
+            className="text-secondary-foreground underline mt-3 touch-target text-body-sm"
           >
             Upload a result
           </button>
