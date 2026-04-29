@@ -660,6 +660,117 @@ const AdminDashboard = () => {
             </div>
           )}
         </TabsContent>
+
+        {/* FEEDBACK */}
+        <TabsContent value="feedback" className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Tester feedback in submission order. Update status as you triage.
+            </p>
+            <Button
+              variant="outline"
+              className="h-10 gap-2"
+              disabled={!feedbackQ.data?.length}
+              onClick={() =>
+                downloadCSV(
+                  "veridia-feedback",
+                  ["Date", "User", "Email", "Category", "Rating", "NPS", "Status", "Screen", "Message", "Admin notes", "Result ID"],
+                  (feedbackQ.data || []).map((f) => [
+                    f.created_at,
+                    f.full_name,
+                    f.email,
+                    f.category,
+                    f.rating,
+                    f.nps,
+                    f.status,
+                    f.screen,
+                    f.message,
+                    f.admin_notes,
+                    f.result_id,
+                  ])
+                )
+              }
+            >
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+          </div>
+
+          {feedbackQ.isLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : feedbackQ.error ? (
+            <p className="text-sm text-destructive">Failed to load feedback: {(feedbackQ.error as Error).message}</p>
+          ) : (feedbackQ.data || []).length === 0 ? (
+            <div className="bg-card border border-border rounded-2xl p-10 text-center shadow-soft">
+              <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground mb-3" />
+              <p className="font-semibold">No feedback yet</p>
+              <p className="text-xs text-muted-foreground mt-1">As testers submit, they'll appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(feedbackQ.data || []).map((f) => (
+                <div key={f.id} className="bg-card border border-border rounded-2xl p-4 shadow-soft">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="secondary" className="text-[10px] capitalize">{f.category.replace("_", " ")}</Badge>
+                        {f.rating != null && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[hsl(var(--alert-amber))]">
+                            <Star className="w-3 h-3 fill-current" /> {f.rating}
+                          </span>
+                        )}
+                        {f.nps != null && (
+                          <Badge variant="outline" className="text-[10px]">NPS {f.nps}</Badge>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">{fmtDateTime(f.created_at)}</span>
+                      </div>
+                      <p className="text-sm font-semibold mt-1.5">{f.full_name || f.email || "Anonymous"}</p>
+                      {f.email && f.full_name && (
+                        <p className="text-[11px] text-muted-foreground">{f.email}</p>
+                      )}
+                    </div>
+                    <select
+                      value={f.status}
+                      onChange={(e) => updateFeedback(f.id, { status: e.target.value })}
+                      className="h-8 rounded-md border border-border bg-card px-2 text-xs font-semibold capitalize"
+                    >
+                      <option value="new">New</option>
+                      <option value="reviewed">Reviewed</option>
+                      <option value="actioned">Actioned</option>
+                      <option value="wont_fix">Won't fix</option>
+                    </select>
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{f.message}</p>
+                  {f.screen && (
+                    <p className="text-[11px] text-muted-foreground mt-2">Screen: <span className="font-mono">{f.screen}</span></p>
+                  )}
+                  {f.result_id && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-6 px-0 text-xs"
+                      onClick={() => navigate(`/app/result/${f.result_id}`)}
+                    >
+                      Open linked report →
+                    </Button>
+                  )}
+                  <textarea
+                    defaultValue={f.admin_notes || ""}
+                    placeholder="Internal admin notes (saved on blur)"
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== (f.admin_notes || "")) {
+                        updateFeedback(f.id, { admin_notes: v || null as any });
+                      }
+                    }}
+                    className="mt-3 w-full text-xs rounded-md border border-border bg-muted/30 p-2 min-h-[44px]"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
       </Tabs>
     </div>
   );
