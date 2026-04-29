@@ -43,7 +43,7 @@ const Onboarding = () => {
         medical_disclaimer_accepted: true,
         onboarding_completed: true,
       });
-      navigate("/");
+      navigate("/app");
     } catch (err: any) {
       toast.error(err.message);
     }

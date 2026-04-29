@@ -333,7 +333,7 @@ const UploadLab = () => {
               />
 
               <button
-                onClick={() => navigate("/bulk-upload")}
+                onClick={() => navigate("/app/bulk-upload")}
                 className="w-full bg-card border border-border rounded-2xl p-4 flex items-center gap-3 touch-target shadow-soft transition-all hover:shadow-card"
               >
                 <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">

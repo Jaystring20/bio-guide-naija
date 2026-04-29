@@ -158,7 +158,7 @@ const Trends = () => {
   return (
     <div className="px-5 pt-6 pb-28 max-w-lg mx-auto">
       <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => navigate("/history")} className="touch-target p-1">
+        <button onClick={() => navigate("/app/history")} className="touch-target p-1">
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h1 className="font-display text-2xl font-bold">Health Trends</h1>
@@ -206,7 +206,7 @@ const Trends = () => {
             Upload more lab results to see trends over time
           </p>
           <button
-            onClick={() => navigate("/upload")}
+            onClick={() => navigate("/app/upload")}
             className="text-secondary-foreground underline mt-3 touch-target text-body-sm"
           >
             Upload a result
