@@ -150,7 +150,7 @@ const Index = () => {
             </h3>
             <button
               onClick={() => navigate("/family")}
-              className="text-accent text-xs font-semibold hover:underline"
+              className="text-secondary-foreground text-xs font-semibold hover:underline"
             >
               Manage →
             </button>
