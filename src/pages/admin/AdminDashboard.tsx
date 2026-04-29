@@ -194,11 +194,31 @@ const AdminDashboard = () => {
     },
   });
 
+  const feedbackQ = useQuery({
+    queryKey: ["admin-feedback"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("admin_list_feedback", { _limit: 200 });
+      if (error) throw error;
+      return (data || []) as FeedbackRow[];
+    },
+  });
+
   const refreshAll = () => {
     qc.invalidateQueries({ queryKey: ["admin-metrics"] });
     qc.invalidateQueries({ queryKey: ["admin-users"] });
     qc.invalidateQueries({ queryKey: ["admin-recent-results"] });
+    qc.invalidateQueries({ queryKey: ["admin-feedback"] });
     toast.success("Refreshed");
+  };
+
+  const updateFeedback = async (id: string, fields: { status?: string; admin_notes?: string }) => {
+    const { error } = await supabase.from("feedback").update(fields).eq("id", id);
+    if (error) toast.error(error.message);
+    else {
+      toast.success("Feedback updated");
+      qc.invalidateQueries({ queryKey: ["admin-feedback"] });
+      qc.invalidateQueries({ queryKey: ["admin-metrics"] });
+    }
   };
 
   const promoteAdmin = async (uid: string) => {
@@ -290,10 +310,11 @@ const AdminDashboard = () => {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-5">
+        <TabsList className="grid w-full grid-cols-4 mb-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="results">Results</TabsTrigger>
+          <TabsTrigger value="feedback">Feedback</TabsTrigger>
         </TabsList>
 
         {/* OVERVIEW */}
