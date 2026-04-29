@@ -25,39 +25,45 @@ interface EmptyBiomarkersBannerProps {
 const COPY = {
   en: {
     titleFailed: "We couldn't read your lab values",
-    titleProcessing: "Still reading your lab values…",
+    titleProcessing: "Re-reading your lab values…",
     titleGeneric: "Biomarker breakdown isn't available",
     bodyFailed:
       "Our AI couldn't extract the numbers from this upload. This usually means the photo was blurry, cropped, or the file wasn't a lab report.",
     bodyProcessing:
-      "Hang on a moment — we're still pulling the values out of your scan. If this stays for more than a minute, please re-upload.",
+      "Hold tight — the AI is going through your lab again. We'll unlock retry options once it finishes (usually under a minute).",
     bodyGeneric:
       "Something went wrong while extracting values from your lab. Please re-upload a clearer photo or PDF.",
-    reupload: "Re-upload lab",
+    autoRetry: "Auto-retry with new photo",
+    autoRetryHint: "Pick a clearer photo or PDF — we'll re-run the AI on this same report.",
+    reupload: "Upload a different lab instead",
     feedback: "Report this issue",
     showDetails: "Show technical details",
     hideDetails: "Hide technical details",
     detailsHeader: "Processing log",
     statusLabel: "Stage",
+    runningLabel: "Re-running AI…",
     feedbackContext:
       "Biomarker breakdown was empty on this report. Please describe what you uploaded so we can investigate.",
   },
   pidgin: {
     titleFailed: "We no fit read your lab numbers",
-    titleProcessing: "We dey still read your lab…",
+    titleProcessing: "We dey read your lab again…",
     titleGeneric: "Biomarker breakdown no dey here",
     bodyFailed:
       "Our AI no fit catch the numbers from this upload. Maybe the picture blur, e cut, or the file no be lab report.",
     bodyProcessing:
-      "Wait small — we dey still pull the numbers comot. If e tey pass one minute, abeg upload am again.",
+      "Hold on small — AI dey try am again. Once e finish (usually less than one minute), the buttons go open.",
     bodyGeneric:
       "Something happen during processing. Abeg upload the lab result again make we read am well.",
-    reupload: "Upload lab again",
+    autoRetry: "Auto-retry with new picture",
+    autoRetryHint: "Snap am again or pick clearer file — we go run the AI for this same report.",
+    reupload: "Upload different lab",
     feedback: "Tell us wetin happen",
     showDetails: "Show technical details",
     hideDetails: "Hide technical details",
     detailsHeader: "Processing log",
     statusLabel: "Stage",
+    runningLabel: "AI dey run…",
     feedbackContext:
       "Biomarker breakdown was empty on this report. Please describe what you uploaded so we can investigate.",
   },
