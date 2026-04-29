@@ -216,8 +216,9 @@ export const UploadPreviewOverlay = ({ file, previewUrl }: Props) => {
             <span className="text-[10px] font-medium text-muted-foreground">
               {isPdf
                 ? `${(file.size / 1024).toFixed(0)}KB`
-              : `${detection.resolution.w}×${detection.resolution.h}`}
-          </span>
+                : `${detection.resolution.w}×${detection.resolution.h}`}
+            </span>
+          </div>
         )}
       </div>
 
