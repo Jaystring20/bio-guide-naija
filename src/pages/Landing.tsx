@@ -495,7 +495,7 @@ const Landing = () => {
             <Button
               onClick={goAuth}
               size="lg"
-              className="bg-white text-primary hover:bg-white/90 text-base font-semibold px-10 rounded-full h-13 shadow-2xl transition-all hover:scale-[1.02]"
+              className="bg-white text-primary hover:bg-white/90 text-base font-semibold px-10 rounded-full h-13 shadow-2xl transition-all hover:scale-[1.02] animate-breathe"
             >
               Get Started Free <ArrowRight className="w-5 h-5" />
             </Button>
