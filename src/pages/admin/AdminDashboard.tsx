@@ -503,16 +503,35 @@ const AdminDashboard = () => {
 
         {/* RESULTS */}
         <TabsContent value="results" className="space-y-3">
-          <div className="flex justify-end">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <label
+              htmlFor="results-critical-toggle"
+              className={cn(
+                "flex items-center gap-3 rounded-xl border px-4 py-2.5 cursor-pointer transition-colors",
+                resultsCriticalOnly
+                  ? "border-destructive/40 bg-destructive/5"
+                  : "border-border bg-card"
+              )}
+            >
+              <AlertTriangle className={cn("w-4 h-4", resultsCriticalOnly ? "text-destructive" : "text-muted-foreground")} />
+              <Label htmlFor="results-critical-toggle" className="text-sm font-semibold cursor-pointer">
+                Critical alerts only
+              </Label>
+              <Switch
+                id="results-critical-toggle"
+                checked={resultsCriticalOnly}
+                onCheckedChange={setResultsCriticalOnly}
+              />
+            </label>
             <Button
               variant="outline"
               className="h-11 gap-2"
-              disabled={!resultsQ.data?.length}
+              disabled={!filteredResults.length}
               onClick={() =>
                 downloadCSV(
-                  "veridia-recent-results",
+                  resultsCriticalOnly ? "veridia-critical-results" : "veridia-recent-results",
                   ["Upload date", "User name", "Email", "Status", "Critical", "Result ID", "User ID", "Dependant ID"],
-                  (resultsQ.data || []).map((r) => [
+                  filteredResults.map((r) => [
                     r.upload_date,
                     r.full_name,
                     r.email,
@@ -529,6 +548,11 @@ const AdminDashboard = () => {
               Export CSV
             </Button>
           </div>
+          {resultsCriticalOnly && (
+            <p className="text-xs text-muted-foreground px-1">
+              Showing the {filteredResults.length} critical {filteredResults.length === 1 ? "result" : "results"} from the most recent 100 uploads.
+            </p>
+          )}
           {resultsQ.isLoading ? (
             <div className="flex justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -548,7 +572,7 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(resultsQ.data || []).map((r) => (
+                    {filteredResults.map((r) => (
                       <tr key={r.id} className="border-t border-border hover:bg-muted/20">
                         <td className="px-4 py-3 text-muted-foreground">{fmtDateTime(r.upload_date)}</td>
                         <td className="px-4 py-3">
@@ -570,8 +594,10 @@ const AdminDashboard = () => {
                   </tbody>
                 </table>
               </div>
-              {(resultsQ.data || []).length === 0 && (
-                <p className="text-center text-sm text-muted-foreground py-8">No results yet.</p>
+              {filteredResults.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground py-8">
+                  {resultsCriticalOnly ? "No critical results in the recent window." : "No results yet."}
+                </p>
               )}
             </div>
           )}
