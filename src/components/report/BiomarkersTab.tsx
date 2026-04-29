@@ -88,7 +88,7 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
                       <p className="text-xs font-bold text-accent uppercase tracking-wide">
                         {isPidgin ? "Wetin You Fit Do" : "Lifestyle Tip"}
                       </p>
-          </motion.div>
+                    </div>
                     <p className="text-body-sm">{tip}</p>
                   </div>
                 )}
@@ -105,7 +105,7 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
                 )}
               </div>
             )}
-          </div>
+          </motion.div>
         );
       })}
     </div>
