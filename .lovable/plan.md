@@ -1,61 +1,42 @@
-# Fix: Empty biomarkers / missing summary on completed scans
+# Empty-biomarkers error banner with diagnostics + report-this-issue link
 
-## What you're seeing (root cause)
+When a lab result lands with no biomarkers, the user currently sees only a quiet inline message in the Results tab and nothing on the Summary tab. We'll replace that with a real error banner that:
 
-When you opened your most recent two reports, the **diet plan, meal ideas, and Pidgin tabs** showed up — but the **English biomarker breakdown was empty** and the overall summary was blank.
+- Tells the user what happened in plain English (and Pidgin)
+- Shows the failing pipeline step from `processing_steps` so they (and we) know which stage broke
+- Offers a one-tap **Re-upload lab** action
+- Offers a one-tap **Report this issue** action that opens the existing FeedbackSheet pre-filled (category = `bug`, `result_id` attached, contextual note)
+- Lets the user expand a "Show technical details" section listing every pipeline step with status + duration + model — useful for the support loop and our control room
 
-I checked your account in the database. Both recent scans (`d54ae954…` and `100df7e6…`) have:
-- `biomarkers = NULL` (English breakdown missing)
-- `ai_summary = NULL` (summary missing)
-- `biomarkers_pidgin` populated (7–8 entries)
-- `dietary_plan` populated on one of them
-- `status = completed`
+## Files
 
-That mismatch is impossible by accident — the Pidgin step **derives from** the English biomarkers, so they existed in memory but never got saved.
+### New: `src/components/report/EmptyBiomarkersBanner.tsx`
+A reusable component with two variants:
+- `variant="compact"` — slim banner shown at top of `ResultReport` whenever biomarkers are empty (visible regardless of which tab you open)
+- `variant="full"` — replaces the current empty-state inside `BiomarkersTab`
 
-## Why it happens
+Props: `status`, `processingSteps`, `resultId`, `language`, `variant`.
 
-In `supabase/functions/interpret-lab/index.ts` the pipeline does two writes:
+Behavior:
+- Picks copy + tone based on `status`:
+  - `failed` → destructive red — "We couldn't read your lab values"
+  - `processing` / `partial` → amber — "Still reading your lab values…"
+  - other → neutral fallback
+- Highlights the first failed step from `processing_steps` (e.g. `biomarker_call — validation: no biomarkers`)
+- Collapsible processing log (per-step `step · ms · model · note`, ✗ for failed)
+- Buttons: **Re-upload lab** → `/app/upload`, **Report this issue** → opens `FeedbackSheet` with `defaultCategory="bug"`, `resultId`, and `contextNote` describing the empty-biomarkers situation
 
-1. **Partial write** (line ~311): saves `biomarkers`, `ai_summary`, `critical_alerts`, and sets `status = 'partial'`.
-2. **Final write** (line ~525): sets `status = 'completed'` (or `'critical'`) only.
+### Edit: `src/components/report/BiomarkersTab.tsx`
+Replace the current plain empty-state div with `<EmptyBiomarkersBanner variant="full" status={…} processingSteps={…} resultId={…} language={…} />`. Add `status`, `processingSteps`, `resultId` to the component's props.
 
-The `lab_results.status` column has this CHECK constraint:
+### Edit: `src/pages/ResultReport.tsx`
+- Read `processing_steps` from the result row
+- When `biomarkers.length === 0` and the row is not still in initial `processing` (i.e. status is `completed`, `failed`, `critical`, or `partial`), render `<EmptyBiomarkersBanner variant="compact" …/>` immediately above the tab strip so it's visible no matter which tab the user opens
+- Pass `status`, `processingSteps`, `resultId` down to `BiomarkersTab` so the full-variant banner inside the Results tab shows the same diagnostics
 
-```text
-CHECK (status = ANY (ARRAY['processing','completed','failed','critical']))
-```
+## Out of scope
+- No backend or schema changes — `processing_steps` already exists on `lab_results` and is populated by the edge function
+- No new RPCs; the banner reads what's already in the row
+- No analytics events added (FeedbackSheet already records device + screen on submit)
 
-`'partial'` is **not allowed**, so write #1 silently rejects the entire UPDATE — biomarkers and summary never land. The background Pidgin/diet tasks still run because they read in-memory data, then write their own columns successfully. Final write succeeds because `'completed'` is valid, leaving you with a "completed" row that has no English biomarkers.
-
-This affects every successful scan since the partial-write code was added.
-
-## Fix plan
-
-### 1. Stop the bug (edge function)
-In `supabase/functions/interpret-lab/index.ts`:
-- Replace `partialStatus = hasCritical ? "critical" : "partial"` with `"processing"` (or `"critical"` for critical results) so the write satisfies the CHECK constraint.
-- Add error checking on every `supabase.from("lab_results").update(...)` call — log the Postgres error instead of silently swallowing it. This would have surfaced the constraint failure immediately.
-- Make the final write **also include** `biomarkers`, `ai_summary`, `has_critical_alert`, and `critical_alerts` again, so even if the partial write ever fails for any reason, the final write recovers the data.
-
-### 2. Recover your two affected reports
-Re-run the `interpret-lab` edge function for the two affected scans so the English biomarkers and summary populate. The Pidgin and diet data will be regenerated cleanly. The original lab images may already be gone (NDPA deletion); if so, we'll mark those two as `failed` with a clear message and prompt re-upload — and we'll check first before deciding.
-
-### 3. Empty-state guard (UI)
-In `src/pages/ResultReport.tsx` / `BiomarkersTab.tsx`: if `biomarkers.length === 0` on a `completed` result, show a friendly empty state ("Biomarker breakdown is still loading or wasn't extracted — tap to retry") instead of a blank tab. Prevents this from looking silent in the future.
-
-### 4. (Optional safety) Migration
-Add `'partial'` as an allowed value to the CHECK constraint so the original intent (showing the user a partial result mid-processing) works. This is optional — fix #1 alone resolves the bug.
-
-## Technical summary
-
-| Change | File |
-|---|---|
-| `partialStatus` uses CHECK-valid values; surface update errors | `supabase/functions/interpret-lab/index.ts` |
-| Final UPDATE re-asserts biomarkers + summary | same file |
-| Backfill the two affected `lab_results` rows | one-shot recovery |
-| Empty-state UI for biomarkers tab when array is empty | `src/components/report/BiomarkersTab.tsx`, `ResultReport.tsx` |
-
-No schema changes are required for the core fix. No RLS changes. Existing approved scans (`45fa3f28`, `693a1e92`, `830075f6`) are untouched and remain correct.
-
-Approve and I'll apply the fix and recover your two reports.
+Approve and I'll implement these three changes.

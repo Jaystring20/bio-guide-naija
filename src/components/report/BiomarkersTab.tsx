@@ -3,14 +3,25 @@ import { Biomarker, BiomarkerPidgin, Language, STATUS_COLORS, STATUS_LABELS } fr
 import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Lightbulb, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
+import { EmptyBiomarkersBanner } from "./EmptyBiomarkersBanner";
 
 interface BiomarkersTabProps {
   biomarkers: Biomarker[];
   biomarkersPidgin: BiomarkerPidgin[] | null;
   language: Language;
+  status?: string | null;
+  processingSteps?: Array<{ step: string; ms?: number; ok?: boolean; model?: string; note?: string }> | null;
+  resultId?: string | null;
 }
 
-export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: BiomarkersTabProps) => {
+export const BiomarkersTab = ({
+  biomarkers,
+  biomarkersPidgin,
+  language,
+  status,
+  processingSteps,
+  resultId,
+}: BiomarkersTabProps) => {
   const [expanded, setExpanded] = useState<string | null>(null);
   const isPidgin = language === "pidgin";
 
@@ -18,18 +29,16 @@ export const BiomarkersTab = ({ biomarkers, biomarkersPidgin, language }: Biomar
 
   if (!biomarkers || biomarkers.length === 0) {
     return (
-      <div className="bg-card rounded-xl border border-border p-6 text-center space-y-3">
-        <p className="text-body font-semibold">
-          {isPidgin ? "Biomarker breakdown no dey here" : "Biomarker breakdown isn't available"}
-        </p>
-        <p className="text-body-sm text-muted-foreground">
-          {isPidgin
-            ? "Something happen during processing. Abeg upload the lab result again make we read am well."
-            : "Something went wrong while extracting the values from your lab. Please re-upload a clearer photo or PDF so we can read it properly."}
-        </p>
-      </div>
+      <EmptyBiomarkersBanner
+        variant="full"
+        status={status}
+        processingSteps={processingSteps}
+        resultId={resultId}
+        language={language}
+      />
     );
   }
+
 
   return (
     <div className="space-y-3">

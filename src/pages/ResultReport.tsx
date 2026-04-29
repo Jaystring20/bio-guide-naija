@@ -17,6 +17,7 @@ import { generatePDF, sharePDF } from "@/components/report/PDFExport";
 import { AnimatePresence, motion } from "framer-motion";
 import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { InlineRatingPrompt } from "@/components/feedback/InlineRatingPrompt";
+import { EmptyBiomarkersBanner } from "@/components/report/EmptyBiomarkersBanner";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
@@ -130,6 +131,8 @@ const ResultReport = () => {
   const criticalAlerts = (result.critical_alerts as any[] | null) || [];
   const aiSummary = result.ai_summary as string | null;
   const aiSummaryPidgin = (result as any).ai_summary_pidgin as string | null;
+  const processingSteps = ((result as any).processing_steps as Array<{ step: string; ms?: number; ok?: boolean; model?: string; note?: string }> | null) || null;
+  const biomarkersEmpty = biomarkers.length === 0;
 
   if (showEmergency && criticalAlerts.length > 0) {
     return (
@@ -226,6 +229,16 @@ const ResultReport = () => {
         />
       )}
 
+      {biomarkersEmpty && result.status !== "processing" && (
+        <EmptyBiomarkersBanner
+          variant="compact"
+          status={result.status}
+          processingSteps={processingSteps}
+          resultId={id ?? null}
+          language={language}
+        />
+      )}
+
       {/* Tabs */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {TABS.map((tab) => (
@@ -256,7 +269,14 @@ const ResultReport = () => {
             <SummaryTab biomarkers={biomarkers} aiSummary={aiSummary} aiSummaryPidgin={aiSummaryPidgin} uploadDate={result.upload_date} language={language} />
           )}
           {activeTab === "results" && (
-            <BiomarkersTab biomarkers={biomarkers} biomarkersPidgin={biomarkersPidgin} language={language} />
+            <BiomarkersTab
+              biomarkers={biomarkers}
+              biomarkersPidgin={biomarkersPidgin}
+              language={language}
+              status={result.status}
+              processingSteps={processingSteps}
+              resultId={id ?? null}
+            />
           )}
           {activeTab === "diet" && dietaryPlan && (
             <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
