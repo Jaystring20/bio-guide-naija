@@ -122,7 +122,7 @@ const Onboarding = () => {
     // Profile + Consent
     <div key="profile" className="w-full animate-slide-up">
       <div className="flex items-center gap-3 mb-6">
-        <User className="w-6 h-6 text-accent" />
+        <User className="w-6 h-6 text-secondary-foreground" />
         <h2 className="font-display text-2xl font-bold">Tell us about you</h2>
       </div>
 
