@@ -75,8 +75,8 @@ const Index = () => {
         <div className="relative">
           <div className="flex items-center justify-between mb-7">
             <div className="flex items-center">
-              <div className="bg-white/95 backdrop-blur px-3 py-2 rounded-xl ring-1 ring-white/30 shadow-md">
-                <img src={veridiaLogo} alt="VeriDIA" className="h-9 sm:h-10 w-auto" />
+              <div className="bg-white/95 backdrop-blur px-3.5 py-2.5 rounded-2xl ring-1 ring-white/40 shadow-lg">
+                <img src={veridiaLogo} alt="VeriDIA" className="h-11 sm:h-12 w-auto" />
               </div>
             </div>
             <button
