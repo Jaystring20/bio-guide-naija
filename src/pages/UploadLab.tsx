@@ -503,7 +503,7 @@ const UploadLab = () => {
               </Button>
 
               <button
-                onClick={() => { setFile(null); setPreview(null); }}
+                onClick={() => { setFile(null); setPreview(null); setQuality(null); }}
                 className="w-full text-center text-muted-foreground touch-target text-sm font-medium hover:text-foreground transition-colors"
               >
                 Choose a different file
