@@ -483,7 +483,7 @@ const Landing = () => {
                     <ul className="space-y-3">
                       {c.points.map((pt, j) => (
                         <li key={j} className="flex items-start gap-2.5 text-sm text-muted-foreground">
-                          <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                          <CheckCircle2 className="w-4 h-4 text-secondary-foreground shrink-0 mt-0.5" />
                           {pt}
                         </li>
                       ))}
