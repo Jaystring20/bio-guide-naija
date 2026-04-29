@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile } from "@/contexts/ActiveProfileContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useDependants } from "@/hooks/useDependants";
@@ -76,7 +77,17 @@ const Trends = () => {
   const [searchParams] = useSearchParams();
   const personParam = searchParams.get("person");
   const { dependants } = useDependants();
-  const [selectedPerson, setSelectedPerson] = useState<string>(personParam || "myself");
+  const { activeProfileId, setActiveProfileId } = useActiveProfile();
+
+  // Sync deep-link ?person= into context once on mount
+  useEffect(() => {
+    if (personParam && personParam !== activeProfileId) {
+      setActiveProfileId(personParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectedPerson = activeProfileId || "myself";
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["lab-results-trends", user?.id],
