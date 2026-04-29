@@ -475,7 +475,7 @@ const Landing = () => {
             <Button
               onClick={goAuth}
               size="lg"
-              className="bg-accent text-accent-foreground hover:bg-accent/90 text-base font-semibold px-10 rounded-full h-13 shadow-lg shadow-accent/30 hover:shadow-xl transition-all"
+              className="bg-white text-primary hover:bg-white/90 text-base font-semibold px-10 rounded-full h-13 shadow-2xl transition-all hover:scale-[1.02]"
             >
               Get Started Free <ArrowRight className="w-5 h-5" />
             </Button>
@@ -506,7 +506,8 @@ const Landing = () => {
 
 /* ── Reusable floating card ── */
 const FloatingCard = ({ icon, text, sub, className = "", accent = "" }: { icon: React.ReactNode; text: string; sub: string; className?: string; accent?: string }) => (
-  <div className={`bg-card rounded-xl shadow-lg border border-l-4 ${accent} p-4 flex items-center gap-3 ${className}`}>
+  <div className={`relative bg-card rounded-xl shadow-card border overflow-hidden p-4 flex items-center gap-3 ${className}`}>
+    <span className={`absolute left-0 top-0 bottom-0 w-1 ${accent.replace("border-l-", "bg-")}`} />
     <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">{icon}</div>
     <div>
       <p className="font-semibold text-sm">{text}</p>
