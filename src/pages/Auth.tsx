@@ -24,7 +24,7 @@ const Auth = () => {
         toast.success("Account created! Check your email to verify.");
       } else {
         await signIn(email, password);
-        navigate("/");
+        navigate("/app");
       }
     } catch (err: any) {
       toast.error(err.message || "Something went wrong");

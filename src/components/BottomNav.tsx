@@ -5,11 +5,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Ripple } from "./Ripple";
 
 const tabs = [
-  { path: "/", icon: Home, label: "Home" },
-  { path: "/history", icon: Clock, label: "History" },
-  { path: "/upload", icon: Upload, label: "Upload", center: true },
-  { path: "/family", icon: Users, label: "Family" },
-  { path: "/profile", icon: UserCircle, label: "Profile" },
+  { path: "/app", icon: Home, label: "Home", exact: true },
+  { path: "/app/history", icon: Clock, label: "History" },
+  { path: "/app/upload", icon: Upload, label: "Upload", center: true },
+  { path: "/app/family", icon: Users, label: "Family" },
+  { path: "/app/profile", icon: UserCircle, label: "Profile" },
 ];
 
 export const BottomNav = () => {
@@ -22,7 +22,9 @@ export const BottomNav = () => {
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
       <div className="flex items-center justify-around max-w-lg mx-auto px-2 py-1">
         {tabs.map((tab) => {
-          const isActive = location.pathname === tab.path;
+          const isActive = tab.exact
+            ? location.pathname === tab.path
+            : location.pathname === tab.path || location.pathname.startsWith(tab.path + "/");
           const Icon = tab.icon;
 
           if (tab.center) {

@@ -80,7 +80,7 @@ const Index = () => {
               </div>
             </div>
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/app/profile")}
               className="relative w-10 h-10 rounded-full bg-white/15 backdrop-blur ring-1 ring-white/20 flex items-center justify-center text-primary-foreground font-bold text-sm touch-target tap-scale"
             >
               <span aria-hidden className="absolute inset-0 rounded-full bg-white/30 animate-heartbeat" />
@@ -119,7 +119,7 @@ const Index = () => {
 
           {/* Glass CTA */}
           <Ripple
-            onClick={() => navigate("/upload")}
+            onClick={() => navigate("/app/upload")}
             rippleColor="hsl(0 0% 100% / 0.4)"
             className={cn(
               "group mt-6 w-full glass-card rounded-2xl p-4 flex items-center gap-4 text-left touch-target transition-all hover:bg-white/20",
@@ -149,7 +149,7 @@ const Index = () => {
               Family
             </h3>
             <button
-              onClick={() => navigate("/family")}
+              onClick={() => navigate("/app/family")}
               className="text-secondary-foreground text-xs font-semibold hover:underline"
             >
               Manage →
@@ -161,7 +161,7 @@ const Index = () => {
               return (
                 <button
                   key={d.id}
-                  onClick={() => navigate("/family")}
+                  onClick={() => navigate("/app/family")}
                   className="group bg-card rounded-2xl p-4 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
                 >
                   <div className="flex items-center gap-2.5 mb-2">
@@ -188,7 +188,7 @@ const Index = () => {
       {/* Quick stats — scoped to active profile */}
       <motion.div {...fade(0.1)} className="grid grid-cols-2 gap-3 mb-5">
         <Ripple
-          onClick={() => navigate("/history")}
+          onClick={() => navigate("/app/history")}
           rippleColor="hsl(217 60% 27% / 0.18)"
           className="bg-card rounded-2xl p-5 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
         >
@@ -201,7 +201,7 @@ const Index = () => {
           </p>
         </Ripple>
         <Ripple
-          onClick={() => navigate("/trends")}
+          onClick={() => navigate("/app/trends")}
           rippleColor="hsl(145 63% 49% / 0.2)"
           className="bg-card rounded-2xl p-5 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
         >

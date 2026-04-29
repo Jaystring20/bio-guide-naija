@@ -139,7 +139,7 @@ const BulkUpload = () => {
     <div className="px-5 pt-8 pb-24 max-w-lg mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 mb-2">
-        <button onClick={() => navigate("/upload")} className="touch-target">
+        <button onClick={() => navigate("/app/upload")} className="touch-target">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="font-display text-2xl font-bold">Add Past Results</h1>
@@ -307,7 +307,7 @@ const BulkUpload = () => {
             {doneCount} processed{failedCount > 0 ? ` • ${failedCount} failed` : ""}
           </p>
           <Button
-            onClick={() => navigate("/history")}
+            onClick={() => navigate("/app/history")}
             className="mt-3 h-10 rounded-xl bg-accent text-accent-foreground hover:bg-accent/90"
             size="sm"
           >

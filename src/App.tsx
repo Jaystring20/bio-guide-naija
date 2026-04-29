@@ -35,9 +35,23 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!user) return <Navigate to="/landing" replace />;
+  if (!user) return <Navigate to="/" replace />;
   if (profile && !profile.onboarding_completed) return <Navigate to="/onboarding" replace />;
   return <>{children}</>;
+};
+
+/** Public landing — auto-bounces signed-in users to /app */
+const PublicLanding = () => {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-foreground" />
+      </div>
+    );
+  }
+  if (user) return <Navigate to="/app" replace />;
+  return <Landing />;
 };
 
 const PageFade = ({ children }: { children: React.ReactNode }) => {
@@ -60,25 +74,41 @@ const AnimatedRoutes = () => {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/landing" element={<PageFade><Landing /></PageFade>} />
+        {/* Public marketing site at the root URL */}
+        <Route path="/" element={<PageFade><PublicLanding /></PageFade>} />
+        {/* Back-compat: old /landing → / */}
+        <Route path="/landing" element={<Navigate to="/" replace />} />
+
         <Route path="/auth" element={<PageFade><Auth /></PageFade>} />
         <Route path="/onboarding" element={<PageFade><Onboarding /></PageFade>} />
-        <Route element={
+
+        {/* Authenticated app under /app */}
+        <Route path="/app" element={
           <ProtectedRoute>
             <ActiveProfileProvider>
               <AppShell />
             </ActiveProfileProvider>
           </ProtectedRoute>
         }>
-          <Route path="/" element={<PageFade><Index /></PageFade>} />
-          <Route path="/upload" element={<PageFade><UploadLab /></PageFade>} />
-          <Route path="/result/:id" element={<PageFade><ResultReport /></PageFade>} />
-          <Route path="/history" element={<PageFade><History /></PageFade>} />
-          <Route path="/trends" element={<PageFade><Trends /></PageFade>} />
-          <Route path="/bulk-upload" element={<PageFade><BulkUpload /></PageFade>} />
-          <Route path="/family" element={<PageFade><Family /></PageFade>} />
-          <Route path="/profile" element={<PageFade><Profile /></PageFade>} />
+          <Route index element={<PageFade><Index /></PageFade>} />
+          <Route path="upload" element={<PageFade><UploadLab /></PageFade>} />
+          <Route path="result/:id" element={<PageFade><ResultReport /></PageFade>} />
+          <Route path="history" element={<PageFade><History /></PageFade>} />
+          <Route path="trends" element={<PageFade><Trends /></PageFade>} />
+          <Route path="bulk-upload" element={<PageFade><BulkUpload /></PageFade>} />
+          <Route path="family" element={<PageFade><Family /></PageFade>} />
+          <Route path="profile" element={<PageFade><Profile /></PageFade>} />
         </Route>
+
+        {/* Back-compat redirects for old top-level app paths */}
+        <Route path="/upload" element={<Navigate to="/app/upload" replace />} />
+        <Route path="/result/:id" element={<Navigate to="/app/result/:id" replace />} />
+        <Route path="/history" element={<Navigate to="/app/history" replace />} />
+        <Route path="/trends" element={<Navigate to="/app/trends" replace />} />
+        <Route path="/bulk-upload" element={<Navigate to="/app/bulk-upload" replace />} />
+        <Route path="/family" element={<Navigate to="/app/family" replace />} />
+        <Route path="/profile" element={<Navigate to="/app/profile" replace />} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </AnimatePresence>

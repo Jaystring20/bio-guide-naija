@@ -68,7 +68,7 @@ const ResultReport = () => {
     return (
       <div className="px-5 pt-12 text-center">
         <p className="text-muted-foreground">Result not found.</p>
-        <Button onClick={() => navigate("/")} variant="outline" className="mt-4">Go Home</Button>
+        <Button onClick={() => navigate("/app")} variant="outline" className="mt-4">Go Home</Button>
       </div>
     );
   }

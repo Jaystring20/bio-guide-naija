@@ -91,7 +91,7 @@ const History = () => {
               Upload your first result to see it here.
             </p>
             <Button
-              onClick={() => navigate("/upload")}
+              onClick={() => navigate("/app/upload")}
               className="bg-white text-primary hover:bg-white/90 rounded-xl font-bold h-12 px-6"
             >
               <Upload className="w-4 h-4 mr-2" />
