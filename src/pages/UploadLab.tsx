@@ -154,7 +154,9 @@ const UploadLab = () => {
     } else if (interpretData.error === "RATE_LIMITED") {
       toast.error("Too many requests. Please wait a moment and try again.");
     } else if (interpretData.error === "MODEL_UNAVAILABLE") {
-      toast.error("The AI model is busy right now. Please retry in a few minutes.");
+      toast.error(interpretData.message || "We couldn't read the lab result. Please try a clearer photo or PDF.");
+    } else if (interpretData.error === "NOT_A_LAB_REPORT") {
+      toast.error(interpretData.message || "This doesn't look like a lab report. Please upload a clear photo of your lab result.");
     } else {
       toast.error(interpretData.message || "Something went wrong with the analysis.");
     }
