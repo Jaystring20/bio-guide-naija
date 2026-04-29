@@ -1,6 +1,6 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useDependants } from "@/hooks/useDependants";
@@ -13,7 +13,7 @@ const History = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { dependants } = useDependants();
-  const [personFilter, setPersonFilter] = useState<string>("all");
+  const { activeProfile, activeProfileId } = useActiveProfile();
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["lab-results", user?.id],
@@ -28,11 +28,9 @@ const History = () => {
     enabled: !!user,
   });
 
-  const filteredResults = results?.filter((r) => {
-    if (personFilter === "all") return true;
-    if (personFilter === "myself") return !r.dependant_id;
-    return r.dependant_id === personFilter;
-  });
+  const filteredResults = results?.filter((r) =>
+    activeProfileId ? r.dependant_id === activeProfileId : !r.dependant_id
+  );
 
   const getDependantName = (depId: string | null) => {
     if (!depId) return null;
@@ -40,47 +38,27 @@ const History = () => {
   };
 
   return (
-    <div className="px-5 pt-6 pb-4 max-w-lg mx-auto">
+    <div className="px-5 pt-4 pb-4 max-w-lg mx-auto">
       <div className="mb-5">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-2.5 py-1 text-[11px] font-semibold text-secondary mb-2">
           <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
           History
         </span>
-        <h1 className="font-display text-2xl font-extrabold tracking-tight">Your lab history</h1>
+        <h1 className="font-display text-2xl font-extrabold tracking-tight">
+          {activeProfile.isSelf ? "Your lab history" : `${activeProfile.name.split(" ")[0]}'s history`}
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1">
+          Showing results for <span className="font-semibold text-foreground">{activeProfile.isSelf ? "you" : activeProfile.name}</span>
+          {" · "}
+          <span>{REL_LABELS[activeProfile.relationship] || activeProfile.relationship}</span>
+          {" · use the profile pill above to switch"}
+        </p>
       </div>
-
-      {/* Person filter — segmented */}
-      {dependants.length > 0 && (
-        <div className="flex flex-wrap gap-1 p-1 bg-muted rounded-2xl mb-4">
-          {[
-            { key: "all", label: "All" },
-            { key: "myself", label: "Myself" },
-            ...dependants.map((d) => ({ key: d.id, label: d.full_name.split(" ")[0] })),
-          ].map((opt) => (
-            <button
-              key={opt.key}
-              onClick={() => setPersonFilter(opt.key)}
-              className={cn(
-                "px-3.5 py-1.5 rounded-xl text-sm font-semibold transition-all",
-                personFilter === opt.key
-                  ? "bg-card text-foreground shadow-soft"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       {/* View Trends */}
       <button
         onClick={() =>
-          navigate(
-            personFilter === "all" || personFilter === "myself"
-              ? "/trends"
-              : `/trends?person=${personFilter}`
-          )
+          navigate(activeProfileId ? `/trends?person=${activeProfileId}` : "/trends")
         }
         className="group w-full flex items-center gap-3 bg-card border border-border rounded-2xl p-4 mb-5 text-left shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
       >

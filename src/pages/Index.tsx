@@ -1,8 +1,10 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
 import { useNavigate } from "react-router-dom";
-import { Upload, TrendingUp, Clock, Users, ChevronRight, ArrowUpRight, Activity, FileText } from "lucide-react";
+import { Upload, Users, ArrowUpRight, Activity, FileText, Clock, AlertTriangle, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { useProfileStats } from "@/hooks/useProfileStats";
 import { useDependants } from "@/hooks/useDependants";
 import { motion } from "framer-motion";
 import veridiaLogo from "@/assets/veridia-logo.png";
@@ -12,19 +14,26 @@ const initials = (name?: string | null) =>
 
 const Index = () => {
   const { profile, user } = useAuth();
-  const navigate = useNavigate();
+  const { activeProfile, activeProfileId } = useActiveProfile();
   const { dependants } = useDependants();
+  const { get } = useProfileStats();
+  const navigate = useNavigate();
 
   const { data: lastResult } = useQuery({
-    queryKey: ["last-result", user?.id],
+    queryKey: ["last-result", user?.id, activeProfileId],
     queryFn: async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("lab_results")
         .select("*")
         .eq("user_id", user!.id)
         .order("upload_date", { ascending: false })
-        .limit(1)
-        .single();
+        .limit(1);
+      if (activeProfileId) {
+        q = q.eq("dependant_id", activeProfileId);
+      } else {
+        q = q.is("dependant_id", null);
+      }
+      const { data } = await q.maybeSingle();
       return data;
     },
     enabled: !!user,
@@ -37,7 +46,10 @@ const Index = () => {
     return "Good evening";
   };
 
-  const firstName = profile?.full_name?.split(" ")[0] || "there";
+  const ownFirstName = profile?.full_name?.split(" ")[0] || "there";
+  const viewingFirstName = activeProfile.name.split(" ")[0];
+  const stats = get(activeProfileId);
+
   const fade = (delay = 0) => ({
     initial: { opacity: 0, y: 12 },
     animate: { opacity: 1, y: 0 },
@@ -45,7 +57,7 @@ const Index = () => {
   });
 
   return (
-    <div className="px-5 pt-6 pb-4 max-w-lg mx-auto">
+    <div className="px-5 pt-4 pb-4 max-w-lg mx-auto">
       {/* Hero gradient card */}
       <motion.div {...fade(0)} className="relative overflow-hidden rounded-3xl bg-gradient-hero p-6 mb-5 shadow-elevated">
         <div className="absolute inset-0 grid-bg opacity-50 pointer-events-none" />
@@ -70,11 +82,19 @@ const Index = () => {
 
           <p className="text-primary-foreground/75 text-sm">{greeting()},</p>
           <h1 className="font-display text-3xl font-extrabold text-primary-foreground tracking-tight">
-            {firstName} <span className="inline-block">👋</span>
+            {ownFirstName} <span className="inline-block">👋</span>
           </h1>
-          <p className="text-primary-foreground/80 text-body-sm mt-2 max-w-[18rem]">
-            Turn your next lab result into a clear plan.
-          </p>
+
+          {!activeProfile.isSelf ? (
+            <p className="text-primary-foreground/85 text-body-sm mt-2 max-w-[18rem]">
+              Viewing <span className="font-bold">{activeProfile.name}</span>
+              {" "}<span className="opacity-80">· {REL_LABELS[activeProfile.relationship] || activeProfile.relationship}{activeProfile.age ? ` · ${activeProfile.age}y` : ""}</span>
+            </p>
+          ) : (
+            <p className="text-primary-foreground/80 text-body-sm mt-2 max-w-[18rem]">
+              Turn your next lab result into a clear plan.
+            </p>
+          )}
 
           {/* Glass CTA */}
           <button
@@ -85,7 +105,9 @@ const Index = () => {
               <Upload className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <p className="font-semibold text-primary-foreground">Upload Lab Result</p>
+              <p className="font-semibold text-primary-foreground">
+                {activeProfile.isSelf ? "Upload a lab result" : `Upload for ${viewingFirstName}`}
+              </p>
               <p className="text-primary-foreground/75 text-xs">Photo or PDF · ~30 sec analysis</p>
             </div>
             <ArrowUpRight className="w-5 h-5 text-primary-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -93,51 +115,52 @@ const Index = () => {
         </div>
       </motion.div>
 
-      {/* People I manage */}
+      {/* Family quick access */}
       {dependants.length > 0 && (
         <motion.div {...fade(0.05)} className="mb-5">
           <div className="flex items-center justify-between mb-3 px-1">
             <h3 className="font-display font-bold text-base flex items-center gap-2 text-foreground">
               <Users className="w-4 h-4 text-secondary" />
-              {profile?.user_role === "professional" ? "Patients" : "People you manage"}
+              Family
             </h3>
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/family")}
               className="text-accent text-xs font-semibold hover:underline"
             >
-              Manage
+              Manage →
             </button>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {dependants.slice(0, 4).map((d) => (
-              <button
-                key={d.id}
-                onClick={() => navigate("/upload")}
-                className="group bg-card rounded-2xl p-4 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
-              >
-                <div className="flex items-center gap-2.5 mb-2">
-                  <div className="w-9 h-9 rounded-full bg-gradient-brand text-primary-foreground flex items-center justify-center text-xs font-bold shadow-soft">
-                    {initials(d.full_name)}
+            {dependants.slice(0, 4).map((d) => {
+              const ds = get(d.id);
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => navigate("/family")}
+                  className="group bg-card rounded-2xl p-4 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
+                >
+                  <div className="flex items-center gap-2.5 mb-2">
+                    <div className="w-9 h-9 rounded-full bg-gradient-brand text-primary-foreground flex items-center justify-center text-xs font-bold shadow-soft">
+                      {initials(d.full_name)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm truncate">{d.full_name}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-semibold text-sm truncate">{d.full_name}</p>
-                  </div>
-                </div>
-                <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                  {d.relationship}{d.age ? ` · ${d.age}y` : ""}
-                </span>
-                <div className="flex items-center gap-1 mt-3 text-accent text-xs font-semibold">
-                  <Upload className="w-3 h-3" />
-                  Upload
-                  <ChevronRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </button>
-            ))}
+                  <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                    {REL_LABELS[d.relationship] || d.relationship}{d.age ? ` · ${d.age}y` : ""}
+                  </span>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {ds.total} {ds.total === 1 ? "result" : "results"}
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </motion.div>
       )}
 
-      {/* Quick stats */}
+      {/* Quick stats — scoped to active profile */}
       <motion.div {...fade(0.1)} className="grid grid-cols-2 gap-3 mb-5">
         <button
           onClick={() => navigate("/history")}
@@ -146,22 +169,28 @@ const Index = () => {
           <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center mb-3">
             <Clock className="w-5 h-5 text-secondary" />
           </div>
-          <p className="text-xs text-muted-foreground font-medium">Past results</p>
-          <p className="font-display text-lg font-bold mt-0.5">{lastResult ? "View all" : "None yet"}</p>
+          <p className="text-xs text-muted-foreground font-medium">Results</p>
+          <p className="font-display text-lg font-bold mt-0.5">{stats.total}</p>
         </button>
         <button
           onClick={() => navigate("/trends")}
           className="bg-card rounded-2xl p-5 border border-border shadow-soft text-left touch-target transition-all hover:shadow-card hover:-translate-y-0.5"
         >
-          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mb-3">
-            <TrendingUp className="w-5 h-5 text-primary" />
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 ${stats.flagged > 0 ? "bg-destructive/10" : "bg-primary/10"}`}>
+            {stats.flagged > 0 ? (
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+            ) : (
+              <TrendingUp className="w-5 h-5 text-primary" />
+            )}
           </div>
-          <p className="text-xs text-muted-foreground font-medium">Health trend</p>
-          <p className="font-display text-lg font-bold mt-0.5">{lastResult ? "Tracking" : "Start now"}</p>
+          <p className="text-xs text-muted-foreground font-medium">Flagged</p>
+          <p className="font-display text-lg font-bold mt-0.5">
+            {stats.flagged > 0 ? stats.flagged : "All clear"}
+          </p>
         </button>
       </motion.div>
 
-      {/* Latest result */}
+      {/* Latest result for active profile */}
       {lastResult && lastResult.status === "completed" && (
         <motion.button
           {...fade(0.15)}
@@ -171,7 +200,7 @@ const Index = () => {
           <div className="flex items-center justify-between mb-3">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary">
               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-              Latest result
+              Latest for {viewingFirstName}
             </span>
             <ArrowUpRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </div>

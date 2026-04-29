@@ -1,6 +1,7 @@
-import { useState, useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useActiveProfile } from "@/contexts/ActiveProfileContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useDependants } from "@/hooks/useDependants";
@@ -76,7 +77,17 @@ const Trends = () => {
   const [searchParams] = useSearchParams();
   const personParam = searchParams.get("person");
   const { dependants } = useDependants();
-  const [selectedPerson, setSelectedPerson] = useState<string>(personParam || "myself");
+  const { activeProfileId, setActiveProfileId } = useActiveProfile();
+
+  // Sync deep-link ?person= into context once on mount
+  useEffect(() => {
+    if (personParam && personParam !== activeProfileId) {
+      setActiveProfileId(personParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const selectedPerson = activeProfileId || "myself";
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["lab-results-trends", user?.id],
@@ -155,7 +166,7 @@ const Trends = () => {
 
       <div className="flex flex-wrap gap-2 mb-6">
         <button
-          onClick={() => setSelectedPerson("myself")}
+          onClick={() => setActiveProfileId(null)}
           className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
             selectedPerson === "myself"
               ? "border-accent bg-accent/10 text-accent"
@@ -167,7 +178,7 @@ const Trends = () => {
         {dependants.map((d) => (
           <button
             key={d.id}
-            onClick={() => setSelectedPerson(d.id)}
+            onClick={() => setActiveProfileId(d.id)}
             className={`px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${
               selectedPerson === d.id
                 ? "border-accent bg-accent/10 text-accent"
