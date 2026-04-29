@@ -180,6 +180,26 @@ export const EmptyBiomarkersBanner = ({
                   </Button>
                 </div>
                 <p className="text-xs text-muted-foreground">{t.autoRetryHint}</p>
+
+                {/* Before-you-upload checklist */}
+                <div className="rounded-xl border border-border bg-background/60 p-3 mt-1">
+                  <p className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground mb-2">
+                    {t.checklistTitle}
+                  </p>
+                  <ul className="space-y-1.5">
+                    {t.checklist.map((item, i) => {
+                      const Icon = ICONS[item.icon as keyof typeof ICONS] ?? CheckCircle2;
+                      return (
+                        <li key={i} className="flex items-start gap-2 text-xs text-foreground/90">
+                          <Icon className="w-3.5 h-3.5 mt-0.5 shrink-0 text-primary" />
+                          <span>{item.text}</span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-[11px] text-muted-foreground mt-2 italic">{t.autoEnhanceNote}</p>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => navigate("/app/upload")}
