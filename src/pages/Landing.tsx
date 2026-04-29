@@ -529,7 +529,7 @@ const Landing = () => {
       <section className="py-20 md:py-28 px-4 bg-card">
         <AnimatedSection className="max-w-4xl mx-auto text-center space-y-12">
           <motion.div variants={fadeUp}>
-            <p className="text-sm font-semibold uppercase tracking-widest text-accent mb-2">Real Stories</p>
+            <p className="text-sm font-semibold uppercase tracking-widest text-secondary-foreground mb-2">Real Stories</p>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold">Nigerians are taking charge<br className="hidden sm:block" /> of their health</h2>
           </motion.div>
 
