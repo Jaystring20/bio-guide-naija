@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,10 +30,23 @@ const UploadLab = () => {
   const selectedPerson = activeProfileId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const explicitRetryId = searchParams.get("retry");
 
   const { data: failedResult } = useQuery({
-    queryKey: ["failed-result", user?.id],
+    queryKey: ["failed-result", user?.id, explicitRetryId],
     queryFn: async () => {
+      // If the user clicked "Auto-retry" from a result, target that exact row.
+      if (explicitRetryId) {
+        const { data } = await supabase
+          .from("lab_results")
+          .select("*")
+          .eq("id", explicitRetryId)
+          .eq("user_id", user!.id)
+          .single();
+        return data;
+      }
+      // Otherwise, surface the most recent generic failure.
       const { data } = await supabase
         .from("lab_results")
         .select("*")
@@ -286,9 +299,13 @@ const UploadLab = () => {
                 <div className="bg-destructive/10 border border-destructive/30 rounded-2xl p-4 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="font-semibold text-sm">Previous analysis failed</p>
+                    <p className="font-semibold text-sm">
+                      {explicitRetryId ? "Retrying lab analysis" : "Previous analysis failed"}
+                    </p>
                     <p className="text-muted-foreground text-xs mt-1">
-                      Re-upload the same lab result to retry.
+                      {explicitRetryId
+                        ? "Pick a clearer photo or PDF — we'll re-run the AI on your existing report."
+                        : "Re-upload the same lab result to retry."}
                     </p>
                   </div>
                 </div>

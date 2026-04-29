@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedbackSheet } from "@/components/feedback/FeedbackSheet";
 import type { Language } from "./types";
@@ -25,39 +25,45 @@ interface EmptyBiomarkersBannerProps {
 const COPY = {
   en: {
     titleFailed: "We couldn't read your lab values",
-    titleProcessing: "Still reading your lab values…",
+    titleProcessing: "Re-reading your lab values…",
     titleGeneric: "Biomarker breakdown isn't available",
     bodyFailed:
       "Our AI couldn't extract the numbers from this upload. This usually means the photo was blurry, cropped, or the file wasn't a lab report.",
     bodyProcessing:
-      "Hang on a moment — we're still pulling the values out of your scan. If this stays for more than a minute, please re-upload.",
+      "Hold tight — the AI is going through your lab again. We'll unlock retry options once it finishes (usually under a minute).",
     bodyGeneric:
       "Something went wrong while extracting values from your lab. Please re-upload a clearer photo or PDF.",
-    reupload: "Re-upload lab",
+    autoRetry: "Auto-retry with new photo",
+    autoRetryHint: "Pick a clearer photo or PDF — we'll re-run the AI on this same report.",
+    reupload: "Upload a different lab instead",
     feedback: "Report this issue",
     showDetails: "Show technical details",
     hideDetails: "Hide technical details",
     detailsHeader: "Processing log",
     statusLabel: "Stage",
+    runningLabel: "Re-running AI…",
     feedbackContext:
       "Biomarker breakdown was empty on this report. Please describe what you uploaded so we can investigate.",
   },
   pidgin: {
     titleFailed: "We no fit read your lab numbers",
-    titleProcessing: "We dey still read your lab…",
+    titleProcessing: "We dey read your lab again…",
     titleGeneric: "Biomarker breakdown no dey here",
     bodyFailed:
       "Our AI no fit catch the numbers from this upload. Maybe the picture blur, e cut, or the file no be lab report.",
     bodyProcessing:
-      "Wait small — we dey still pull the numbers comot. If e tey pass one minute, abeg upload am again.",
+      "Hold on small — AI dey try am again. Once e finish (usually less than one minute), the buttons go open.",
     bodyGeneric:
       "Something happen during processing. Abeg upload the lab result again make we read am well.",
-    reupload: "Upload lab again",
+    autoRetry: "Auto-retry with new picture",
+    autoRetryHint: "Snap am again or pick clearer file — we go run the AI for this same report.",
+    reupload: "Upload different lab",
     feedback: "Tell us wetin happen",
     showDetails: "Show technical details",
     hideDetails: "Hide technical details",
     detailsHeader: "Processing log",
     statusLabel: "Stage",
+    runningLabel: "AI dey run…",
     feedbackContext:
       "Biomarker breakdown was empty on this report. Please describe what you uploaded so we can investigate.",
   },
@@ -123,24 +129,48 @@ export const EmptyBiomarkersBanner = ({
               </p>
             )}
 
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Button
-                size="sm"
-                onClick={() => navigate("/app/upload")}
-                className="bg-primary text-primary-foreground"
+            {isProcessing ? (
+              <div
+                className="flex items-center gap-2 rounded-lg border border-[hsl(var(--alert-amber))]/40 bg-[hsl(var(--alert-amber))]/10 px-3 py-2"
+                aria-live="polite"
               >
-                <RefreshCw className="w-4 h-4 mr-1.5" />
-                {t.reupload}
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => setFeedbackOpen(true)}
-              >
-                <MessageSquareWarning className="w-4 h-4 mr-1.5" />
-                {t.feedback}
-              </Button>
-            </div>
+                <Loader2 className="w-4 h-4 animate-spin text-[hsl(var(--alert-amber))]" />
+                <span className="text-body-sm font-semibold">{t.runningLabel}</span>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    onClick={() =>
+                      navigate(
+                        resultId ? `/app/upload?retry=${resultId}` : "/app/upload",
+                      )
+                    }
+                    className="bg-primary text-primary-foreground"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-1.5" />
+                    {t.autoRetry}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setFeedbackOpen(true)}
+                  >
+                    <MessageSquareWarning className="w-4 h-4 mr-1.5" />
+                    {t.feedback}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">{t.autoRetryHint}</p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/app/upload")}
+                  className="text-xs font-semibold text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  {t.reupload}
+                </button>
+              </>
+            )}
 
             {processingSteps && processingSteps.length > 0 && (
               <div className="pt-1">
