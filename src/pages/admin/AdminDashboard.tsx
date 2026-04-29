@@ -293,9 +293,18 @@ const AdminDashboard = () => {
         >
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
-        <Button variant="outline" size="sm" onClick={refreshAll} className="gap-2">
-          <RefreshCw className="w-4 h-4" /> Refresh
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            onClick={() => navigate("/app/admin/control-room")}
+            className="gap-2"
+          >
+            <Activity className="w-4 h-4" /> Control Room
+          </Button>
+          <Button variant="outline" size="sm" onClick={refreshAll} className="gap-2">
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="mb-5">
