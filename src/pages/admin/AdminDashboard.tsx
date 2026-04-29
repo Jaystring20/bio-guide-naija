@@ -206,12 +206,31 @@ const AdminDashboard = () => {
     },
   });
 
+  // All critical results across the database (admins can read all via RLS)
+  const criticalQ = useQuery({
+    queryKey: ["admin-critical-user-ids"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("lab_results")
+        .select("user_id")
+        .eq("has_critical_alert", true);
+      return new Set((data || []).map((r) => r.user_id));
+    },
+  });
+
+  const [usersCriticalOnly, setUsersCriticalOnly] = useState(false);
+  const [resultsCriticalOnly, setResultsCriticalOnly] = useState(false);
+
   const m = metricsQ.data;
   const filteredUsers = (usersQ.data || []).filter(
     (u) =>
-      !search ||
-      u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.full_name?.toLowerCase().includes(search.toLowerCase())
+      (!search ||
+        u.email?.toLowerCase().includes(search.toLowerCase()) ||
+        u.full_name?.toLowerCase().includes(search.toLowerCase())) &&
+      (!usersCriticalOnly || criticalQ.data?.has(u.user_id))
+  );
+  const filteredResults = (resultsQ.data || []).filter(
+    (r) => !resultsCriticalOnly || r.has_critical_alert
   );
   const failedResults = (resultsQ.data || []).filter((r) => r.status === "failed");
   const successRate30 = m && m.results_30d > 0
