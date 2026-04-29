@@ -167,6 +167,23 @@ const ResultReport = () => {
         ← Back
       </button>
 
+      {isAdminViewing && (
+        <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-3 mb-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-secondary/15 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-4 h-4 text-secondary" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-secondary">Admin viewer · read-only</p>
+            <p className="text-sm font-semibold truncate">
+              {ownerInfo?.full_name || ownerInfo?.email || "Loading patient…"}
+            </p>
+            {ownerInfo?.email && ownerInfo?.full_name && (
+              <p className="text-xs text-muted-foreground truncate">{ownerInfo.email}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="mb-1">
         <h1 className="font-display text-2xl font-bold">
           {language === "pidgin" ? "Your Lab Report" : "Your Lab Report"}
@@ -199,6 +216,15 @@ const ResultReport = () => {
           day: "numeric", month: "long", year: "numeric",
         })}
       </p>
+
+      {!isAdminViewing && result.status === "completed" && (
+        <InlineRatingPrompt
+          promptKey="post-result-v1"
+          title="How was your VeriDIA report?"
+          subtitle="One tap helps us improve faster — your rating goes straight to the team."
+          resultId={id}
+        />
+      )}
 
       {/* Tabs */}
       <div className="grid grid-cols-2 gap-2 mb-6">
