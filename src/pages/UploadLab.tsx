@@ -447,9 +447,56 @@ const UploadLab = () => {
                 </div>
               )}
 
+              {/* Quality inspection result */}
+              {inspecting && (
+                <div className="rounded-2xl border border-border bg-card p-3 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Checking photo quality…
+                </div>
+              )}
+              {quality && !inspecting && (
+                <div
+                  className={cn(
+                    "rounded-2xl border p-3.5 text-xs",
+                    !quality.recoverable
+                      ? "border-destructive/40 bg-destructive/5 text-destructive"
+                      : quality.issues.length > 0
+                      ? "border-[hsl(var(--alert-amber))]/40 bg-[hsl(var(--alert-amber))]/5"
+                      : "border-primary/30 bg-primary/5",
+                  )}
+                >
+                  <p className="font-bold flex items-center gap-1.5">
+                    {!quality.recoverable ? (
+                      <AlertTriangle className="w-4 h-4" />
+                    ) : quality.issues.length > 0 ? (
+                      <Sparkles className="w-4 h-4 text-[hsl(var(--alert-amber))]" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                    )}
+                    {!quality.recoverable
+                      ? "Photo too low quality"
+                      : quality.issues.length > 0
+                      ? "We'll auto-enhance this photo"
+                      : "Photo looks good"}
+                  </p>
+                  {quality.reasonEn && (
+                    <p className="mt-1 text-foreground/80">{quality.reasonEn}</p>
+                  )}
+                  {!quality.recoverable && (
+                    <button
+                      onClick={() => { setFile(null); setPreview(null); setQuality(null); }}
+                      className="mt-2 font-semibold underline underline-offset-2"
+                    >
+                      Retake / pick another file
+                    </button>
+                  )}
+                </div>
+              )}
+
               <Button
                 onClick={handleUpload}
-                className="w-full h-14 text-base font-bold rounded-2xl bg-gradient-brand text-primary-foreground hover:opacity-95 shadow-glow-primary touch-target border-0"
+                disabled={inspecting || (!!quality && !quality.recoverable)}
+                className="w-full h-14 text-base font-bold rounded-2xl bg-gradient-brand text-primary-foreground hover:opacity-95 shadow-glow-primary touch-target border-0 disabled:opacity-50"
               >
                 <Upload className="w-5 h-5 mr-2" />
                 Analyze Lab Result
