@@ -56,6 +56,54 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          admin_notes: string | null
+          category: string
+          created_at: string
+          device_info: Json | null
+          id: string
+          message: string
+          nps: number | null
+          rating: number | null
+          result_id: string | null
+          screen: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          category: string
+          created_at?: string
+          device_info?: Json | null
+          id?: string
+          message: string
+          nps?: number | null
+          rating?: number | null
+          result_id?: string | null
+          screen?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          category?: string
+          created_at?: string
+          device_info?: Json | null
+          id?: string
+          message?: string
+          nps?: number | null
+          rating?: number | null
+          result_id?: string | null
+          screen?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lab_results: {
         Row: {
           ai_summary: string | null
@@ -207,6 +255,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_get_result_owner: {
+        Args: { _result_id: string }
+        Returns: {
+          email: string
+          full_name: string
+          user_id: string
+        }[]
+      }
+      admin_list_feedback: {
+        Args: { _limit?: number }
+        Returns: {
+          admin_notes: string
+          category: string
+          created_at: string
+          device_info: Json
+          email: string
+          full_name: string
+          id: string
+          message: string
+          nps: number
+          rating: number
+          result_id: string
+          screen: string
+          status: string
+          user_id: string
+        }[]
+      }
       admin_list_users: {
         Args: never
         Returns: {

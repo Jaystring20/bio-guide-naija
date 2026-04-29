@@ -1,102 +1,127 @@
-## Improving Lab Report Analysis: Speed, Reliability & Structure
+# Super Admin login, admin result access fix, and MVP feedback system
 
-### Current pipeline (what happens today)
+Three coordinated changes:
 
-```text
-Upload → Storage → Insert row → Edge function:
-  1. Download file from storage
-  2. Base64 encode (sync, blocking)
-  3. Gemini Call #1 — Biomarker extraction + summary  (~10–20s)
-  4. Critical threshold check (local)
-  5. Gemini Call #2 — Diet plan + consultation checklist  (~10–20s)
-  6. Gemini Call #3 — Pidgin translation of EVERYTHING  (~10–20s)
-  7. Update DB → return
-```
-
-Calls run **sequentially**. Total wall time today: ~30–60s on a good day, **frequently 60–90s+** when any call retries. Logs confirm `gemini-2.0-flash` returns 404 (no longer available to new users) — every fallback is wasted time.
+1. A dedicated Super Admin login screen at `/admin-login` with strict role verification before allowing access.
+2. Fix the bug where the control room can't open user lab results (admin viewer mode).
+3. Add a professional, engaging in-app feedback system to power the MVP testing push.
 
 ---
 
-### Top challenges identified
+## 1. Dedicated Super Admin login (`/admin-login`)
 
-| # | Challenge | Evidence | Impact |
-|---|---|---|---|
-| 1 | **Sequential AI calls** — extraction → diet → pidgin run one after another | `interpret-lab/index.ts` lines 178–523 | Adds 20–40s of dead wait time |
-| 2 | **`gemini-2.0-flash` fallback is dead** — returns 404, every retry wastes ~5s | Edge logs: "gemini-2.0-flash is no longer available to new users" | False sense of resilience; delays failures |
-| 3 | **Pidgin translation blocks the response** even though most users read English first | Lines 383–523 | Adds 10–20s before user sees ANY result |
-| 4 | **Single huge JSON schema** — 7-day meal plan + hydration + supplements + checklist in one call | Lines 254–359 | Slower generation, higher failure rate, hits token limits |
-| 5 | **No structural validation** of AI output — accepts whatever shape comes back | Line 208 just destructures | Silent data corruption, broken UI |
-| 6 | **No timeout on Gemini calls** — a single hung request can stall the whole flow | `fetch()` at line 17 has no `AbortSignal` | Indefinite waits |
-| 7 | **No image preprocessing** — full-resolution photos sent as base64 | Lines 91–98 | Larger payload = slower upload to Gemini + slower OCR |
-| 8 | **Critical thresholds are minimal** — only 5 biomarkers covered | Lines 212–218 | Misses many clinically important alerts |
-| 9 | **No structured logging / timing** — can't tell which step is slow per request | Only generic console.logs | Can't optimize what we can't measure |
-| 10 | **Blocking response pattern** — client waits for entire pipeline before navigating | `UploadLab.tsx` awaits full function | Perceived slowness even when DB is fast |
+**New page: `src/pages/AdminLogin.tsx`**
+- Distinct visual identity from the consumer Auth page: dark Clinical Navy background, "VeriDIA Control Room" wordmark, shield icon, "Super Admin Access" heading, and a small "Authorized personnel only" notice.
+- Email + password form only (no signup, no Google for this entry point — admins are provisioned, not self-registered).
+- Submit flow:
+  1. `supabase.auth.signInWithPassword(...)`
+  2. On success, query `user_roles` for `role = 'admin'` for the returned user id.
+  3. If admin → toast "Welcome back, admin" and `navigate("/app/admin")`.
+  4. If NOT admin → immediately `supabase.auth.signOut()`, show clear error "This account does not have Super Admin privileges", and stay on the page. This prevents non-admins from getting an authenticated session via this entry point.
+- A small "Back to app login" link to `/auth` for accidental visits.
 
----
+**Routing changes (`src/App.tsx`)**
+- Add public route: `<Route path="/admin-login" element={<AdminLogin />} />`.
+- Keep `/app/admin` protected by existing `AdminRoute` (defense in depth).
 
-### The plan — 4 focused changes
-
-#### 1. Parallelize + slim the pipeline (biggest speed win)
-
-Restructure `interpret-lab/index.ts` so the response returns as soon as the **biomarkers + summary + critical alerts** are ready (the only data the user needs to land on the result page). Diet plan and Pidgin become **background jobs**.
-
-```text
-NEW FLOW:
-  ┌─ Gemini Call #1: Biomarkers + summary (mandatory, ~10–15s)
-  │  → Save partial row, mark status="partial", RETURN to client
-  │
-  └─ Fire-and-forget (EdgeRuntime.waitUntil):
-       ├─ Gemini Call #2: Diet plan      ┐  parallel
-       └─ Gemini Call #3: Pidgin (en→pcm) ┘
-       → Update row when each finishes
-```
-
-- Client navigates to result page in **~15s** instead of 45–60s.
-- Result page subscribes via Supabase Realtime to the `lab_results` row and progressively renders Diet/Pidgin tabs as they arrive (skeleton → content).
-
-#### 2. Fix the model lineup + add hard timeouts
-
-- Drop the dead `gemini-2.0-flash` fallback. Replace with: `gemini-2.5-flash` → `gemini-2.5-flash-lite` (faster, cheaper fallback).
-- Add a **20s `AbortSignal.timeout`** to every Gemini call so a stalled request fails fast and retries.
-- Cut `MAX_RETRIES` from 3 → 2 (current backoff is 2s + 4s = 6s wasted per dead model).
-
-#### 3. Stricter response structure & validation
-
-- Add a **Zod schema** (Deno-compatible) for the biomarker tool-call output. Reject + retry once if it doesn't validate, instead of writing garbage to the DB.
-- Split the diet call into **two smaller tool calls** done in parallel:
-  - `submit_food_lists` — increase / reduce / avoid + supplements + hydration
-  - `submit_meal_plan_and_questions` — 7-day meals + consultation checklist
-  - Smaller schemas = faster generation + fewer truncations.
-- Expand the local critical-threshold table from 5 → ~15 biomarkers (creatinine, ALT/AST, bilirubin, WBC, platelets, HbA1c, etc.) using clinical literature.
-
-#### 4. Image preprocessing + observability
-
-- Before sending to Gemini, downscale images >1600px on the longest side and re-encode to JPEG quality 85 (use Deno-compatible image lib or skip if PDF). Typical phone photo drops from 4MB → ~400KB.
-- Add structured timing logs: `{step: "biomarker_call", ms: 12340, model: "gemini-2.5-flash", ok: true}` so we can plot p50/p95 per step in the admin dashboard later.
+**Why two checks (login screen + AdminRoute):**
+- `/admin-login` enforces role at the entry point so non-admins never even land on the dashboard with a session.
+- `AdminRoute` continues to guard the route itself for users who navigate directly while authenticated.
 
 ---
 
-### Files to change
+## 2. Fix: Control room can't open user results
 
-- `supabase/functions/interpret-lab/index.ts` — full restructure (parallel + waitUntil + timeouts + validation + new model list)
-- `src/lib/critical-thresholds.ts` — expand biomarker rules
-- `src/pages/ResultReport.tsx` — handle `status="partial"`, subscribe to Realtime updates, show skeletons for pending Diet/Pidgin tabs
-- `src/pages/UploadLab.tsx` — navigate as soon as biomarkers come back (don't wait for full pipeline)
-- New migration — enable Realtime on `lab_results` (`ALTER PUBLICATION supabase_realtime ADD TABLE public.lab_results`) and add a `processing_steps jsonb` column for per-step timing/status
+**Root cause:** RLS already lets admins read all `lab_results` rows (policy "Admins can view all lab results"), and `admin_recent_results` returns them in the Results tab. But when an admin clicks **Open**, `ResultReport.tsx` queries with both `.eq("id", id)` AND `.eq("user_id", user.id)`, so the row is filtered out client-side for any result not owned by the admin.
 
-### Expected outcome
+**Fix in `src/pages/ResultReport.tsx`:**
+- Detect admin via the existing `useUserRole()` hook.
+- Drop the `.eq("user_id", user.id)` filter when `isAdmin` is true (RLS still protects non-admins server-side).
+- Add a small "Admin viewing" banner at the top of the report when the result's `user_id !== currentUser.id`, with the patient's name/email (already returned by `admin_recent_results`, can be passed via navigation state or refetched via a tiny RPC). Simplest: add an `admin_get_result_owner(_result_id)` security-definer RPC that returns name/email for admins only.
+- Disable any "edit/regenerate" actions in admin-viewer mode (read-only).
 
-| Metric | Today | After |
-|---|---|---|
-| Time to result page (p50) | ~35s | **~12–15s** |
-| Time to result page (p95) | 60–90s | **~25s** |
-| Full report ready (with Pidgin) | 45–90s | **~30s** (in background, user already reading) |
-| Failed-pipeline rate | ~10–15% (logs) | **<3%** (timeouts + validation + retry) |
+**Same fix applied to other per-result fetches** if any exist (Trends, BiomarkersTab, etc. — verified during implementation by ripgrepping `from("lab_results")`).
 
-### Out of scope for this round
+---
 
-- Caching identical lab results (privacy concern; data minimization rule)
-- Switching to a different OCR-first pipeline (Vision API → LLM)
-- Streaming the summary token-by-token (Gemini function-calling doesn't stream cleanly)
+## 3. MVP feedback system — engaging, professional, low-friction
 
-Approve and I'll implement.
+Goal: collect honest, actionable feedback during the MVP push without disrupting the core flow.
+
+### Database (new migration)
+- `feedback` table:
+  - `id uuid pk`, `user_id uuid` (nullable to allow anon if ever needed, but defaulted to `auth.uid()`),
+  - `category text` (enum-like via check: `bug | suggestion | praise | confusion | feature_request | other`),
+  - `rating smallint` (1–5, optional — nullable),
+  - `nps smallint` (0–10, optional — only set when prompted),
+  - `message text not null`,
+  - `screen text` (auto-captured pathname),
+  - `result_id uuid` (nullable — links feedback to a specific lab report when given from the result page),
+  - `device_info jsonb` (UA, viewport, online/offline, app version),
+  - `status text default 'new'` (`new | reviewed | actioned | wont_fix`),
+  - `admin_notes text`,
+  - `created_at timestamptz default now()`.
+- RLS:
+  - Users INSERT their own (`auth.uid() = user_id`) and SELECT their own.
+  - Admins SELECT all + UPDATE status/admin_notes (`has_role(auth.uid(),'admin')`).
+- Add metric to `admin_overview_metrics`: `feedback_total`, `feedback_7d`, `avg_rating_30d`, `nps_30d`.
+
+### UI surfaces
+
+**A. Floating "Send feedback" button (global, in `AppShell`)**
+- Small pill in the bottom-right above `BottomNav`: shield-free, Vital Green outline, label "Feedback".
+- Opens a slide-up sheet (`Drawer` on mobile, `Dialog` on desktop):
+  - Category chips (Bug, Suggestion, Praise, Confusion, Feature, Other) with icons.
+  - 5-star rating (optional, animated on hover/tap).
+  - Free-text textarea with placeholder "Tell us what worked or what tripped you up — even one sentence helps".
+  - Auto-attached context badges shown to the user for transparency: "Screen: /app/upload", "Device: iPhone Safari".
+  - Submit button: "Send feedback" with success state (confetti micro-burst already available via `Confetti.tsx`, then "Thanks — your voice shapes VeriDIA" with a personal sign-off).
+
+**B. Contextual prompts (the engaging part)**
+- **After first successful result** (in `ResultReport.tsx`): a one-time inline card "How was your first VeriDIA report?" with a 5-star inline rating + 1-line text box. Persisted via `localStorage` so it never re-appears for that user.
+- **After 3 results uploaded**: a one-time NPS prompt "How likely are you to recommend VeriDIA to a friend or family member?" 0–10 slider. Stored as `nps`.
+- **After a failed upload**: a softer prompt "Sorry that didn't work — what happened?" pre-selecting the Bug category and pre-filling `result_id`.
+
+All prompts are dismissible, never block the UI, and respect a 24h cooldown between automatic prompts.
+
+**C. Public testers landing strip on `/app` (Index.tsx)**
+- Small "MVP Tester" banner with two CTAs: "Share feedback" and "Join the tester WhatsApp group" (link configurable later).
+- Removes itself once the user submits any feedback.
+
+### Admin tools
+
+**New "Feedback" tab in `AdminDashboard.tsx`**
+- KPIs: Total, last 7 days, average rating (30d), NPS (30d), unresolved bug count.
+- Filters: category, status, has rating, date range.
+- Table: date, user (name + email), category badge, rating, snippet of message, screen, status. Click row → side panel with full message, device info, link to the related result (when applicable), status dropdown (`new → reviewed → actioned → wont_fix`) and admin notes textarea.
+- CSV export (matches existing CSV pattern).
+
+### Why this works for the MVP push
+- One always-available channel (floating button) for power users.
+- Three high-signal contextual prompts that fire exactly when a tester just experienced something.
+- Built-in NPS so we can quote a real number when pitching.
+- Admin triage workflow (status + notes) so feedback turns into action, not a graveyard.
+- Auto-captured screen + device removes friction and improves bug repro.
+
+---
+
+## Technical / file map
+
+- New: `src/pages/AdminLogin.tsx`
+- New: `src/components/feedback/FeedbackButton.tsx` (floating launcher)
+- New: `src/components/feedback/FeedbackSheet.tsx` (form sheet/dialog)
+- New: `src/components/feedback/InlineRatingPrompt.tsx` (post-result + NPS variants)
+- New: `src/hooks/useFeedback.ts` (submit, prompt cooldown, "has submitted" check)
+- New: `src/pages/admin/AdminFeedbackTab.tsx` (or inline in `AdminDashboard.tsx`)
+- New migration: `feedback` table + RLS + extend `admin_overview_metrics` + new `admin_get_result_owner` RPC
+- Edit: `src/App.tsx` — add `/admin-login` route
+- Edit: `src/components/AppShell.tsx` — mount `FeedbackButton`
+- Edit: `src/pages/ResultReport.tsx` — admin-aware fetch + admin viewer banner + post-result inline prompt
+- Edit: `src/pages/UploadLab.tsx` — failure-path feedback prompt
+- Edit: `src/pages/Index.tsx` — tester banner
+- Edit: `src/pages/admin/AdminDashboard.tsx` — Feedback tab + extended metrics
+
+## Out of scope (can follow up)
+- Email notifications to admins on new critical feedback.
+- Public changelog page showing "you asked, we shipped".
+- Tester invite codes / closed beta gating.
