@@ -81,7 +81,7 @@ const Onboarding = () => {
                   : "border-border bg-card"
               }`}
             >
-              <Icon className={`w-6 h-6 flex-shrink-0 ${role === r.value ? "text-accent" : "text-secondary"}`} />
+              <Icon className={`w-6 h-6 flex-shrink-0 ${role === r.value ? "text-secondary-foreground" : "text-secondary"}`} />
               <div>
                 <p className="font-semibold text-body">{r.label}</p>
                 <p className="text-body-sm text-muted-foreground">{r.desc}</p>
