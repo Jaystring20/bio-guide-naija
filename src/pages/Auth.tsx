@@ -37,7 +37,7 @@ const Auth = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <img src={veridiaLogo} alt="VeriDIA" className="h-16 w-auto mx-auto mb-4" />
+          <img src={veridiaLogo} alt="VeriDIA" className="h-20 sm:h-24 w-auto mx-auto mb-4 drop-shadow-sm" />
           <p className="text-muted-foreground mt-2">
             Your lab-to-nutrition companion
           </p>
