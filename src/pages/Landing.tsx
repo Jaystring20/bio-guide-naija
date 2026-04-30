@@ -72,6 +72,7 @@ const Landing = () => {
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <a href="#who-its-for" className="hover:text-foreground transition-colors">Who It's For</a>
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
+            <a href="#our-sources" className="hover:text-foreground transition-colors">Our Sources</a>
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
           </div>
 
