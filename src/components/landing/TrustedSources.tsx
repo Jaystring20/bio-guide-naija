@@ -21,6 +21,14 @@ export type TrustedSource = {
   tier: "International" | "Naija & Africa" | "Nutrition";
   /** Short description for the full section */
   cite: string;
+  /**
+   * Domain key matching the `domain` strings used in
+   * `src/lib/medical-citations.ts`. Used to look up which biomarkers
+   * cite this source so the methodology page can deep-link them.
+   * Use null when the source isn't part of the biomarker citation map
+   * (e.g. USDA, which is used only for nutrition verification).
+   */
+  domain: string | null;
 };
 
 export const TRUSTED_SOURCES: TrustedSource[] = [
@@ -30,6 +38,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/NIH_Master_Logo_Vertical_2Color.png/240px-NIH_Master_Logo_Vertical_2Color.png",
     tier: "International",
     cite: "Plain-language explanations for every lab test we interpret.",
+    domain: "NIH MedlinePlus",
   },
   {
     name: "Mayo Clinic",
@@ -37,6 +46,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Mayo_Clinic_logo.svg/320px-Mayo_Clinic_logo.svg.png",
     tier: "International",
     cite: "Clinical condition references for cholesterol, diabetes, anaemia and more.",
+    domain: "Mayo Clinic",
   },
   {
     name: "World Health Organization",
@@ -44,6 +54,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/WHO_logo.svg/320px-WHO_logo.svg.png",
     tier: "International",
     cite: "Global fact sheets on cardiovascular disease, diabetes, anaemia, HIV and TB.",
+    domain: "WHO",
   },
   {
     name: "U.S. CDC",
@@ -51,6 +62,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/US_CDC_logo.svg/320px-US_CDC_logo.svg.png",
     tier: "International",
     cite: "Disease control guidance for malaria, HIV and infectious panels.",
+    domain: "CDC",
   },
   {
     name: "USDA FoodData Central",
@@ -58,6 +70,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/USDA_logo.svg/320px-USDA_logo.svg.png",
     tier: "Nutrition",
     cite: "Live nutrient lookup verifies every food we recommend in your diet plan.",
+    domain: null,
   },
   {
     name: "WHO Africa",
@@ -65,6 +78,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/WHO_logo.svg/320px-WHO_logo.svg.png",
     tier: "Naija & Africa",
     cite: "Region-specific guidance for diseases prevalent in sub-Saharan Africa.",
+    domain: "WHO Africa",
   },
   {
     name: "Africa CDC",
@@ -72,6 +86,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Africa_CDC_logo.png/320px-Africa_CDC_logo.png",
     tier: "Naija & Africa",
     cite: "Continental authority on infectious disease screening and prevention.",
+    domain: "Africa CDC",
   },
   {
     name: "Federal Ministry of Health, Nigeria",
@@ -79,6 +94,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Coat_of_arms_of_Nigeria.svg/240px-Coat_of_arms_of_Nigeria.svg.png",
     tier: "Naija & Africa",
     cite: "National policy reference for clinical and dietary guidelines in Nigeria.",
+    domain: "FMOH Nigeria",
   },
   {
     name: "Nigerian Heart Foundation",
@@ -86,6 +102,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Coat_of_arms_of_Nigeria.svg/240px-Coat_of_arms_of_Nigeria.svg.png",
     tier: "Naija & Africa",
     cite: "Local authority for hypertension and cardiovascular guidance.",
+    domain: "Nigerian Heart Foundation",
   },
 ];
 
