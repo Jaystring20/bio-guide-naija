@@ -9,6 +9,19 @@ import {
   Language,
   STATUS_LABELS,
 } from "./types";
+import {
+  ALL_SOURCE_DOMAINS,
+  getCitationsForBiomarker,
+  hasCuratedCitation,
+  getPrimaryDomain,
+} from "@/lib/medical-citations";
+
+export type NutritionCitation = {
+  query: string;
+  official_name?: string | null;
+  fdc_id?: number | null;
+  url?: string | null;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Unified VeriDIA report PDF template.
@@ -31,12 +44,25 @@ export interface PDFData {
   dietaryPlanPidgin: DietaryPlanPidgin | null;
   checklist: ChecklistItem[];
   checklistPidgin: ChecklistItemPidgin[] | null;
+  /** USDA-verified nutrition entries keyed by lowercase food name (optional). */
+  nutritionCitations?: NutritionCitation[] | null;
   /** Public URL back to this report (used in share messages). Optional. */
   reportUrl?: string | null;
 }
 
 function isStructured(item: ChecklistItem): item is { question: string; context: string; priority: "high" | "medium" | "low" } {
   return typeof item === "object" && item !== null && "question" in item;
+}
+
+/** Find a USDA verification entry for a given food name. */
+function findUsdaMatch(name: string, list: NutritionCitation[] | null | undefined): NutritionCitation | null {
+  if (!name || !list?.length) return null;
+  const lower = name.toLowerCase();
+  return (
+    list.find((n) => n.query?.toLowerCase() === lower) ??
+    list.find((n) => lower.includes((n.query || "").toLowerCase()) || (n.query || "").toLowerCase().includes(lower)) ??
+    null
+  );
 }
 
 // Brand palette (RGB) — mirrors index.css tokens.
