@@ -9,6 +9,19 @@ import {
   Language,
   STATUS_LABELS,
 } from "./types";
+import {
+  ALL_SOURCE_DOMAINS,
+  getCitationsForBiomarker,
+  hasCuratedCitation,
+  getPrimaryDomain,
+} from "@/lib/medical-citations";
+
+export type NutritionCitation = {
+  query: string;
+  official_name?: string | null;
+  fdc_id?: number | null;
+  url?: string | null;
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Unified VeriDIA report PDF template.
@@ -31,12 +44,25 @@ export interface PDFData {
   dietaryPlanPidgin: DietaryPlanPidgin | null;
   checklist: ChecklistItem[];
   checklistPidgin: ChecklistItemPidgin[] | null;
+  /** USDA-verified nutrition entries keyed by lowercase food name (optional). */
+  nutritionCitations?: NutritionCitation[] | null;
   /** Public URL back to this report (used in share messages). Optional. */
   reportUrl?: string | null;
 }
 
 function isStructured(item: ChecklistItem): item is { question: string; context: string; priority: "high" | "medium" | "low" } {
   return typeof item === "object" && item !== null && "question" in item;
+}
+
+/** Find a USDA verification entry for a given food name. */
+function findUsdaMatch(name: string, list: NutritionCitation[] | null | undefined): NutritionCitation | null {
+  if (!name || !list?.length) return null;
+  const lower = name.toLowerCase();
+  return (
+    list.find((n) => n.query?.toLowerCase() === lower) ??
+    list.find((n) => lower.includes((n.query || "").toLowerCase()) || (n.query || "").toLowerCase().includes(lower)) ??
+    null
+  );
 }
 
 // Brand palette (RGB) — mirrors index.css tokens.
@@ -411,6 +437,26 @@ function renderBiomarkers(ctx: Ctx) {
       addParagraph(ctx, `💡 ${tip}`, { size: 8.5, color: BRAND.muted });
     }
 
+    // Verified-vs-AI tag + sources line
+    const verified = hasCuratedCitation(b.name);
+    const primary = getPrimaryDomain(b.name);
+    if (verified && primary) {
+      addParagraph(ctx, `✓ ${isPidgin ? "Confirm with" : "Cross-checked against"} ${primary}`, {
+        size: 8, bold: true, color: BRAND.primary, lineGap: 0.5,
+      });
+    } else {
+      addParagraph(ctx, `⚠ ${isPidgin ? "AI talk only — no medical source confirm" : "AI interpretation — source not verified"}`, {
+        size: 8, bold: true, color: BRAND.amber, lineGap: 0.5,
+      });
+    }
+    const cites = getCitationsForBiomarker(b.name);
+    if (cites.length > 0) {
+      const domains = Array.from(new Set(cites.map((c) => c.domain))).join(" · ");
+      addParagraph(ctx, `${isPidgin ? "Sources" : "Sources"}: ${domains}`, {
+        size: 7.5, color: BRAND.muted, lineGap: 0.5,
+      });
+    }
+
     // Hairline separator
     setDraw(doc, BRAND.hairline);
     doc.setLineWidth(0.2);
@@ -443,6 +489,13 @@ function renderDiet(ctx: Ctx) {
       if (detail) addParagraph(ctx, detail, { size: 9, color: BRAND.body, x: MARGIN + 6, lineGap: 0.5 });
       const tip = isPidgin && pf?.preparation_tip ? pf.preparation_tip : f.preparation_tip;
       if (tip) addParagraph(ctx, `💡 ${tip}`, { size: 8.5, color: BRAND.muted, x: MARGIN + 6 });
+      const usda = findUsdaMatch(f.name, data.nutritionCitations);
+      if (usda) {
+        const tag = usda.fdc_id
+          ? `✓ USDA verified · FDC ${usda.fdc_id}`
+          : `✓ USDA verified`;
+        addParagraph(ctx, tag, { size: 7.5, bold: true, color: BRAND.primary, x: MARGIN + 6, lineGap: 0.5 });
+      }
     });
     ctx.y += 2;
   };
@@ -601,8 +654,64 @@ function renderChecklist(ctx: Ctx) {
   });
 }
 
+function renderSourcesPage(ctx: Ctx) {
+  const { isPidgin, data } = ctx;
+  newPage(ctx);
+  sectionHeading(ctx, isPidgin ? "Where We Get Our Info" : "Sources & Methodology", BRAND.navy);
+  addParagraph(
+    ctx,
+    isPidgin
+      ? "VeriDIA dey use AI to read your lab paper, but every clinical talk and food advice get back-up from these credible sources:"
+      : "VeriDIA uses AI to interpret your lab report, but every clinical explanation and food recommendation is backed by these credible sources:",
+    { size: 10, color: BRAND.body },
+  );
+  ctx.y += 1;
+  ALL_SOURCE_DOMAINS.forEach((src) => {
+    addParagraph(ctx, `✓  ${src}`, { size: 9.5, color: BRAND.body, x: MARGIN + 2, lineGap: 0.5 });
+  });
+
+  ctx.y += 3;
+  addParagraph(ctx, isPidgin ? "How We Tag Each Result" : "How We Tag Each Result", {
+    size: 11, bold: true, color: BRAND.navy,
+  });
+  addParagraph(
+    ctx,
+    isPidgin
+      ? "✓ Cross-checked — we get curated medical source for the biomarker."
+      : "✓ Cross-checked — this biomarker has a vetted, biomarker-specific source from one of the authorities above.",
+    { size: 9.5, color: BRAND.primary, lineGap: 0.5 },
+  );
+  addParagraph(
+    ctx,
+    isPidgin
+      ? "⚠ AI only — AI interpret am, but we never get specific source for this one. Take am with extra caution."
+      : "⚠ AI only — the AI interpretation is shown but we don't have a curated, biomarker-specific source yet. Treat with extra caution.",
+    { size: 9.5, color: BRAND.amber, lineGap: 0.5 },
+  );
+
+  // USDA verification block
+  if (data.nutritionCitations && data.nutritionCitations.length > 0) {
+    ctx.y += 3;
+    addParagraph(ctx, isPidgin ? "USDA-Verified Foods" : "USDA-Verified Foods", {
+      size: 11, bold: true, color: BRAND.navy,
+    });
+    addParagraph(
+      ctx,
+      isPidgin
+        ? "These foods inside your diet plan, USDA FoodData Central confirm them:"
+        : "The following foods in your diet plan have been verified against USDA FoodData Central:",
+      { size: 9.5, color: BRAND.body, lineGap: 0.5 },
+    );
+    data.nutritionCitations.slice(0, 30).forEach((n) => {
+      const label = n.official_name || n.query;
+      const id = n.fdc_id ? ` (FDC ${n.fdc_id})` : "";
+      addParagraph(ctx, `✓  ${label}${id}`, { size: 9, color: BRAND.body, x: MARGIN + 2, lineGap: 0.3 });
+    });
+  }
+}
+
 function renderDisclaimerPage(ctx: Ctx) {
-  const { doc, isPidgin } = ctx;
+  const { isPidgin } = ctx;
   newPage(ctx);
   sectionHeading(ctx, isPidgin ? "Important Notice" : "Important Notice", BRAND.red);
   addParagraph(ctx,
@@ -648,6 +757,7 @@ function buildReportPdf(data: PDFData): { doc: jsPDF; fileName: string } {
     renderChecklist(ctx);
   }
 
+  renderSourcesPage(ctx);
   renderDisclaimerPage(ctx);
 
   // Stamp "Page X of Y" by re-drawing headers on every page now that we know totals.

@@ -229,6 +229,7 @@ const ResultReport = () => {
     dietaryPlanPidgin,
     checklist,
     checklistPidgin,
+    nutritionCitations: ((result as any).nutrition_citations as any[] | null) ?? null,
     reportUrl: typeof window !== "undefined" ? `${window.location.origin}/app/result/${id}` : null,
   };
 

@@ -1,120 +1,127 @@
-## Goal
+# Strengthening the Gemini ↔ Citation Handshake
 
-Make every biomarker explanation and every food recommendation in a VeriDIA report cite **real, credible sources** the user can tap to verify — so the report stops being "trust the AI" and becomes "trust the AI, here's where it got this."
+We'll do all five upgrades in order. Each step is shippable on its own, so you can review/use the report after every step.
 
-## Two grounded data sources we'll wire in
+---
 
-1. **Perplexity Sonar API** (via Lovable connector) — for medical/clinical claims (biomarker explanations, why-it-matters, critical alert context). Returns answers *with citations* from the live web, restricted to credible domains.
-2. **USDA FoodData Central API** (free public API, no connector — just an API key the user gets free at fdc.nal.usda.gov) — for nutrition facts on every food Gemini suggests. Citation = the official USDA food entry.
+## Step 1 — Expand the curated biomarker map (≈30 → ~55 biomarkers)
 
-We deliberately keep Gemini for the **OCR + initial interpretation** (it's already working well), and add the grounded layer on top.
+**Goal:** make sure almost every biomarker on a Nigerian lab panel gets a real NIH/Mayo/WHO citation, not the generic fallback.
 
-## What the user will see
+Add curated entries for the panels Nigerian labs commonly run that we don't fully cover yet:
 
-**On every biomarker card** (when expanded), a new "Sources" row:
-> Sources: Mayo Clinic · NIH MedlinePlus · WHO
-> _(each is a tappable link)_
+- **FBC extras:** MCV, MCH, MCHC, RDW, neutrophils, lymphocytes, eosinophils
+- **LFT extras:** ALP, GGT, albumin, total protein, globulin
+- **U&E / kidney extras:** chloride, bicarbonate, phosphate, magnesium
+- **Lipid extras:** VLDL, non-HDL, lipoprotein(a)
+- **Endocrine:** Free T3, Free T4, fasting insulin, HOMA-IR, cortisol, prolactin
+- **Reproductive:** FSH, LH, estradiol, testosterone, beta-hCG
+- **Infectious / tropical (Nigerian context):** malaria parasitemia, HIV antibody, HBsAg, Anti-HCV, VDRL, widal, H. pylori, typhoid IgM/IgG
+- **Inflammation:** CRP, ESR, procalcitonin
+- **Urinalysis:** protein, glucose (urine), ketones, leukocytes, nitrites
 
-**On every food in the diet plan** (Foods to Increase / Reduce / Avoid), a small badge:
-> ✓ USDA verified — _Spinach, raw — 2.71 mg iron / 100 g_
-> _(tap → opens USDA FoodData Central entry)_
+**File touched:** `src/lib/medical-citations.ts` (extend `RULES`).
 
-**On critical alerts**, a "Clinical reference" link to the WHO/NIH page describing the threshold.
+**No DB changes, no UI changes.** Existing `CitationChips` immediately picks them up.
 
-**At the bottom of the report**, a "Sources & Methodology" section listing every domain cited, plus the disclaimer that AI interpretation is grounded but not a substitute for a doctor.
+---
 
-## Restricted source whitelist (Perplexity `search_domain_filter`)
+## Step 2 — Add a Nigerian / African authority tier
 
-Only these domains will be allowed for medical grounding:
-- nih.gov, medlineplus.gov, ncbi.nlm.nih.gov (PubMed)
-- who.int
-- mayoclinic.org
-- cdc.gov
-- nice.org.uk
-- cochrane.org
-- nhs.uk
+**Goal:** boost local trust by linking to authorities that speak to Nigerian patients directly.
 
-This guarantees no random blog or unverified site can ever appear as a "source."
+Introduce a second-tier list shown alongside the international sources:
 
-## Architecture
+- **Federal Ministry of Health Nigeria** — `health.gov.ng` (where treatment guidelines exist)
+- **Nigerian Heart Foundation** — for lipids/BP biomarkers
+- **Africa CDC** — `africacdc.org` (HIV, malaria, TB, NCDs)
+- **WHO Africa** — `afro.who.int` (Africa-specific fact sheets)
+- **NAFDAC** — for nutrient/supplement context
+
+Implementation:
+
+- Extend `MedicalCitation` with an optional `region: "global" | "africa" | "nigeria"` field (defaults to `"global"` so existing entries are untouched).
+- Add region-tagged entries to high-impact biomarkers (glucose, HbA1c, lipids, hemoglobin, malaria, HIV markers, BP-related).
+- `CitationChips` groups by region: **International sources** + **Nigeria & Africa** sub-rows.
+- Update `ALL_SOURCE_DOMAINS` in `SourcesMethodology` to include the new domains.
+
+**Files touched:** `src/lib/medical-citations.ts`, `src/components/report/CitationChips.tsx`, `src/components/report/SourcesMethodology.tsx`.
+
+---
+
+## Step 3 — "Verified against" badge per biomarker
+
+**Goal:** users see the handshake at a glance, not just hidden under a chevron.
+
+Add a small, always-visible label on every biomarker card:
 
 ```text
-Upload lab image
-      |
-      v
-  [interpret-lab edge fn]   ← unchanged, Gemini extracts biomarkers + draft summary
-      |
-      v
-  Save partial result (status=processing)
-      |
-      +--→ [ground-biomarkers edge fn]   NEW
-      |       Perplexity Sonar per abnormal biomarker
-      |       → saves citations[] into each biomarker
-      |
-      +--→ [regenerate-diet edge fn]   ← extended
-              After Gemini returns foods, loop foods through
-              [verify-nutrition edge fn]   NEW
-              USDA FDC lookup → saves usda_ref into each food
+┌─────────────────────────────────────────┐
+│ Fasting Glucose          126 mg/dL  ⚠   │
+│ ✓ Cross-checked against NIH MedlinePlus │
+│ [tap to expand for sources & guidance]  │
+└─────────────────────────────────────────┘
 ```
 
-Both grounding steps run **in the background after the partial result lands**, so the user still sees their report instantly. Citations stream in and the UI re-renders as they arrive (we already use Supabase realtime patterns).
+Behaviour:
 
-## Database changes
+- If a biomarker has ≥1 curated citation → green check + "Cross-checked against {top domain}" (e.g. NIH MedlinePlus).
+- If only fallback → no badge (handled by Step 5).
+- Expanding the card still shows the full `CitationChips` list (Step 2 grouping included).
 
-Two JSONB columns added to `lab_results`:
-- `biomarker_citations` — `{ [biomarkerName]: [{ title, url, domain, snippet }] }`
-- `nutrition_citations` — `{ [foodName]: { fdc_id, official_name, key_nutrients, url } }`
+**Files touched:** `src/components/report/BiomarkersTab.tsx` (add badge above the value row), small new sub-component `VerifiedBadge.tsx`.
 
-Plus two new status fields so the UI can show "Verifying sources…":
-- `grounding_status` — pending | done | failed
-- `nutrition_status` — pending | done | failed
+No DB changes.
 
-## New edge functions
+---
 
-1. **`ground-biomarkers`** — takes a `labResultId`, loads abnormal biomarkers, calls Perplexity Sonar for each with the domain whitelist, writes citations back.
-2. **`verify-nutrition`** — takes a `labResultId`, loops every food in `dietary_plan.foods_to_increase/reduce/avoid`, queries USDA FDC `/v1/foods/search`, saves the top match's FDC ID + canonical name + 3 key nutrients per food.
+## Step 4 — Show sources on the PDF / share export
 
-Both run with `verify_jwt = false` and are triggered by `interpret-lab` after the partial write.
+**Goal:** the credibility doesn't disappear when the user downloads or WhatsApps the report to a doctor.
 
-## UI changes
+Update `src/components/report/PDFExport.tsx`:
 
-- `BiomarkersTab.tsx` — add a "Sources" footer to each expanded card showing citation chips.
-- `DietPlanTab.tsx` — add a USDA badge under each food name, tappable.
-- `SummaryTab.tsx` — add a "Sources & Methodology" collapsible at the bottom.
-- New `<CitationChips />` component — reusable pill list that opens links in a new tab and works offline (links degrade gracefully when offline).
-- `EmergencyAlert.tsx` — add a "Read more (WHO)" link for each critical threshold, pre-mapped to a WHO/NIH URL in `critical-thresholds.ts`.
+- For each biomarker section in the PDF, add a **"Sources:"** line listing the domains (e.g. *Sources: NIH MedlinePlus, Mayo Clinic, WHO*). URLs become clickable in the PDF.
+- For each food in the diet plan that has a USDA match, append a small *"USDA verified"* tag with the FDC ID.
+- Add a final **"Sources & Methodology"** page at the end of the PDF mirroring the in-app `SourcesMethodology` section, plus the medical disclaimer.
+- Pass `biomarker_citations` and `nutrition_citations` from `ResultReport.tsx` into `pdfData`.
 
-## Secrets needed
+**Files touched:** `src/components/report/PDFExport.tsx`, `src/pages/ResultReport.tsx` (extend `pdfData`).
 
-| Secret | Where it comes from | Who adds it |
-|---|---|---|
-| `PERPLEXITY_API_KEY` | Set up via Lovable's Perplexity **connector** (one click, no manual key) | I'll trigger the connector flow |
-| `USDA_FDC_API_KEY` | Free signup at api.data.gov / fdc.nal.usda.gov — takes 30 seconds | You paste it once when prompted |
+No DB changes.
 
-## Memory / methodology
+---
 
-I'll save a new memory file `mem://features/source-grounding` documenting:
-- the whitelist domains
-- the two grounding pipelines
-- the disclaimer copy
-- the rule: every clinical claim shown to a user must have at least one citation, or display "no verified source — AI-generated".
+## Step 5 — Strict mode: flag unverified interpretations
 
-## Out of scope (deliberately)
+**Goal:** never let an AI-only interpretation look as authoritative as a cross-checked one.
 
-- We will **not** swap Gemini out — it stays the OCR + first-pass interpreter.
-- We will **not** add Google Search grounding to Gemini (overlaps with Perplexity, costs more).
-- We will **not** ingest the West African Food Composition Table yet (separate project — needs licensed data).
-- No live drug/medication lookup (VeriDIA's policy is no pharmaceutical suggestions).
+Behaviour:
 
-## Rollout order
+- If `getCitationsForBiomarker(name)` returns only the generic fallback, the biomarker card shows an amber pill: **"AI interpretation — source not verified"** instead of the green "Cross-checked" badge.
+- The same pill appears in the PDF.
+- `SourcesMethodology` adds one line explaining the difference between cross-checked and AI-only items.
+- Add a tiny helper `hasCuratedCitation(name)` to `medical-citations.ts` so the UI can branch cleanly.
 
-1. DB migration (two JSONB columns + two status columns).
-2. Connect Perplexity via connector + ask you for the USDA key.
-3. Build `verify-nutrition` (simpler, USDA — no AI calls).
-4. Build `ground-biomarkers` (Perplexity Sonar with domain whitelist).
-5. Wire both into `interpret-lab` as background tasks.
-6. Add `<CitationChips />` and update the three report tabs.
-7. Add Sources & Methodology section + emergency alert "Read more" links.
-8. Update memory.
+**Files touched:** `src/lib/medical-citations.ts` (helper), `src/components/report/BiomarkersTab.tsx`, `src/components/report/PDFExport.tsx`, `src/components/report/SourcesMethodology.tsx`.
 
-If this looks right, approve and I'll start with the connector + the secret request.
+No DB changes.
+
+---
+
+## What stays the same (the "handshake" itself)
+
+- Gemini still does the **interpretation**.
+- Gemini **never supplies URLs** — citations are attached server-/client-side from our allow-list.
+- USDA remains the single source of truth for nutrition verification (already wired).
+- No new secrets, no new third-party APIs, no Perplexity.
+
+## Order of execution
+
+1. Step 1 — expand map  *(foundation; everything else benefits)*
+2. Step 2 — Nigerian/African tier  *(local credibility)*
+3. Step 3 — Verified badge  *(visible handshake)*
+4. Step 4 — PDF citations  *(credibility survives sharing)*
+5. Step 5 — Strict mode  *(never overstate certainty)*
+
+Each step ends in a working build you can review before we move to the next.
