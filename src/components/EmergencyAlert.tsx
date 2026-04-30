@@ -23,28 +23,52 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
   // Speak an audio warning when an emergency-severity alert mounts.
   // Repeats every ~12s so a caregiver across the room still hears it,
   // until the user mutes, acknowledges, or leaves the screen.
+  // Each repeat alternates English <-> Pidgin and toggles whether the
+  // value/unit is read out, so the message stays informative without
+  // becoming background noise.
   useEffect(() => {
     if (!hasEmergency || muted) return;
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
-    const names = alerts
-      .filter((a) => a.severity === "emergency")
-      .map((a) => a.biomarker)
-      .slice(0, 3)
-      .join(", ");
-    const phrase = names
-      ? `Emergency. Contact a doctor now. Critical values detected for ${names}.`
-      : "Emergency. Contact a doctor now. Critical values detected.";
+    const emergencyAlerts = alerts.filter((a) => a.severity === "emergency").slice(0, 3);
 
+    const buildPhrase = (loopIndex: number): string => {
+      const isPidgin = loopIndex % 2 === 1;
+      const includeValues = loopIndex % 2 === 0; // alternate: with-values vs names-only
+
+      if (emergencyAlerts.length === 0) {
+        return isPidgin
+          ? "Emergency! Abeg call doctor now. Critical values dey your result."
+          : "Emergency. Contact a doctor now. Critical values detected.";
+      }
+
+      const items = emergencyAlerts.map((a) => {
+        if (!includeValues) return a.biomarker;
+        return isPidgin
+          ? `${a.biomarker} dey ${a.value} ${a.unit}`
+          : `${a.biomarker} at ${a.value} ${a.unit}`;
+      });
+
+      const list = items.join(isPidgin ? ", and " : ", ");
+
+      return isPidgin
+        ? `Emergency! Abeg call doctor now. Wahala dey for ${list}.`
+        : `Emergency. Contact a doctor now. Critical values detected for ${list}.`;
+    };
+
+    let loop = 0;
     const speak = () => {
       try {
         window.speechSynthesis.cancel();
-        const utt = new SpeechSynthesisUtterance(phrase);
+        const isPidgin = loop % 2 === 1;
+        const utt = new SpeechSynthesisUtterance(buildPhrase(loop));
         utt.rate = 0.95;
         utt.pitch = 1;
         utt.volume = 1;
-        utt.lang = "en-NG";
+        // Pidgin has no dedicated voice — en-NG / en gives the closest phonetic read.
+        utt.lang = isPidgin ? "en-NG" : "en-US";
         window.speechSynthesis.speak(utt);
+        loop += 1;
       } catch {
         /* no-op: TTS unsupported */
       }
