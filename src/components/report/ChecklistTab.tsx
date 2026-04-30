@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { Share2, Copy, ChevronDown, ChevronUp, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ChecklistSkeleton } from "./ChecklistSkeleton";
 
 interface ChecklistTabProps {
   checklist: ChecklistItem[];
@@ -30,17 +31,7 @@ export const ChecklistTab = ({ checklist, checklistPidgin, language, status, onR
 
   // Pending state — checklist still generating
   if (status === "pending" && checklist.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-foreground mb-3" />
-        <p className="text-body-sm font-semibold text-foreground">
-          {isPidgin ? "Dey prepare your doctor questions…" : "Generating your doctor's questions…"}
-        </p>
-        <p className="text-xs text-muted-foreground mt-1">
-          {isPidgin ? "Small time, e go ready." : "This usually takes a few seconds."}
-        </p>
-      </div>
-    );
+    return <ChecklistSkeleton language={language} />;
   }
 
   // Failed state — offer regenerate
