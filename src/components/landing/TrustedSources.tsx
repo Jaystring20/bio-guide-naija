@@ -29,12 +29,17 @@ export type TrustedSource = {
   name: string;
   /** Public homepage / area we cite from */
   url: string;
-  /** Short acronym/monogram shown in the logo mark */
+  /** Short acronym/monogram shown in the typographic fallback tile */
   mark: string;
-  /** Wordmark line 1 (main name) */
+  /** Wordmark line 1 (main name) — used in the typographic fallback */
   wordmark: string;
   /** Optional wordmark line 2 (subtitle, e.g. "MedlinePlus") */
   subWordmark?: string;
+  /**
+   * Bundled official logo (SVG/PNG). When present, rendered as an <img>;
+   * when absent, the typographic SourceLogo tile is rendered instead.
+   */
+  logo?: string;
   /** Tier shown in the full section */
   tier: "International" | "Naija & Africa" | "Nutrition";
   /** Short description for the full section */
