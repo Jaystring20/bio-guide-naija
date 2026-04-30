@@ -157,8 +157,13 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
 ];
 
 /* ─────────────────────────────────────────────────────────────
- * Reusable logo tile — typographic, no external assets
+ * Reusable logo tile
+ *  - If the source has a bundled `logo`, render it as an <img>.
+ *  - Otherwise (or if the image fails to load), fall back to the
+ *    typographic tile so the layout never collapses.
  * ───────────────────────────────────────────────────────────── */
+
+import { useState } from "react";
 
 type SourceLogoProps = {
   source: TrustedSource;
@@ -166,7 +171,8 @@ type SourceLogoProps = {
   className?: string;
 };
 
-const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) => {
+/** Typographic fallback tile — used when no `logo` is bundled or it fails. */
+const TypographicLogo = ({ source, variant = "strip", className }: SourceLogoProps) => {
   const isStrip = variant === "strip";
   return (
     <div
@@ -176,24 +182,17 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
       )}
       aria-hidden
     >
-      {/* Monogram mark — explicit light/dark tokens, brand color on group hover */}
       <div
         className={cn(
           "flex items-center justify-center rounded-md font-bold tracking-tight border transition-colors duration-300",
-          // Light theme resting
           "border-border bg-muted/60 text-muted-foreground",
-          // Dark theme resting
           "dark:border-foreground/20 dark:bg-foreground/[0.06] dark:text-foreground/85",
-          // Hover (both themes)
           "group-hover:border-primary/50 group-hover:bg-primary/10 group-hover:text-primary",
-          isStrip
-            ? "h-9 px-2 min-w-[36px] text-[11px]"
-            : "h-10 px-2.5 min-w-[40px] text-xs"
+          isStrip ? "h-9 px-2 min-w-[36px] text-[11px]" : "h-10 px-2.5 min-w-[40px] text-xs"
         )}
       >
         {source.mark}
       </div>
-      {/* Wordmark */}
       <div className="flex flex-col leading-none">
         <span
           className={cn(
@@ -216,6 +215,41 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
           </span>
         )}
       </div>
+    </div>
+  );
+};
+
+const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) => {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (!source.logo || imgFailed) {
+    return <TypographicLogo source={source} variant={variant} className={className} />;
+  }
+
+  // Real logo: cap the height so all marks line up regardless of aspect ratio.
+  // Greyscale at rest, full color on hover — matches the calm "trusted by" tone.
+  const isStrip = variant === "strip";
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center select-none",
+        className
+      )}
+    >
+      <img
+        src={source.logo}
+        alt={source.name}
+        loading="lazy"
+        decoding="async"
+        onError={() => setImgFailed(true)}
+        className={cn(
+          "object-contain transition-all duration-300",
+          "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100",
+          isStrip
+            ? "max-h-9 sm:max-h-10 max-w-[140px] sm:max-w-[160px]"
+            : "max-h-11 max-w-[180px]"
+        )}
+      />
     </div>
   );
 };
