@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Download, Share, X } from "lucide-react";
+import { Download, Share, X, CloudOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IosInstallGuide } from "@/components/IosInstallGuide";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -47,6 +48,7 @@ export const InstallPrompt = () => {
   const [showIosTip, setShowIosTip] = useState(false);
   const [hidden, setHidden] = useState(true);
   const [guideOpen, setGuideOpen] = useState(false);
+  const online = useOnlineStatus();
 
   useEffect(() => {
     if (isInIframe() || isStandalone() || wasRecentlyDismissed()) return;
@@ -57,14 +59,25 @@ export const InstallPrompt = () => {
       setHidden(false);
     };
 
+    const onInstalled = () => {
+      setDeferred(null);
+      setHidden(true);
+    };
+
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
 
     if (isIos()) {
+      // iOS install is fully manual via Share menu — works offline,
+      // so always surface the tip regardless of connectivity.
       setShowIosTip(true);
       setHidden(false);
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   const dismiss = () => {
@@ -78,8 +91,13 @@ export const InstallPrompt = () => {
 
   const install = async () => {
     if (!deferred) return;
-    await deferred.prompt();
-    await deferred.userChoice;
+    try {
+      await deferred.prompt();
+      await deferred.userChoice;
+    } catch {
+      /* user cancelled or browser rejected — keep prompt available */
+      return;
+    }
     setDeferred(null);
     setHidden(true);
   };
