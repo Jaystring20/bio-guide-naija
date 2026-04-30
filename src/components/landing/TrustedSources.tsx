@@ -225,7 +225,7 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
   }
 
   // Real logo: cap the height so all marks line up regardless of aspect ratio.
-  // Greyscale at rest, full color on hover — matches the calm "trusted by" tone.
+  // Bold and full-color at rest; scale up on hover for a confident "logo wall" feel.
   const isStrip = variant === "strip";
   return (
     <div
@@ -241,11 +241,10 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
         decoding="async"
         onError={() => setImgFailed(true)}
         className={cn(
-          "object-contain transition-all duration-300",
-          "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100",
+          "object-contain transition-transform duration-300 ease-out group-hover:scale-110",
           isStrip
-            ? "max-h-9 sm:max-h-10 max-w-[140px] sm:max-w-[160px]"
-            : "max-h-11 max-w-[180px]"
+            ? "max-h-10 sm:max-h-12 max-w-[160px] sm:max-w-[180px]"
+            : "max-h-14 max-w-[200px]"
         )}
       />
     </div>
