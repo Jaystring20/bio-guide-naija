@@ -12,6 +12,7 @@ import { VeridiaLogo } from "@/components/VeridiaLogo";
 import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { TrustLogosStrip, TrustedSourcesSection } from "@/components/landing/TrustedSources";
 
 /* ── Animation helpers ── */
 const fadeUp = {
