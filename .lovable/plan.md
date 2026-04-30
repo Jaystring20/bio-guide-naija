@@ -1,54 +1,38 @@
+# Theme-aware logo tiles
+
 ## Problem
+The typographic source tiles in `src/components/landing/TrustedSources.tsx` (and the matching tiles on `/sources`) use `text-muted-foreground/70` plus `border-current/20` / `bg-current/5`. Because every visual layer is driven by `currentColor`, the mark fades to a near-invisible outline in dark mode (especially against the already-elevated `bg-card`), and on the strip's `bg-card/40` panel in light mode the wordmark subtitle drops below comfortable contrast. We need explicit light + dark variants that stay readable on every surface they appear on (hero strip, `/sources` tier cards, methodology page).
 
-The 9 organisation logos on the landing page (`TrustLogosStrip`) and `/sources` page (`TrustedSourcesSection`) are not rendering. All Wikimedia Commons URLs we used return **HTTP 400** — Wikimedia's thumbnail server rejects hot-linking these `thumb/.../NNNpx-...png` URLs from third-party origins. The result: empty grey boxes where the badges should appear.
+## What changes
 
-Bonus issues we'll fix at the same time:
-- WHO and WHO Africa currently point at the same WHO logo (no distinct Africa Region mark).
-- FMOH Nigeria and Nigerian Heart Foundation both fall back to the Nigerian coat of arms — visually identical, confusing on the grid.
+Only `src/components/landing/TrustedSources.tsx` — the `SourceLogo` component. Same API, same layout, same hover lift; only the color/border/background tokens become theme-aware. We keep "greyscale at rest, brand color on `group-hover`" as the existing convention.
 
-## Fix: bundle real official logos locally
-
-Hot-linking external CDNs for logos is fragile (URLs change, hotlink blocks, CSP, slow loads). The standard fix is to download each official logo once and import it as a local asset, so it ships with the app and Vite fingerprints the file.
-
-### 1. Add 9 logo files to `src/assets/sources/`
-
-Greyscale-friendly official logos, sized ~320 px wide, kept as PNG with transparency (or SVG where the official version is clean):
+### Token mapping
 
 ```text
-src/assets/sources/
-  nih.png
-  mayo-clinic.png
-  who.png
-  cdc.png
-  usda.png
-  who-africa.png        ← WHO AFRO regional mark (distinct from WHO global)
-  africa-cdc.png
-  fmoh-nigeria.png      ← Federal Ministry of Health official wordmark
-  nigerian-heart-foundation.png
+                    Resting (light)            Resting (dark)             Hover (both)
+mark text           muted-foreground           foreground/85              primary
+mark border         border                     foreground/20              primary/50
+mark background     muted/60                   foreground/[0.06]          primary/10
+wordmark text       foreground/70              foreground/85              foreground
+sub-wordmark text   muted-foreground           muted-foreground           foreground/80
 ```
 
-Source strategy: pull each from the organisation's official press/brand page or Wikimedia's *original* file URL (not the `thumb/` derivative), then commit the binary into the repo. This sidesteps the 400s and gives us full control over size and contrast.
+All values use existing semantic tokens from `src/index.css`, so no new CSS vars. The dark overrides are applied via Tailwind's `dark:` variant — Tailwind is already in `darkMode: ["class"]`, and `ThemeContext` toggles the `.dark` class on `<html>`, so `dark:` will resolve correctly.
 
-### 2. Update `src/components/landing/TrustedSources.tsx`
+### Why this works on every surface
 
-- Replace the 9 inline `logo: "https://upload.wikimedia.org/..."` strings with ES module imports:
-  ```ts
-  import nih from "@/assets/sources/nih.png";
-  // …8 more
-  ```
-- Point each `TRUSTED_SOURCES[i].logo` at the imported variable.
-- Keep the existing greyscale + opacity styling and hover lift untouched.
+- **Strip (`bg-card/40`, light)**: `muted/60` mark + `border` outline reads as a subtle pill, not a ghost.
+- **Tier card (`bg-card`, dark)**: `foreground/[0.06]` fill + `foreground/20` border give enough separation from the card without competing with the card's own border.
+- **Hover** swaps to `primary` color across all three layers, matching the existing card's `hover:border-primary/40`.
 
-### 3. Improve rendering robustness (small polish)
-
-- Add `onError` fallback on each `<img>` that hides the broken image and shows the source name as a styled text chip — so even if a future asset is missing, the strip never shows a broken-image icon.
-- Add `width`/`height` hints to reserve layout space and prevent the strip from collapsing while images load.
-
-## Files to edit
-
-- **add** `src/assets/sources/*.png` (9 files)
-- **edit** `src/components/landing/TrustedSources.tsx` — swap URLs for imports, add `onError` fallback
+### Touch points
+- Edit `SourceLogo` in `src/components/landing/TrustedSources.tsx` — replace the `currentColor`-driven classes on the monogram and wordmark blocks with the explicit light/dark token classes above.
+- No data changes, no changes to `TRUSTED_SOURCES`, `TrustLogosStrip`, `TrustedSourcesSection`, or `SourcesMethodologyPage.tsx` (it consumes `mark`/`wordmark` via its own wrapper, which already uses theme tokens correctly — but I'll spot-check it once in build mode and tweak only if the same `border-current/20` pattern appears there).
 
 ## Out of scope
+- No changes to the `/sources` methodology copy, citations data, or any other component.
+- No new CSS variables or Tailwind config changes.
 
-No copy, layout, ordering, or methodology-page logic changes. The badges already wired up to `/sources#bio-{slug}` continue to work as-is — only the image source changes.
+## Verification
+After implementing, view the strip and `/sources` tier cards in both themes via the preview, confirming the mark pill is clearly visible at rest and turns brand-green on hover in both.

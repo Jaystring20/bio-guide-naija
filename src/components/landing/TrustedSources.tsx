@@ -149,17 +149,21 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 select-none",
-        // Greyscale + lift on group hover
-        "text-muted-foreground/70 group-hover:text-foreground transition-colors duration-300",
+        "flex items-center gap-2.5 select-none transition-colors duration-300",
         className
       )}
       aria-hidden
     >
-      {/* Monogram mark */}
+      {/* Monogram mark — explicit light/dark tokens, brand color on group hover */}
       <div
         className={cn(
-          "flex items-center justify-center rounded-md font-bold tracking-tight border border-current/20 bg-current/5",
+          "flex items-center justify-center rounded-md font-bold tracking-tight border transition-colors duration-300",
+          // Light theme resting
+          "border-border bg-muted/60 text-muted-foreground",
+          // Dark theme resting
+          "dark:border-foreground/20 dark:bg-foreground/[0.06] dark:text-foreground/85",
+          // Hover (both themes)
+          "group-hover:border-primary/50 group-hover:bg-primary/10 group-hover:text-primary",
           isStrip
             ? "h-9 px-2 min-w-[36px] text-[11px]"
             : "h-10 px-2.5 min-w-[40px] text-xs"
@@ -171,7 +175,8 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
       <div className="flex flex-col leading-none">
         <span
           className={cn(
-            "font-bold uppercase tracking-tight",
+            "font-bold uppercase tracking-tight transition-colors duration-300",
+            "text-foreground/70 dark:text-foreground/85 group-hover:text-foreground",
             isStrip ? "text-[10px] sm:text-[11px]" : "text-xs"
           )}
         >
@@ -180,7 +185,8 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
         {source.subWordmark && (
           <span
             className={cn(
-              "uppercase tracking-tight font-medium opacity-80 mt-0.5",
+              "uppercase tracking-tight font-medium mt-0.5 transition-colors duration-300",
+              "text-muted-foreground group-hover:text-foreground/80",
               isStrip ? "text-[9px] sm:text-[10px]" : "text-[10px]"
             )}
           >
