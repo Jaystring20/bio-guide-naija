@@ -1,32 +1,46 @@
 /**
  * Trusted source logos for the landing page.
  *
- * NOTE: We previously hot-linked logos from Wikimedia Commons, but their
- * thumbnail endpoint blocks third-party origins (HTTP 400). Rather than
- * shipping potentially trademark-sensitive binaries, each source is
- * rendered as a self-contained typographic "logo tile" — a small mono
- * mark plus the org's name, styled greyscale and lifting on hover.
- * This is the same convention many SaaS sites use for "trusted by"
- * grids when bundling brand assets isn't possible.
+ * Logos are bundled locally under `src/assets/sources/` so they ship from
+ * our own origin (no Wikimedia hot-linking, no broken images). Each org's
+ * official mark is used under nominative fair use — we link to their
+ * homepage and the disclaimer below makes clear we are not affiliated.
  *
- * Each tile still links to the org's homepage, with the standard
- * disclaimer below clarifying we are not affiliated.
+ * If a `logo` is missing for any source, the typographic `SourceLogo`
+ * tile is rendered as an automatic fallback.
  */
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Bundled official logos — Vite fingerprints these and serves them from our origin.
+import logoMedlinePlus from "@/assets/sources/nih-medlineplus.png";
+import logoMayoClinic from "@/assets/sources/mayo-clinic.svg";
+import logoWHO from "@/assets/sources/who.svg";
+import logoCDC from "@/assets/sources/cdc.svg";
+import logoUSDA from "@/assets/sources/usda.svg";
+import logoWHOAfrica from "@/assets/sources/who-africa.svg";
+import logoAfricaCDC from "@/assets/sources/africa-cdc.png";
+import logoFMOH from "@/assets/sources/fmoh-nigeria.svg";
+import logoNHF from "@/assets/sources/nigerian-heart-foundation.png";
 
 export type TrustedSource = {
   name: string;
   /** Public homepage / area we cite from */
   url: string;
-  /** Short acronym/monogram shown in the logo mark */
+  /** Short acronym/monogram shown in the typographic fallback tile */
   mark: string;
-  /** Wordmark line 1 (main name) */
+  /** Wordmark line 1 (main name) — used in the typographic fallback */
   wordmark: string;
   /** Optional wordmark line 2 (subtitle, e.g. "MedlinePlus") */
   subWordmark?: string;
+  /**
+   * Bundled official logo (SVG/PNG). When present, rendered as an <img>;
+   * when absent, the typographic SourceLogo tile is rendered instead.
+   */
+  logo?: string;
   /** Tier shown in the full section */
   tier: "International" | "Naija & Africa" | "Nutrition";
   /** Short description for the full section */
@@ -48,6 +62,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "NIH",
     wordmark: "National Institutes",
     subWordmark: "of Health · MedlinePlus",
+    logo: logoMedlinePlus,
     tier: "International",
     cite: "Plain-language explanations for every lab test we interpret.",
     domain: "NIH MedlinePlus",
@@ -58,6 +73,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "M",
     wordmark: "MAYO",
     subWordmark: "CLINIC",
+    logo: logoMayoClinic,
     tier: "International",
     cite: "Clinical condition references for cholesterol, diabetes, anaemia and more.",
     domain: "Mayo Clinic",
@@ -68,6 +84,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "WHO",
     wordmark: "World Health",
     subWordmark: "Organization",
+    logo: logoWHO,
     tier: "International",
     cite: "Global fact sheets on cardiovascular disease, diabetes, anaemia, HIV and TB.",
     domain: "WHO",
@@ -78,6 +95,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "CDC",
     wordmark: "Centers for Disease",
     subWordmark: "Control & Prevention",
+    logo: logoCDC,
     tier: "International",
     cite: "Disease control guidance for malaria, HIV and infectious panels.",
     domain: "CDC",
@@ -88,6 +106,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "USDA",
     wordmark: "FoodData",
     subWordmark: "Central",
+    logo: logoUSDA,
     tier: "Nutrition",
     cite: "Live nutrient lookup verifies every food we recommend in your diet plan.",
     domain: null,
@@ -98,6 +117,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "AFRO",
     wordmark: "WHO Regional Office",
     subWordmark: "for Africa",
+    logo: logoWHOAfrica,
     tier: "Naija & Africa",
     cite: "Region-specific guidance for diseases prevalent in sub-Saharan Africa.",
     domain: "WHO Africa",
@@ -108,6 +128,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "ACDC",
     wordmark: "Africa Centres",
     subWordmark: "for Disease Control",
+    logo: logoAfricaCDC,
     tier: "Naija & Africa",
     cite: "Continental authority on infectious disease screening and prevention.",
     domain: "Africa CDC",
@@ -118,6 +139,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "FMOH",
     wordmark: "Federal Ministry",
     subWordmark: "of Health · Nigeria",
+    logo: logoFMOH,
     tier: "Naija & Africa",
     cite: "National policy reference for clinical and dietary guidelines in Nigeria.",
     domain: "FMOH Nigeria",
@@ -128,6 +150,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "NHF",
     wordmark: "Nigerian Heart",
     subWordmark: "Foundation",
+    logo: logoNHF,
     tier: "Naija & Africa",
     cite: "Local authority for hypertension and cardiovascular guidance.",
     domain: "Nigerian Heart Foundation",
@@ -135,7 +158,10 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
 ];
 
 /* ─────────────────────────────────────────────────────────────
- * Reusable logo tile — typographic, no external assets
+ * Reusable logo tile
+ *  - If the source has a bundled `logo`, render it as an <img>.
+ *  - Otherwise (or if the image fails to load), fall back to the
+ *    typographic tile so the layout never collapses.
  * ───────────────────────────────────────────────────────────── */
 
 type SourceLogoProps = {
@@ -144,7 +170,8 @@ type SourceLogoProps = {
   className?: string;
 };
 
-const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) => {
+/** Typographic fallback tile — used when no `logo` is bundled or it fails. */
+const TypographicLogo = ({ source, variant = "strip", className }: SourceLogoProps) => {
   const isStrip = variant === "strip";
   return (
     <div
@@ -154,24 +181,17 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
       )}
       aria-hidden
     >
-      {/* Monogram mark — explicit light/dark tokens, brand color on group hover */}
       <div
         className={cn(
           "flex items-center justify-center rounded-md font-bold tracking-tight border transition-colors duration-300",
-          // Light theme resting
           "border-border bg-muted/60 text-muted-foreground",
-          // Dark theme resting
           "dark:border-foreground/20 dark:bg-foreground/[0.06] dark:text-foreground/85",
-          // Hover (both themes)
           "group-hover:border-primary/50 group-hover:bg-primary/10 group-hover:text-primary",
-          isStrip
-            ? "h-9 px-2 min-w-[36px] text-[11px]"
-            : "h-10 px-2.5 min-w-[40px] text-xs"
+          isStrip ? "h-9 px-2 min-w-[36px] text-[11px]" : "h-10 px-2.5 min-w-[40px] text-xs"
         )}
       >
         {source.mark}
       </div>
-      {/* Wordmark */}
       <div className="flex flex-col leading-none">
         <span
           className={cn(
@@ -194,6 +214,41 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
           </span>
         )}
       </div>
+    </div>
+  );
+};
+
+const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) => {
+  const [imgFailed, setImgFailed] = useState(false);
+
+  if (!source.logo || imgFailed) {
+    return <TypographicLogo source={source} variant={variant} className={className} />;
+  }
+
+  // Real logo: cap the height so all marks line up regardless of aspect ratio.
+  // Greyscale at rest, full color on hover — matches the calm "trusted by" tone.
+  const isStrip = variant === "strip";
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-center select-none",
+        className
+      )}
+    >
+      <img
+        src={source.logo}
+        alt={source.name}
+        loading="lazy"
+        decoding="async"
+        onError={() => setImgFailed(true)}
+        className={cn(
+          "object-contain transition-all duration-300",
+          "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100",
+          isStrip
+            ? "max-h-9 sm:max-h-10 max-w-[140px] sm:max-w-[160px]"
+            : "max-h-11 max-w-[180px]"
+        )}
+      />
     </div>
   );
 };
