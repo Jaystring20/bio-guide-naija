@@ -437,6 +437,26 @@ function renderBiomarkers(ctx: Ctx) {
       addParagraph(ctx, `💡 ${tip}`, { size: 8.5, color: BRAND.muted });
     }
 
+    // Verified-vs-AI tag + sources line
+    const verified = hasCuratedCitation(b.name);
+    const primary = getPrimaryDomain(b.name);
+    if (verified && primary) {
+      addParagraph(ctx, `✓ ${isPidgin ? "Confirm with" : "Cross-checked against"} ${primary}`, {
+        size: 8, bold: true, color: BRAND.primary, lineGap: 0.5,
+      });
+    } else {
+      addParagraph(ctx, `⚠ ${isPidgin ? "AI talk only — no medical source confirm" : "AI interpretation — source not verified"}`, {
+        size: 8, bold: true, color: BRAND.amber, lineGap: 0.5,
+      });
+    }
+    const cites = getCitationsForBiomarker(b.name);
+    if (cites.length > 0) {
+      const domains = Array.from(new Set(cites.map((c) => c.domain))).join(" · ");
+      addParagraph(ctx, `${isPidgin ? "Sources" : "Sources"}: ${domains}`, {
+        size: 7.5, color: BRAND.muted, lineGap: 0.5,
+      });
+    }
+
     // Hairline separator
     setDraw(doc, BRAND.hairline);
     doc.setLineWidth(0.2);
