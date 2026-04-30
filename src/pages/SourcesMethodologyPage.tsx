@@ -367,15 +367,10 @@ const SourcesMethodologyPage = () => {
                                 href={s.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="group h-9 w-20 flex items-center justify-center flex-shrink-0"
+                                className="group flex items-center justify-center flex-shrink-0 h-10 px-2.5 min-w-[48px] rounded-md border border-border bg-muted/40 font-bold text-[11px] text-muted-foreground hover:text-foreground hover:border-primary/40 transition-colors"
                                 aria-label={`Visit ${s.name}`}
                               >
-                                <img
-                                  src={s.logo}
-                                  alt={`${s.name} logo`}
-                                  loading="lazy"
-                                  className="max-h-9 max-w-full object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition"
-                                />
+                                {s.mark}
                               </a>
                               <div className="flex-1 min-w-0 space-y-1">
                                 <a
