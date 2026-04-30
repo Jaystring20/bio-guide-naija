@@ -1,21 +1,29 @@
 /**
  * Trusted source logos for the landing page.
  *
- * NOTE: We previously hot-linked logos from Wikimedia Commons, but their
- * thumbnail endpoint blocks third-party origins (HTTP 400). Rather than
- * shipping potentially trademark-sensitive binaries, each source is
- * rendered as a self-contained typographic "logo tile" — a small mono
- * mark plus the org's name, styled greyscale and lifting on hover.
- * This is the same convention many SaaS sites use for "trusted by"
- * grids when bundling brand assets isn't possible.
+ * Logos are bundled locally under `src/assets/sources/` so they ship from
+ * our own origin (no Wikimedia hot-linking, no broken images). Each org's
+ * official mark is used under nominative fair use — we link to their
+ * homepage and the disclaimer below makes clear we are not affiliated.
  *
- * Each tile still links to the org's homepage, with the standard
- * disclaimer below clarifying we are not affiliated.
+ * If a `logo` is missing for any source, the typographic `SourceLogo`
+ * tile is rendered as an automatic fallback.
  */
 
 import { motion } from "framer-motion";
 import { ShieldCheck, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Bundled official logos — Vite fingerprints these and serves them from our origin.
+import logoMedlinePlus from "@/assets/sources/nih-medlineplus.png";
+import logoMayoClinic from "@/assets/sources/mayo-clinic.svg";
+import logoWHO from "@/assets/sources/who.svg";
+import logoCDC from "@/assets/sources/cdc.svg";
+import logoUSDA from "@/assets/sources/usda.svg";
+import logoWHOAfrica from "@/assets/sources/who-africa.svg";
+import logoAfricaCDC from "@/assets/sources/africa-cdc.png";
+import logoFMOH from "@/assets/sources/fmoh-nigeria.svg";
+import logoNHF from "@/assets/sources/nigerian-heart-foundation.png";
 
 export type TrustedSource = {
   name: string;
