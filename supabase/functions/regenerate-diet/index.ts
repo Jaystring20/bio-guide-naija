@@ -254,7 +254,24 @@ You MUST respond with a function call using the submit_diet_plan tool.`;
       await supabase.from("lab_results").update({
         dietary_plan: args.dietary_plan,
         diet_status: "done",
+        nutrition_status: "pending",
+        nutrition_citations: null,
       }).eq("id", resultId);
+
+      // Fire-and-forget USDA nutrition verification.
+      try {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        fetch(`${supabaseUrl}/functions/v1/verify-nutrition`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ labResultId: resultId }),
+        }).catch((err) => console.log("verify-nutrition trigger failed:", err.message));
+      } catch (e) {
+        console.log("verify-nutrition fire failed:", (e as Error).message);
+      }
 
       // Pidgin diet — best-effort, in parallel with the rest
       const pidStart = Date.now();
