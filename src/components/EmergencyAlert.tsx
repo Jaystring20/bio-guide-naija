@@ -1,5 +1,6 @@
-import { AlertTriangle, Phone } from "lucide-react";
+import { AlertTriangle, Phone, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 
 type CriticalAlert = {
   biomarker: string;
@@ -16,6 +17,50 @@ type Props = {
 
 export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
   const hasEmergency = alerts.some((a) => a.severity === "emergency");
+  const [muted, setMuted] = useState(false);
+  const intervalRef = useRef<number | null>(null);
+
+  // Speak an audio warning when an emergency-severity alert mounts.
+  // Repeats every ~12s so a caregiver across the room still hears it,
+  // until the user mutes, acknowledges, or leaves the screen.
+  useEffect(() => {
+    if (!hasEmergency || muted) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    const names = alerts
+      .filter((a) => a.severity === "emergency")
+      .map((a) => a.biomarker)
+      .slice(0, 3)
+      .join(", ");
+    const phrase = names
+      ? `Emergency. Contact a doctor now. Critical values detected for ${names}.`
+      : "Emergency. Contact a doctor now. Critical values detected.";
+
+    const speak = () => {
+      try {
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(phrase);
+        utt.rate = 0.95;
+        utt.pitch = 1;
+        utt.volume = 1;
+        utt.lang = "en-NG";
+        window.speechSynthesis.speak(utt);
+      } catch {
+        /* no-op: TTS unsupported */
+      }
+    };
+
+    speak();
+    intervalRef.current = window.setInterval(speak, 12000);
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* no-op */
+      }
+    };
+  }, [hasEmergency, muted, alerts]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-destructive flex flex-col items-center justify-center p-6 text-destructive-foreground overflow-hidden">
@@ -51,12 +96,32 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
         ))}
       </div>
 
-      <a href="tel:112" className="w-full max-w-sm mb-4">
+      <a href="tel:112" className="w-full max-w-sm mb-3">
         <Button className="w-full h-16 text-lg font-bold bg-accent-foreground text-destructive rounded-xl touch-target">
           <Phone className="w-6 h-6 mr-2" />
           Call Doctor Now
         </Button>
       </a>
+
+      {hasEmergency && (
+        <button
+          onClick={() => setMuted((m) => !m)}
+          className="flex items-center gap-2 text-destructive-foreground/80 text-body-sm underline mt-1 touch-target"
+          aria-label={muted ? "Unmute audio warning" : "Mute audio warning"}
+        >
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          {muted ? "Unmute audio warning" : "Mute audio warning"}
+        </button>
+      )}
+
+      {hasEmergency && (
+        <button
+          onClick={onAcknowledge}
+          className="text-destructive-foreground/70 underline text-body-sm mt-3"
+        >
+          I have contacted a doctor — show my results
+        </button>
+      )}
 
       {!hasEmergency && (
         <button
