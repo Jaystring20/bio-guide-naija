@@ -21,7 +21,6 @@ import logoMayoClinic from "@/assets/sources/mayo-clinic.svg";
 import logoWHO from "@/assets/sources/who.svg";
 import logoCDC from "@/assets/sources/cdc.svg";
 import logoUSDA from "@/assets/sources/usda.svg";
-import logoWHOAfrica from "@/assets/sources/who-africa.svg";
 import logoAfricaCDC from "@/assets/sources/africa-cdc.png";
 import logoFMOH from "@/assets/sources/fmoh-nigeria.svg";
 import logoNHF from "@/assets/sources/nigerian-heart-foundation.png";
@@ -117,7 +116,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "AFRO",
     wordmark: "WHO Regional Office",
     subWordmark: "for Africa",
-    logo: logoWHOAfrica,
+    // No clean public WHO Africa mark available — render the styled typographic tile.
     tier: "Naija & Africa",
     cite: "Region-specific guidance for diseases prevalent in sub-Saharan Africa.",
     domain: "WHO Africa",
@@ -176,7 +175,7 @@ const TypographicLogo = ({ source, variant = "strip", className }: SourceLogoPro
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 select-none transition-colors duration-300",
+        "flex items-center gap-2.5 select-none transition-transform duration-300 ease-out group-hover:scale-110",
         className
       )}
       aria-hidden
@@ -226,7 +225,7 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
   }
 
   // Real logo: cap the height so all marks line up regardless of aspect ratio.
-  // Greyscale at rest, full color on hover — matches the calm "trusted by" tone.
+  // Bold and full-color at rest; scale up on hover for a confident "logo wall" feel.
   const isStrip = variant === "strip";
   return (
     <div
@@ -242,11 +241,10 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
         decoding="async"
         onError={() => setImgFailed(true)}
         className={cn(
-          "object-contain transition-all duration-300",
-          "grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100",
+          "object-contain transition-transform duration-300 ease-out group-hover:scale-110",
           isStrip
-            ? "max-h-9 sm:max-h-10 max-w-[140px] sm:max-w-[160px]"
-            : "max-h-11 max-w-[180px]"
+            ? "max-h-10 sm:max-h-12 max-w-[160px] sm:max-w-[180px]"
+            : "max-h-14 max-w-[200px]"
         )}
       />
     </div>
@@ -257,10 +255,8 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
  * 1. Compact strip — sits right under the hero
  * ───────────────────────────────────────────────────────────── */
 export const TrustLogosStrip = () => {
-  // Pick the 6 most globally recognised for the strip
-  const strip = TRUSTED_SOURCES.filter((s) =>
-    ["NIH MedlinePlus", "Mayo Clinic", "World Health Organization", "U.S. CDC", "USDA FoodData Central", "Africa CDC"].includes(s.name)
-  );
+  // Show every trusted source — nothing hidden.
+  const strip = TRUSTED_SOURCES;
 
   return (
     <section
@@ -275,7 +271,7 @@ export const TrustLogosStrip = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-5 items-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-9 gap-x-4 gap-y-6 items-center">
           {strip.map((s, i) => (
             <motion.a
               key={s.name}
@@ -285,8 +281,8 @@ export const TrustLogosStrip = () => {
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group flex items-center justify-center min-h-[44px]"
+              transition={{ duration: 0.4, delay: i * 0.04 }}
+              className="group flex items-center justify-center min-h-[56px]"
               title={`${s.name} — opens in new tab`}
               aria-label={s.name}
             >
