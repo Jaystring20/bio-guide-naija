@@ -20,6 +20,7 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
   const hasEmergency = alerts.some((a) => a.severity === "emergency");
   const [muted, setMuted] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const { lang: preferredLang } = useEmergencyAudioLang();
 
   // Speak an audio warning when an emergency-severity alert mounts.
   // Repeats every ~12s so a caregiver across the room still hears it,
