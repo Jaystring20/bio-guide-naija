@@ -1,100 +1,54 @@
-## Goal
+## Problem
 
-Make every source on `/sources` deep-linkable to the exact biomarker citations it backs, using public anchor links inside the same page (no auth, works for any visitor).
+The 9 organisation logos on the landing page (`TrustLogosStrip`) and `/sources` page (`TrustedSourcesSection`) are not rendering. All Wikimedia Commons URLs we used return **HTTP 400** — Wikimedia's thumbnail server rejects hot-linking these `thumb/.../NNNpx-...png` URLs from third-party origins. The result: empty grey boxes where the badges should appear.
 
-URL pattern:
-```
-/sources                 → page intro
-/sources#bio-hba1c       → scrolls to the HbA1c reference card
-/sources#bio-cholesterol → scrolls to the Cholesterol reference card
-```
+Bonus issues we'll fix at the same time:
+- WHO and WHO Africa currently point at the same WHO logo (no distinct Africa Region mark).
+- FMOH Nigeria and Nigerian Heart Foundation both fall back to the Nigerian coat of arms — visually identical, confusing on the grid.
 
-## What changes
+## Fix: bundle real official logos locally
 
-### 1. `src/lib/medical-citations.ts` — add public catalog
+Hot-linking external CDNs for logos is fragile (URLs change, hotlink blocks, CSP, slow loads). The standard fix is to download each official logo once and import it as a local asset, so it ships with the app and Vite fingerprints the file.
 
-Export a flat, slug-indexed list derived from the existing `RULES` array so the methodology page can iterate every curated biomarker and so each source card knows which biomarkers cite it.
+### 1. Add 9 logo files to `src/assets/sources/`
 
-```ts
-export type BiomarkerCatalogEntry = {
-  slug: string;          // "hba1c", "vitamin-d", "alt"
-  label: string;         // display name derived from match key
-  citations: MedicalCitation[];
-};
-
-export const BIOMARKER_CATALOG: BiomarkerCatalogEntry[];      // ~85 entries
-export function getBiomarkersForDomain(domain): BiomarkerCatalogEntry[];
-```
-
-This is purely additive — the existing `getCitationsForBiomarker`, `hasCuratedCitation`, `getPrimaryDomain` keep working unchanged.
-
-### 2. `src/components/landing/TrustedSources.tsx` — add `domain` field
-
-Add a `domain` property to each `TrustedSource` matching the strings used in `medical-citations.ts` (e.g. `"NIH MedlinePlus"`, `"Mayo Clinic"`, `"WHO"`, `"WHO Africa"`, `"FMOH Nigeria"`, `"USDA"`). This lets `/sources` query "which biomarkers cite this source?" via `getBiomarkersForDomain(source.domain)`.
-
-### 3. `src/pages/SourcesMethodologyPage.tsx` — three additions
-
-**a. New section: "Biomarker Reference Library"** (between the Tier breakdown and the badge legend)
-
-A scannable, deep-linkable list of all ~85 curated biomarkers. Each entry is its own anchor target:
+Greyscale-friendly official logos, sized ~320 px wide, kept as PNG with transparency (or SVG where the official version is clean):
 
 ```text
-┌─ #bio-hba1c ─────────────────────────────────────┐
-│ HbA1c                                            │
-│ Cited by: NIH MedlinePlus · Mayo Clinic · WHO    │
-│ → MedlinePlus: HbA1c Test ↗                      │
-│ → Mayo Clinic: A1C test ↗                        │
-└──────────────────────────────────────────────────┘
+src/assets/sources/
+  nih.png
+  mayo-clinic.png
+  who.png
+  cdc.png
+  usda.png
+  who-africa.png        ← WHO AFRO regional mark (distinct from WHO global)
+  africa-cdc.png
+  fmoh-nigeria.png      ← Federal Ministry of Health official wordmark
+  nigerian-heart-foundation.png
 ```
 
-Implemented as a responsive grid of cards. Each card has `id="bio-{slug}"` so `/sources#bio-hba1c` scrolls to it. Includes a small alphabetical jump-bar (A · B · C …) at the top.
+Source strategy: pull each from the organisation's official press/brand page or Wikimedia's *original* file URL (not the `thumb/` derivative), then commit the binary into the repo. This sidesteps the 400s and gives us full control over size and contrast.
 
-**b. Update each source card in the Tier section**
+### 2. Update `src/components/landing/TrustedSources.tsx`
 
-Below each source's existing description, add a "Used in:" row showing the first ~6 biomarkers it covers as deep-link chips:
+- Replace the 9 inline `logo: "https://upload.wikimedia.org/..."` strings with ES module imports:
+  ```ts
+  import nih from "@/assets/sources/nih.png";
+  // …8 more
+  ```
+- Point each `TRUSTED_SOURCES[i].logo` at the imported variable.
+- Keep the existing greyscale + opacity styling and hover lift untouched.
 
-```text
-NIH MedlinePlus  ↗
-Plain-language explanations for every lab test.
-Used in: HbA1c · Glucose · Cholesterol · ALT · Ferritin · TSH · +52 more →
-```
+### 3. Improve rendering robustness (small polish)
 
-Each chip is `<a href="#bio-{slug}">` — clicking jumps to that biomarker's anchor in the library section below.
+- Add `onError` fallback on each `<img>` that hides the broken image and shows the source name as a styled text chip — so even if a future asset is missing, the strip never shows a broken-image icon.
+- Add `width`/`height` hints to reserve layout space and prevent the strip from collapsing while images load.
 
-**c. Smooth scroll + highlight on hash change**
+## Files to edit
 
-Use a small `useEffect` listening to `location.hash` to:
-- Smooth-scroll to the target
-- Briefly flash the target card with a `ring-primary/50` highlight so users see what was linked
-- Account for the sticky header (use `scroll-mt-24` on each anchor)
+- **add** `src/assets/sources/*.png` (9 files)
+- **edit** `src/components/landing/TrustedSources.tsx` — swap URLs for imports, add `onError` fallback
 
-### 4. `src/components/report/SourcesMethodology.tsx` — add outbound link (small)
+## Out of scope
 
-In the in-report accordion, add a "View full methodology and biomarker library →" link at the bottom that goes to `/sources`. This closes the loop so users reading their report can jump out to the public reference page.
-
-## Files touched
-
-- `src/lib/medical-citations.ts` — append `BiomarkerCatalogEntry`, `BIOMARKER_CATALOG`, `getBiomarkersForDomain`, plus `slugify`/`titleCase` helpers. No changes to existing exports.
-- `src/components/landing/TrustedSources.tsx` — add `domain` field to each entry in `TRUSTED_SOURCES`.
-- `src/pages/SourcesMethodologyPage.tsx` — add Biomarker Reference Library section, "Used in:" chips on source cards, hash-scroll effect.
-- `src/components/report/SourcesMethodology.tsx` — add outbound `/sources` link at the bottom of the accordion.
-
-## What stays the same
-
-- All existing report behaviour (citation chips, verified badges, PDF export) — untouched.
-- Public/auth boundaries — `/sources` remains a public page, no user data leaves the report view.
-- Citation sourcing logic — Gemini still never generates URLs; the catalog is built from the same vetted `RULES` already in use.
-
-## Out of scope (per your "anchor links inside /sources" choice)
-
-- No deep links into authenticated `/app/result/:id` views.
-- No per-user "your biomarker history" page.
-- No backend/database changes — the catalog is fully static and derived from the existing TS module.
-
-## How users will experience it
-
-1. Visit `/sources`, scroll to "Backed by these authorities".
-2. On the **NIH MedlinePlus** card, see "Used in: HbA1c · Glucose · Cholesterol …".
-3. Click "HbA1c" → page smooth-scrolls to the HbA1c card in the library, briefly highlighted, with all three of its citations listed.
-4. From a lab report, click "View full methodology and biomarker library" in the in-report Sources accordion → lands on `/sources`. From there, jump to any specific biomarker via the catalog.
-5. Share `getveridia.app/sources#bio-hba1c` directly — recipient lands on the right card without any login.
+No copy, layout, ordering, or methodology-page logic changes. The badges already wired up to `/sources#bio-{slug}` continue to work as-is — only the image source changes.
