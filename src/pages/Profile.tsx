@@ -45,6 +45,7 @@ const Profile = () => {
   const { dependants, addDependant, updateDependant, deleteDependant } = useDependants();
   const { resolvedTheme } = useTheme();
   const { isAdmin } = useUserRole();
+  const { lang: emergencyLang, setLang: setEmergencyLang } = useEmergencyAudioLang();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Dependant | null>(null);
 
