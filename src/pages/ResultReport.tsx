@@ -204,9 +204,23 @@ const ResultReport = () => {
 
   const hasPidgin = !!biomarkersPidgin || !!aiSummaryPidgin;
 
+  // Resolve the patient/dependant name for the PDF cover.
+  const patientName = (() => {
+    if (result.dependant_id) {
+      const dep = dependants.find((d) => d.id === result.dependant_id);
+      if (dep?.full_name) return dep.full_name;
+    }
+    if (isAdminViewing) return ownerInfo?.full_name || ownerInfo?.email || null;
+    return profile?.full_name || null;
+  })();
+
   const pdfData = {
     language,
     uploadDate: result.upload_date,
+    patientName,
+    testDate: (result as any).test_date as string | null,
+    hasCriticalAlert: result.has_critical_alert,
+    criticalAlerts,
     aiSummary,
     aiSummaryPidgin,
     biomarkers,
@@ -222,7 +236,6 @@ const ResultReport = () => {
   };
 
   const handleShare = async (method: "whatsapp" | "email" | "native") => {
-    setShowShareMenu(false);
     await sharePDF(pdfData, method);
   };
 
