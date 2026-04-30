@@ -198,6 +198,40 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Emergency audio language */}
+      <div className="bg-card rounded-3xl border border-border p-5 mb-4 shadow-soft">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+            <Languages className="w-4 h-4 text-destructive" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-display font-bold">Emergency audio language</p>
+            <p className="text-xs text-muted-foreground">Which language plays first when a critical alert sounds</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { id: "english", label: "English first", sub: "Then Pidgin" },
+            { id: "pidgin", label: "Pidgin first", sub: "Then English" },
+          ] as const).map((opt) => {
+            const active = emergencyLang === opt.id;
+            return (
+              <button
+                key={opt.id}
+                onClick={() => setEmergencyLang(opt.id)}
+                className={`rounded-xl border p-3 text-left touch-target transition-colors ${
+                  active ? "border-primary bg-primary/10" : "border-border hover:bg-muted/50"
+                }`}
+                aria-pressed={active}
+              >
+                <p className={`text-sm font-bold ${active ? "text-primary" : ""}`}>{opt.label}</p>
+                <p className="text-xs text-muted-foreground">{opt.sub}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Privacy + Disclaimer combined */}
       <div className="bg-card rounded-3xl border border-border p-5 mb-5 shadow-soft">
         <div className="flex items-center gap-2.5 mb-3">
