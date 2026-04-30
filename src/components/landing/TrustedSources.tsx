@@ -1,22 +1,32 @@
 /**
  * Trusted source logos for the landing page.
  *
- * Logos are loaded from Wikimedia Commons (stable, editorial-use SVGs).
- * They are displayed greyscale + reduced opacity, lifting to full
- * colour on hover, with a clear disclaimer that VeriDIA is not
- * affiliated with or endorsed by these organisations — we cite their
- * publicly available guidelines.
+ * NOTE: We previously hot-linked logos from Wikimedia Commons, but their
+ * thumbnail endpoint blocks third-party origins (HTTP 400). Rather than
+ * shipping potentially trademark-sensitive binaries, each source is
+ * rendered as a self-contained typographic "logo tile" — a small mono
+ * mark plus the org's name, styled greyscale and lifting on hover.
+ * This is the same convention many SaaS sites use for "trusted by"
+ * grids when bundling brand assets isn't possible.
+ *
+ * Each tile still links to the org's homepage, with the standard
+ * disclaimer below clarifying we are not affiliated.
  */
 
 import { motion } from "framer-motion";
 import { ShieldCheck, ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export type TrustedSource = {
   name: string;
   /** Public homepage / area we cite from */
   url: string;
-  /** Wikimedia Commons SVG (stable hot-link safe URL) */
-  logo: string;
+  /** Short acronym/monogram shown in the logo mark */
+  mark: string;
+  /** Wordmark line 1 (main name) */
+  wordmark: string;
+  /** Optional wordmark line 2 (subtitle, e.g. "MedlinePlus") */
+  subWordmark?: string;
   /** Tier shown in the full section */
   tier: "International" | "Naija & Africa" | "Nutrition";
   /** Short description for the full section */
@@ -35,7 +45,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "NIH MedlinePlus",
     url: "https://medlineplus.gov/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c4/NIH_Master_Logo_Vertical_2Color.png/240px-NIH_Master_Logo_Vertical_2Color.png",
+    mark: "NIH",
+    wordmark: "National Institutes",
+    subWordmark: "of Health · MedlinePlus",
     tier: "International",
     cite: "Plain-language explanations for every lab test we interpret.",
     domain: "NIH MedlinePlus",
@@ -43,7 +55,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "Mayo Clinic",
     url: "https://www.mayoclinic.org/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/Mayo_Clinic_logo.svg/320px-Mayo_Clinic_logo.svg.png",
+    mark: "M",
+    wordmark: "MAYO",
+    subWordmark: "CLINIC",
     tier: "International",
     cite: "Clinical condition references for cholesterol, diabetes, anaemia and more.",
     domain: "Mayo Clinic",
@@ -51,7 +65,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "World Health Organization",
     url: "https://www.who.int/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/WHO_logo.svg/320px-WHO_logo.svg.png",
+    mark: "WHO",
+    wordmark: "World Health",
+    subWordmark: "Organization",
     tier: "International",
     cite: "Global fact sheets on cardiovascular disease, diabetes, anaemia, HIV and TB.",
     domain: "WHO",
@@ -59,7 +75,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "U.S. CDC",
     url: "https://www.cdc.gov/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/US_CDC_logo.svg/320px-US_CDC_logo.svg.png",
+    mark: "CDC",
+    wordmark: "Centers for Disease",
+    subWordmark: "Control & Prevention",
     tier: "International",
     cite: "Disease control guidance for malaria, HIV and infectious panels.",
     domain: "CDC",
@@ -67,7 +85,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "USDA FoodData Central",
     url: "https://fdc.nal.usda.gov/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3f/USDA_logo.svg/320px-USDA_logo.svg.png",
+    mark: "USDA",
+    wordmark: "FoodData",
+    subWordmark: "Central",
     tier: "Nutrition",
     cite: "Live nutrient lookup verifies every food we recommend in your diet plan.",
     domain: null,
@@ -75,7 +95,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "WHO Africa",
     url: "https://www.afro.who.int/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8c/WHO_logo.svg/320px-WHO_logo.svg.png",
+    mark: "AFRO",
+    wordmark: "WHO Regional Office",
+    subWordmark: "for Africa",
     tier: "Naija & Africa",
     cite: "Region-specific guidance for diseases prevalent in sub-Saharan Africa.",
     domain: "WHO Africa",
@@ -83,7 +105,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "Africa CDC",
     url: "https://africacdc.org/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Africa_CDC_logo.png/320px-Africa_CDC_logo.png",
+    mark: "ACDC",
+    wordmark: "Africa Centres",
+    subWordmark: "for Disease Control",
     tier: "Naija & Africa",
     cite: "Continental authority on infectious disease screening and prevention.",
     domain: "Africa CDC",
@@ -91,7 +115,9 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "Federal Ministry of Health, Nigeria",
     url: "https://www.health.gov.ng/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Coat_of_arms_of_Nigeria.svg/240px-Coat_of_arms_of_Nigeria.svg.png",
+    mark: "FMOH",
+    wordmark: "Federal Ministry",
+    subWordmark: "of Health · Nigeria",
     tier: "Naija & Africa",
     cite: "National policy reference for clinical and dietary guidelines in Nigeria.",
     domain: "FMOH Nigeria",
@@ -99,12 +125,72 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
   {
     name: "Nigerian Heart Foundation",
     url: "https://nigerianheart.org/",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/79/Coat_of_arms_of_Nigeria.svg/240px-Coat_of_arms_of_Nigeria.svg.png",
+    mark: "NHF",
+    wordmark: "Nigerian Heart",
+    subWordmark: "Foundation",
     tier: "Naija & Africa",
     cite: "Local authority for hypertension and cardiovascular guidance.",
     domain: "Nigerian Heart Foundation",
   },
 ];
+
+/* ─────────────────────────────────────────────────────────────
+ * Reusable logo tile — typographic, no external assets
+ * ───────────────────────────────────────────────────────────── */
+
+type SourceLogoProps = {
+  source: TrustedSource;
+  variant?: "strip" | "card";
+  className?: string;
+};
+
+const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) => {
+  const isStrip = variant === "strip";
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-2.5 select-none",
+        // Greyscale + lift on group hover
+        "text-muted-foreground/70 group-hover:text-foreground transition-colors duration-300",
+        className
+      )}
+      aria-hidden
+    >
+      {/* Monogram mark */}
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-md font-bold tracking-tight border border-current/20 bg-current/5",
+          isStrip
+            ? "h-9 px-2 min-w-[36px] text-[11px]"
+            : "h-10 px-2.5 min-w-[40px] text-xs"
+        )}
+      >
+        {source.mark}
+      </div>
+      {/* Wordmark */}
+      <div className="flex flex-col leading-none">
+        <span
+          className={cn(
+            "font-bold uppercase tracking-tight",
+            isStrip ? "text-[10px] sm:text-[11px]" : "text-xs"
+          )}
+        >
+          {source.wordmark}
+        </span>
+        {source.subWordmark && (
+          <span
+            className={cn(
+              "uppercase tracking-tight font-medium opacity-80 mt-0.5",
+              isStrip ? "text-[9px] sm:text-[10px]" : "text-[10px]"
+            )}
+          >
+            {source.subWordmark}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
 
 /* ─────────────────────────────────────────────────────────────
  * 1. Compact strip — sits right under the hero
@@ -128,7 +214,7 @@ export const TrustLogosStrip = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-6 gap-x-4 gap-y-6 items-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-5 items-center">
           {strip.map((s, i) => (
             <motion.a
               key={s.name}
@@ -139,16 +225,11 @@ export const TrustLogosStrip = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group flex items-center justify-center h-12 sm:h-14"
+              className="group flex items-center justify-center min-h-[44px]"
               title={`${s.name} — opens in new tab`}
               aria-label={s.name}
             >
-              <img
-                src={s.logo}
-                alt={`${s.name} logo`}
-                loading="lazy"
-                className="max-h-full max-w-full object-contain grayscale opacity-60 group-hover:grayscale-0 group-hover:opacity-100 transition duration-300"
-              />
+              <SourceLogo source={s} variant="strip" />
             </motion.a>
           ))}
         </div>
@@ -210,15 +291,8 @@ export const TrustedSourcesSection = () => {
                     className="group bg-card border border-border rounded-2xl p-5 hover:border-primary/40 hover:shadow-md transition-all flex flex-col gap-3"
                   >
                     <div className="flex items-center justify-between gap-3">
-                      <div className="h-10 flex items-center">
-                        <img
-                          src={s.logo}
-                          alt={`${s.name} logo`}
-                          loading="lazy"
-                          className="max-h-10 max-w-[140px] object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition duration-300"
-                        />
-                      </div>
-                      <ExternalLink className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary transition-colors" aria-hidden />
+                      <SourceLogo source={s} variant="card" />
+                      <ExternalLink className="w-4 h-4 text-muted-foreground/60 group-hover:text-primary transition-colors flex-shrink-0" aria-hidden />
                     </div>
                     <div className="space-y-1">
                       <p className="font-semibold text-sm text-foreground">{s.name}</p>
@@ -234,8 +308,8 @@ export const TrustedSourcesSection = () => {
         {/* Disclaimer */}
         <div className="bg-muted/40 border border-border rounded-xl p-4 max-w-3xl mx-auto">
           <p className="text-xs text-muted-foreground leading-relaxed text-center">
-            <span className="font-semibold text-foreground">A note on the logos above: </span>
-            All trademarks, names and logos are the property of their respective owners.
+            <span className="font-semibold text-foreground">A note on the marks above: </span>
+            All trademarks and names are the property of their respective owners.
             VeriDIA references their publicly available guidelines and lab-test pages —
             we are not affiliated with, endorsed by, or sponsored by any of these organisations.
             Every result you see in the app links directly to its specific source page so you can verify it yourself.
