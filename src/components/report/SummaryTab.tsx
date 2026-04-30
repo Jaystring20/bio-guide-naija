@@ -109,6 +109,8 @@ export const SummaryTab = ({ biomarkers, aiSummary, aiSummaryPidgin, uploadDate,
       <Button onClick={shareReport} className="w-full h-12 rounded-xl bg-accent text-accent-foreground touch-target">
         <Share2 className="w-4 h-4 mr-2" /> {isPidgin ? "Share Am" : "Share Report Summary"}
       </Button>
+
+      <SourcesMethodology language={language} />
     </div>
   );
 };
