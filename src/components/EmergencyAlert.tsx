@@ -1,6 +1,7 @@
 import { AlertTriangle, Phone, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useRef, useState } from "react";
+import { useEmergencyAudioLang } from "@/hooks/useEmergencyAudioLang";
 
 type CriticalAlert = {
   biomarker: string;
