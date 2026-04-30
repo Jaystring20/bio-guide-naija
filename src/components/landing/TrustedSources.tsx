@@ -10,6 +10,7 @@
  * tile is rendered as an automatic fallback.
  */
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
