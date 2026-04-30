@@ -654,8 +654,64 @@ function renderChecklist(ctx: Ctx) {
   });
 }
 
+function renderSourcesPage(ctx: Ctx) {
+  const { isPidgin, data } = ctx;
+  newPage(ctx);
+  sectionHeading(ctx, isPidgin ? "Where We Get Our Info" : "Sources & Methodology", BRAND.navy);
+  addParagraph(
+    ctx,
+    isPidgin
+      ? "VeriDIA dey use AI to read your lab paper, but every clinical talk and food advice get back-up from these credible sources:"
+      : "VeriDIA uses AI to interpret your lab report, but every clinical explanation and food recommendation is backed by these credible sources:",
+    { size: 10, color: BRAND.body },
+  );
+  ctx.y += 1;
+  ALL_SOURCE_DOMAINS.forEach((src) => {
+    addParagraph(ctx, `✓  ${src}`, { size: 9.5, color: BRAND.body, x: MARGIN + 2, lineGap: 0.5 });
+  });
+
+  ctx.y += 3;
+  addParagraph(ctx, isPidgin ? "How We Tag Each Result" : "How We Tag Each Result", {
+    size: 11, bold: true, color: BRAND.navy,
+  });
+  addParagraph(
+    ctx,
+    isPidgin
+      ? "✓ Cross-checked — we get curated medical source for the biomarker."
+      : "✓ Cross-checked — this biomarker has a vetted, biomarker-specific source from one of the authorities above.",
+    { size: 9.5, color: BRAND.primary, lineGap: 0.5 },
+  );
+  addParagraph(
+    ctx,
+    isPidgin
+      ? "⚠ AI only — AI interpret am, but we never get specific source for this one. Take am with extra caution."
+      : "⚠ AI only — the AI interpretation is shown but we don't have a curated, biomarker-specific source yet. Treat with extra caution.",
+    { size: 9.5, color: BRAND.amber, lineGap: 0.5 },
+  );
+
+  // USDA verification block
+  if (data.nutritionCitations && data.nutritionCitations.length > 0) {
+    ctx.y += 3;
+    addParagraph(ctx, isPidgin ? "USDA-Verified Foods" : "USDA-Verified Foods", {
+      size: 11, bold: true, color: BRAND.navy,
+    });
+    addParagraph(
+      ctx,
+      isPidgin
+        ? "These foods inside your diet plan, USDA FoodData Central confirm them:"
+        : "The following foods in your diet plan have been verified against USDA FoodData Central:",
+      { size: 9.5, color: BRAND.body, lineGap: 0.5 },
+    );
+    data.nutritionCitations.slice(0, 30).forEach((n) => {
+      const label = n.official_name || n.query;
+      const id = n.fdc_id ? ` (FDC ${n.fdc_id})` : "";
+      addParagraph(ctx, `✓  ${label}${id}`, { size: 9, color: BRAND.body, x: MARGIN + 2, lineGap: 0.3 });
+    });
+  }
+}
+
 function renderDisclaimerPage(ctx: Ctx) {
-  const { doc, isPidgin } = ctx;
+  const { isPidgin } = ctx;
   newPage(ctx);
   sectionHeading(ctx, isPidgin ? "Important Notice" : "Important Notice", BRAND.red);
   addParagraph(ctx,
