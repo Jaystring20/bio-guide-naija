@@ -558,6 +558,9 @@ const Landing = () => {
         </AnimatedSection>
       </section>
 
+      {/* ═══ Trusted Sources (full section) ═══ */}
+      <TrustedSourcesSection />
+
       {/* ═══ Compliance & Trust ═══ */}
       <section className="py-20 md:py-28 px-4">
         <AnimatedSection className="max-w-4xl mx-auto text-center space-y-12">
