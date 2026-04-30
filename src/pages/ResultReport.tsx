@@ -36,8 +36,9 @@ const isTab = (v: string | null): v is Tab =>
 
 const ResultReport = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { isAdmin } = useUserRole();
+  const { dependants } = useDependants();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showEmergency, setShowEmergency] = useState(false);
@@ -62,7 +63,6 @@ const ResultReport = () => {
   );
 
   const [language, setLanguage] = useState<Language>("en");
-  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const { data: result, isLoading, refetch } = useQuery({
     queryKey: ["lab-result", id, isAdmin],
