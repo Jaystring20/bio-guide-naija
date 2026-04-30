@@ -255,10 +255,8 @@ const SourceLogo = ({ source, variant = "strip", className }: SourceLogoProps) =
  * 1. Compact strip — sits right under the hero
  * ───────────────────────────────────────────────────────────── */
 export const TrustLogosStrip = () => {
-  // Pick the 6 most globally recognised for the strip
-  const strip = TRUSTED_SOURCES.filter((s) =>
-    ["NIH MedlinePlus", "Mayo Clinic", "World Health Organization", "U.S. CDC", "USDA FoodData Central", "Africa CDC"].includes(s.name)
-  );
+  // Show every trusted source — nothing hidden.
+  const strip = TRUSTED_SOURCES;
 
   return (
     <section
@@ -273,7 +271,7 @@ export const TrustLogosStrip = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-4 gap-y-5 items-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-9 gap-x-4 gap-y-6 items-center">
           {strip.map((s, i) => (
             <motion.a
               key={s.name}
@@ -283,8 +281,8 @@ export const TrustLogosStrip = () => {
               initial={{ opacity: 0, y: 8 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group flex items-center justify-center min-h-[44px]"
+              transition={{ duration: 0.4, delay: i * 0.04 }}
+              className="group flex items-center justify-center min-h-[56px]"
               title={`${s.name} — opens in new tab`}
               aria-label={s.name}
             >
