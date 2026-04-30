@@ -24,9 +24,47 @@ function isStructured(item: ChecklistItem): item is { question: string; context:
   return typeof item === "object" && "question" in item;
 }
 
-export const ChecklistTab = ({ checklist, checklistPidgin, language }: ChecklistTabProps) => {
+export const ChecklistTab = ({ checklist, checklistPidgin, language, status, onRegenerate, regenerating }: ChecklistTabProps) => {
   const [expandedQ, setExpandedQ] = useState<number | null>(null);
   const isPidgin = language === "pidgin";
+
+  // Pending state — checklist still generating
+  if (status === "pending" && checklist.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <Loader2 className="w-8 h-8 animate-spin text-secondary-foreground mb-3" />
+        <p className="text-body-sm font-semibold text-foreground">
+          {isPidgin ? "Dey prepare your doctor questions…" : "Generating your doctor's questions…"}
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          {isPidgin ? "Small time, e go ready." : "This usually takes a few seconds."}
+        </p>
+      </div>
+    );
+  }
+
+  // Failed state — offer regenerate
+  if (status === "failed" && checklist.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12 text-center">
+        <p className="text-body-sm font-semibold text-foreground mb-2">
+          {isPidgin ? "We no fit prepare your questions this time." : "We couldn't prepare your doctor's questions this time."}
+        </p>
+        <p className="text-xs text-muted-foreground mb-4">
+          {isPidgin ? "Try am again." : "You can try regenerating them now."}
+        </p>
+        {onRegenerate && (
+          <Button onClick={onRegenerate} disabled={regenerating} className="h-11 rounded-xl bg-accent text-accent-foreground touch-target">
+            {regenerating ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> {isPidgin ? "Dey try…" : "Regenerating…"}</>
+            ) : (
+              <><RefreshCw className="w-4 h-4 mr-2" /> {isPidgin ? "Try Am Again" : "Regenerate"}</>
+            )}
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   const getQuestionText = (item: ChecklistItem, index: number) => {
     if (isPidgin && checklistPidgin?.[index]) return checklistPidgin[index].question;
