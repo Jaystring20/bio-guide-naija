@@ -63,6 +63,40 @@ const TIER_META: Record<
 
 const SourcesMethodologyPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Highlight the targeted biomarker card briefly when arriving via #bio-{slug}
+  const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    const hash = location.hash.replace(/^#/, "");
+    if (!hash.startsWith("bio-")) return;
+    const slug = hash.slice("bio-".length);
+    // Defer to next frame so the target element is mounted.
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(`bio-${slug}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        setHighlightedSlug(slug);
+        const t = window.setTimeout(() => setHighlightedSlug(null), 2200);
+        return () => window.clearTimeout(t);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [location.hash, location.key]);
+
+  // Group catalog by first letter for the alphabetical jump-bar
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof BIOMARKER_CATALOG>();
+    [...BIOMARKER_CATALOG]
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .forEach((b) => {
+        const letter = b.label.charAt(0).toUpperCase();
+        if (!map.has(letter)) map.set(letter, []);
+        map.get(letter)!.push(b);
+      });
+    return Array.from(map.entries());
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
