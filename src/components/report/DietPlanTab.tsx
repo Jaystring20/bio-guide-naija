@@ -2,11 +2,14 @@ import { useState } from "react";
 import { DietaryPlan, DietaryPlanPidgin, Language } from "./types";
 import { ChevronDown, ChevronUp, Droplets, Leaf } from "lucide-react";
 import { ListenButton } from "./ListenButton";
+import { UsdaBadge, NutritionCitation } from "./UsdaBadge";
 
 interface DietPlanTabProps {
   dietaryPlan: DietaryPlan;
   dietaryPlanPidgin: DietaryPlanPidgin | null;
   language: Language;
+  nutritionCitations?: Record<string, NutritionCitation> | null;
+  nutritionStatus?: "pending" | "done" | "failed" | null;
 }
 
 export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language }: DietPlanTabProps) => {
