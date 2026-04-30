@@ -116,7 +116,7 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     mark: "AFRO",
     wordmark: "WHO Regional Office",
     subWordmark: "for Africa",
-    logo: logoWHOAfrica,
+    // No clean public WHO Africa mark available — render the styled typographic tile.
     tier: "Naija & Africa",
     cite: "Region-specific guidance for diseases prevalent in sub-Saharan Africa.",
     domain: "WHO Africa",
