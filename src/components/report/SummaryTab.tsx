@@ -3,6 +3,7 @@ import { Activity, TrendingUp, AlertTriangle, CheckCircle2, Share2 } from "lucid
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ListenButton } from "./ListenButton";
+import { SourcesMethodology } from "./SourcesMethodology";
 
 interface SummaryTabProps {
   biomarkers: Biomarker[];
@@ -108,6 +109,8 @@ export const SummaryTab = ({ biomarkers, aiSummary, aiSummaryPidgin, uploadDate,
       <Button onClick={shareReport} className="w-full h-12 rounded-xl bg-accent text-accent-foreground touch-target">
         <Share2 className="w-4 h-4 mr-2" /> {isPidgin ? "Share Am" : "Share Report Summary"}
       </Button>
+
+      <SourcesMethodology language={language} />
     </div>
   );
 };

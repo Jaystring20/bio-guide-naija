@@ -392,7 +392,13 @@ const ResultReport = () => {
             </div>
           )}
           {activeTab === "diet" && !criticalAlerts.some((a: any) => a?.severity === "emergency") && dietaryPlan && (
-            <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
+            <DietPlanTab
+              dietaryPlan={dietaryPlan}
+              dietaryPlanPidgin={dietaryPlanPidgin}
+              language={language}
+              nutritionCitations={(result as any).nutrition_citations as Record<string, any> | null}
+              nutritionStatus={(result as any).nutrition_status as "pending" | "done" | "failed" | null}
+            />
           )}
           {activeTab === "diet" && !criticalAlerts.some((a: any) => a?.severity === "emergency") && !dietaryPlan && dietPending && !regenerating && (
             <DietPlanSkeleton language={language} />

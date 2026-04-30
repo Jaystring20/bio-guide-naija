@@ -108,6 +108,7 @@ export type Database = {
         Row: {
           ai_summary: string | null
           ai_summary_pidgin: string | null
+          biomarker_citations: Json | null
           biomarkers: Json | null
           biomarkers_pidgin: Json | null
           checklist_status: string
@@ -119,8 +120,11 @@ export type Database = {
           diet_status: string
           dietary_plan: Json | null
           dietary_plan_pidgin: Json | null
+          grounding_status: string
           has_critical_alert: boolean
           id: string
+          nutrition_citations: Json | null
+          nutrition_status: string
           processing_steps: Json | null
           status: string
           test_date: string | null
@@ -131,6 +135,7 @@ export type Database = {
         Insert: {
           ai_summary?: string | null
           ai_summary_pidgin?: string | null
+          biomarker_citations?: Json | null
           biomarkers?: Json | null
           biomarkers_pidgin?: Json | null
           checklist_status?: string
@@ -142,8 +147,11 @@ export type Database = {
           diet_status?: string
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
+          grounding_status?: string
           has_critical_alert?: boolean
           id?: string
+          nutrition_citations?: Json | null
+          nutrition_status?: string
           processing_steps?: Json | null
           status?: string
           test_date?: string | null
@@ -154,6 +162,7 @@ export type Database = {
         Update: {
           ai_summary?: string | null
           ai_summary_pidgin?: string | null
+          biomarker_citations?: Json | null
           biomarkers?: Json | null
           biomarkers_pidgin?: Json | null
           checklist_status?: string
@@ -165,8 +174,11 @@ export type Database = {
           diet_status?: string
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
+          grounding_status?: string
           has_critical_alert?: boolean
           id?: string
+          nutrition_citations?: Json | null
+          nutrition_status?: string
           processing_steps?: Json | null
           status?: string
           test_date?: string | null

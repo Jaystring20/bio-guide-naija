@@ -5,6 +5,8 @@ import { ChevronDown, ChevronUp, Lightbulb, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { EmptyBiomarkersBanner } from "./EmptyBiomarkersBanner";
 import { ListenButton } from "./ListenButton";
+import { CitationChips } from "./CitationChips";
+import { getCitationsForBiomarker } from "@/lib/medical-citations";
 
 interface BiomarkersTabProps {
   biomarkers: Biomarker[];
@@ -147,6 +149,7 @@ export const BiomarkersTab = ({
                     <p className="text-body-sm text-muted-foreground">{trend}</p>
                   </div>
                 )}
+                <CitationChips citations={getCitationsForBiomarker(b.name)} language={language} />
               </div>
             )}
           </motion.div>
