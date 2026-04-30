@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { ChevronDown, ChevronUp, Lightbulb, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 import { EmptyBiomarkersBanner } from "./EmptyBiomarkersBanner";
+import { ListenButton } from "./ListenButton";
 
 interface BiomarkersTabProps {
   biomarkers: Biomarker[];
@@ -40,8 +41,27 @@ export const BiomarkersTab = ({
   }
 
 
+  const buildSpeech = () => {
+    const intro = isPidgin
+      ? `Your biomarker results. ${biomarkers.length} things wey dem check.`
+      : `Your biomarker results. ${biomarkers.length} markers analyzed.`;
+    const lines = biomarkers.map((b) => {
+      const pidgin = getPidgin(b.name);
+      const explanation = isPidgin && pidgin ? pidgin.explanation : b.explanation;
+      const whyMatters = isPidgin && pidgin ? pidgin.why_it_matters : b.why_it_matters;
+      const statusLabel = STATUS_LABELS[b.status] || b.status;
+      return `${b.name}: ${b.value} ${b.unit}, status ${statusLabel}. ${explanation || ""} ${whyMatters || ""}`.trim();
+    });
+    return [intro, ...lines].join(" \n ");
+  };
+
   return (
     <div className="space-y-3">
+      <ListenButton
+        language={language}
+        label={isPidgin ? "results" : "biomarkers"}
+        getText={buildSpeech}
+      />
       {biomarkers.map((b, idx) => {
         const pidgin = getPidgin(b.name);
         const explanation = isPidgin && pidgin ? pidgin.explanation : b.explanation;

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { DietaryPlan, DietaryPlanPidgin, Language } from "./types";
 import { ChevronDown, ChevronUp, Droplets, Leaf } from "lucide-react";
+import { ListenButton } from "./ListenButton";
 
 interface DietPlanTabProps {
   dietaryPlan: DietaryPlan;
@@ -13,8 +14,61 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language }: DietPl
   const isPidgin = language === "pidgin";
   const pidgin = dietaryPlanPidgin;
 
+  const buildSpeech = () => {
+    const parts: string[] = [];
+    parts.push(isPidgin ? "Your VeriDIA chop plan." : "Your VeriDIA diet plan.");
+
+    if (dietaryPlan.foods_to_increase?.length) {
+      parts.push(isPidgin ? "Chop more of these foods:" : "Foods to eat more of:");
+      dietaryPlan.foods_to_increase.forEach((f, i) => {
+        const p = pidgin?.foods_to_increase?.[i];
+        parts.push(`${f.name}${f.local_name ? `, also called ${f.local_name},` : ""}. ${isPidgin && p ? p.benefit : f.benefit}.`);
+      });
+    }
+    if (dietaryPlan.foods_to_reduce?.length) {
+      parts.push(isPidgin ? "Reduce these foods:" : "Foods to eat less of:");
+      dietaryPlan.foods_to_reduce.forEach((f, i) => {
+        const p = pidgin?.foods_to_reduce?.[i];
+        parts.push(`${f.name}. ${isPidgin && p ? p.reason : f.reason}.`);
+      });
+    }
+    if (dietaryPlan.foods_to_avoid?.length) {
+      parts.push(isPidgin ? "Avoid these completely:" : "Foods to avoid:");
+      dietaryPlan.foods_to_avoid.forEach((f, i) => {
+        const p = pidgin?.foods_to_avoid?.[i];
+        parts.push(`${f.name}. ${isPidgin && p ? p.reason : f.reason}.`);
+      });
+    }
+    if (dietaryPlan.meal_suggestions?.length) {
+      parts.push(isPidgin ? "Some food ideas:" : "Meal ideas:");
+      dietaryPlan.meal_suggestions.forEach((m, i) => {
+        const p = pidgin?.meal_suggestions?.[i];
+        parts.push(`${m.meal}. ${isPidgin && p ? p.description : m.description}.`);
+      });
+    }
+    if (dietaryPlan.hydration_tips?.length) {
+      parts.push(isPidgin ? "Water matter:" : "Hydration tips:");
+      dietaryPlan.hydration_tips.forEach((t, i) => {
+        parts.push(isPidgin && pidgin?.hydration_tips?.[i] ? pidgin.hydration_tips[i] : t);
+      });
+    }
+    if (dietaryPlan.supplement_notes?.length) {
+      parts.push(isPidgin ? "Natural boosters:" : "Natural supplements:");
+      dietaryPlan.supplement_notes.forEach((n, i) => {
+        parts.push(isPidgin && pidgin?.supplement_notes?.[i] ? pidgin.supplement_notes[i] : n);
+      });
+    }
+    return parts.join(" ");
+  };
+
   return (
     <div className="space-y-6">
+      <ListenButton
+        language={language}
+        label={isPidgin ? "chop plan" : "diet plan"}
+        getText={buildSpeech}
+      />
+
       {dietaryPlan.foods_to_increase?.length > 0 && (
         <div>
           <h3 className="font-display text-lg font-bold text-secondary mb-3">
