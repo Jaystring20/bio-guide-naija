@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { InlineNPSPrompt } from "@/components/feedback/InlineRatingPrompt";
 import { useMyFeedbackCount } from "@/hooks/useFeedback";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { InstalledBadge } from "@/components/InstalledBadge";
 
 const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
@@ -97,7 +98,10 @@ const Index = () => {
             </button>
           </div>
 
-          <p className="text-primary-foreground/75 text-sm">{greeting()},</p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-primary-foreground/75 text-sm">{greeting()},</p>
+            <InstalledBadge />
+          </div>
           <motion.h1
             initial={{ opacity: 0, y: 8, filter: reduce ? "none" : "blur(6px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
