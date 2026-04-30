@@ -1,71 +1,120 @@
-# Make VeriDIA installable on phones
+## Goal
 
-Goal: Let users install VeriDIA to their home screen on Android and iOS so it opens like a native app — without breaking the Lovable preview.
+Make every biomarker explanation and every food recommendation in a VeriDIA report cite **real, credible sources** the user can tap to verify — so the report stops being "trust the AI" and becomes "trust the AI, here's where it got this."
 
-## Approach: manifest-only PWA (no service worker)
+## Two grounded data sources we'll wire in
 
-Per Lovable's PWA guidance, a full service-worker PWA causes stale-cache and preview issues. Since we don't need offline support (lab interpretation needs the network anyway), we'll use the simpler **manifest-only** approach. This is enough for "Add to Home Screen" / "Install app" on both Android (Chrome/Edge) and iOS (Safari).
+1. **Perplexity Sonar API** (via Lovable connector) — for medical/clinical claims (biomarker explanations, why-it-matters, critical alert context). Returns answers *with citations* from the live web, restricted to credible domains.
+2. **USDA FoodData Central API** (free public API, no connector — just an API key the user gets free at fdc.nal.usda.gov) — for nutrition facts on every food Gemini suggests. Citation = the official USDA food entry.
 
-What the user gets:
-- Android Chrome shows an "Install app" prompt and adds VeriDIA to the launcher.
-- iOS Safari users tap Share → Add to Home Screen; the app opens fullscreen with the VeriDIA icon and brand colors.
-- Splash screen uses Vital Green (#2ECC71) and the VeriDIA logo.
-- No service worker, so no cache-staleness issues in the Lovable editor.
+We deliberately keep Gemini for the **OCR + initial interpretation** (it's already working well), and add the grounded layer on top.
 
-Caveat to mention to the user: Install prompts only appear on the **published** site (getveridia.app), not inside the Lovable preview iframe. They will not work offline — this is a deliberate trade-off to keep the editor reliable.
+## What the user will see
 
-## Changes
+**On every biomarker card** (when expanded), a new "Sources" row:
+> Sources: Mayo Clinic · NIH MedlinePlus · WHO
+> _(each is a tappable link)_
 
-### 1. Create `public/manifest.webmanifest`
-Defines app name, icons, theme color, display mode.
-- `name`: "VeriDIA"
-- `short_name`: "VeriDIA"
-- `description`: same as current meta description
-- `start_url`: "/"
-- `scope`: "/"
-- `display`: "standalone"
-- `orientation`: "portrait"
-- `background_color`: "#FFFFFF"
-- `theme_color`: "#2ECC71"
-- `icons`: 192x192 and 512x512 (both regular and `purpose: "maskable"` for Android adaptive icons)
+**On every food in the diet plan** (Foods to Increase / Reduce / Avoid), a small badge:
+> ✓ USDA verified — _Spinach, raw — 2.71 mg iron / 100 g_
+> _(tap → opens USDA FoodData Central entry)_
 
-### 2. Add PWA icons to `public/`
-- `public/icon-192.png` (192×192)
-- `public/icon-512.png` (512×512)
-- `public/icon-maskable-512.png` (512×512 with safe-zone padding)
-- `public/apple-touch-icon.png` (180×180, used by iOS home screen)
+**On critical alerts**, a "Clinical reference" link to the WHO/NIH page describing the threshold.
 
-These will be generated from the existing `public/favicon.png` / VeriDIA brand mark using ImageMagick, padded on a Vital Green background.
+**At the bottom of the report**, a "Sources & Methodology" section listing every domain cited, plus the disclaimer that AI interpretation is grounded but not a substitute for a doctor.
 
-### 3. Update `index.html`
-Inside `<head>`, add:
-- `<link rel="manifest" href="/manifest.webmanifest" />`
-- `<link rel="apple-touch-icon" href="/apple-touch-icon.png" />` (replaces current favicon-as-apple-touch-icon)
-- `<meta name="apple-mobile-web-app-capable" content="yes" />`
-- `<meta name="apple-mobile-web-app-status-bar-style" content="default" />`
-- `<meta name="apple-mobile-web-app-title" content="VeriDIA" />`
-- `<meta name="mobile-web-app-capable" content="yes" />`
+## Restricted source whitelist (Perplexity `search_domain_filter`)
 
-Existing `theme-color` stays as `#2ECC71`.
+Only these domains will be allowed for medical grounding:
+- nih.gov, medlineplus.gov, ncbi.nlm.nih.gov (PubMed)
+- who.int
+- mayoclinic.org
+- cdc.gov
+- nice.org.uk
+- cochrane.org
+- nhs.uk
 
-### 4. Optional: lightweight in-app install hint
-Add a small dismissible banner on `/` (Index page) that:
-- On Android: listens for the `beforeinstallprompt` event and shows an "Install VeriDIA" button that triggers the native prompt.
-- On iOS Safari: shows a one-line tip "Tap Share → Add to Home Screen to install" (only when not already in standalone mode).
-- Stores dismissal in `localStorage` so it doesn't nag.
+This guarantees no random blog or unverified site can ever appear as a "source."
 
-This is a nice-to-have; flag for confirmation if you'd rather skip and rely purely on the browser's built-in install UI.
+## Architecture
 
-## Explicitly NOT doing
-- No `vite-plugin-pwa`
-- No service worker / `sw.js`
-- No offline caching
-- No Capacitor / native app wrapper
+```text
+Upload lab image
+      |
+      v
+  [interpret-lab edge fn]   ← unchanged, Gemini extracts biomarkers + draft summary
+      |
+      v
+  Save partial result (status=processing)
+      |
+      +--→ [ground-biomarkers edge fn]   NEW
+      |       Perplexity Sonar per abnormal biomarker
+      |       → saves citations[] into each biomarker
+      |
+      +--→ [regenerate-diet edge fn]   ← extended
+              After Gemini returns foods, loop foods through
+              [verify-nutrition edge fn]   NEW
+              USDA FDC lookup → saves usda_ref into each food
+```
 
-These would either break the Lovable preview (service worker) or be significant additional scope (Capacitor + app store submission).
+Both grounding steps run **in the background after the partial result lands**, so the user still sees their report instantly. Citations stream in and the UI re-renders as they arrive (we already use Supabase realtime patterns).
 
-## Files to be added/edited
-- create `public/manifest.webmanifest`
-- create `public/icon-192.png`, `public/icon-512.png`, `public/icon-maskable-512.png`, `public/apple-touch-icon.png`
-- edit `index.html` (add manifest link + iOS meta tags)
-- (optional) create `src/components/InstallPrompt.tsx` and mount it in `src/pages/Index.tsx`
+## Database changes
+
+Two JSONB columns added to `lab_results`:
+- `biomarker_citations` — `{ [biomarkerName]: [{ title, url, domain, snippet }] }`
+- `nutrition_citations` — `{ [foodName]: { fdc_id, official_name, key_nutrients, url } }`
+
+Plus two new status fields so the UI can show "Verifying sources…":
+- `grounding_status` — pending | done | failed
+- `nutrition_status` — pending | done | failed
+
+## New edge functions
+
+1. **`ground-biomarkers`** — takes a `labResultId`, loads abnormal biomarkers, calls Perplexity Sonar for each with the domain whitelist, writes citations back.
+2. **`verify-nutrition`** — takes a `labResultId`, loops every food in `dietary_plan.foods_to_increase/reduce/avoid`, queries USDA FDC `/v1/foods/search`, saves the top match's FDC ID + canonical name + 3 key nutrients per food.
+
+Both run with `verify_jwt = false` and are triggered by `interpret-lab` after the partial write.
+
+## UI changes
+
+- `BiomarkersTab.tsx` — add a "Sources" footer to each expanded card showing citation chips.
+- `DietPlanTab.tsx` — add a USDA badge under each food name, tappable.
+- `SummaryTab.tsx` — add a "Sources & Methodology" collapsible at the bottom.
+- New `<CitationChips />` component — reusable pill list that opens links in a new tab and works offline (links degrade gracefully when offline).
+- `EmergencyAlert.tsx` — add a "Read more (WHO)" link for each critical threshold, pre-mapped to a WHO/NIH URL in `critical-thresholds.ts`.
+
+## Secrets needed
+
+| Secret | Where it comes from | Who adds it |
+|---|---|---|
+| `PERPLEXITY_API_KEY` | Set up via Lovable's Perplexity **connector** (one click, no manual key) | I'll trigger the connector flow |
+| `USDA_FDC_API_KEY` | Free signup at api.data.gov / fdc.nal.usda.gov — takes 30 seconds | You paste it once when prompted |
+
+## Memory / methodology
+
+I'll save a new memory file `mem://features/source-grounding` documenting:
+- the whitelist domains
+- the two grounding pipelines
+- the disclaimer copy
+- the rule: every clinical claim shown to a user must have at least one citation, or display "no verified source — AI-generated".
+
+## Out of scope (deliberately)
+
+- We will **not** swap Gemini out — it stays the OCR + first-pass interpreter.
+- We will **not** add Google Search grounding to Gemini (overlaps with Perplexity, costs more).
+- We will **not** ingest the West African Food Composition Table yet (separate project — needs licensed data).
+- No live drug/medication lookup (VeriDIA's policy is no pharmaceutical suggestions).
+
+## Rollout order
+
+1. DB migration (two JSONB columns + two status columns).
+2. Connect Perplexity via connector + ask you for the USDA key.
+3. Build `verify-nutrition` (simpler, USDA — no AI calls).
+4. Build `ground-biomarkers` (Perplexity Sonar with domain whitelist).
+5. Wire both into `interpret-lab` as background tasks.
+6. Add `<CitationChips />` and update the three report tabs.
+7. Add Sources & Methodology section + emergency alert "Read more" links.
+8. Update memory.
+
+If this looks right, approve and I'll start with the connector + the secret request.
