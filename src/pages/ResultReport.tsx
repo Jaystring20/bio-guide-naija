@@ -54,9 +54,9 @@ const ResultReport = () => {
       if (!data) return 3000;
       // Keep polling while OCR is running.
       if (data.status === "processing") return 3000;
-      // Once OCR is done, keep polling only while diet generation is still in flight.
-      // diet_status is one of: 'pending' | 'done' | 'failed'.
-      if (data.diet_status === "pending") return 4000;
+      // Once OCR is done, keep polling while EITHER diet OR checklist is still in flight.
+      // diet_status / checklist_status are each one of: 'pending' | 'done' | 'failed'.
+      if (data.diet_status === "pending" || data.checklist_status === "pending") return 4000;
       return false;
     },
   });
