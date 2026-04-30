@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ChecklistItem, ChecklistItemPidgin, Language } from "./types";
 import { cn } from "@/lib/utils";
-import { Share2, Copy, ChevronDown, ChevronUp } from "lucide-react";
+import { Share2, Copy, ChevronDown, ChevronUp, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -9,6 +9,9 @@ interface ChecklistTabProps {
   checklist: ChecklistItem[];
   checklistPidgin: ChecklistItemPidgin[] | null;
   language: Language;
+  status?: "pending" | "done" | "failed";
+  onRegenerate?: () => void;
+  regenerating?: boolean;
 }
 
 const PRIORITY_COLORS: Record<string, string> = {
