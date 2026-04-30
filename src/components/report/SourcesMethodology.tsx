@@ -40,6 +40,23 @@ export const SourcesMethodology = ({ language }: SourcesMethodologyProps) => {
               </li>
             ))}
           </ul>
+          <div className="bg-secondary/5 rounded-lg p-3 mt-2 border border-secondary/20 space-y-1.5">
+            <p className="text-xs font-bold text-secondary uppercase tracking-wide">
+              {isPidgin ? "How we tag the results" : "How we tag each result"}
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-primary">✓ Cross-checked</span> —{" "}
+              {isPidgin
+                ? "we get curated medical source for this biomarker."
+                : "this biomarker has a vetted, biomarker-specific source from one of the authorities above."}
+            </p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-[hsl(var(--alert-amber))]">⚠ AI only</span> —{" "}
+              {isPidgin
+                ? "AI interpret am, but we never get specific source for this one. Confirm with your doctor."
+                : "the AI interpretation is shown but we don't have a curated, biomarker-specific source yet. Treat with extra caution."}
+            </p>
+          </div>
           <div className="bg-muted/40 rounded-lg p-3 mt-2">
             <p className="text-xs text-muted-foreground leading-relaxed">
               {isPidgin
