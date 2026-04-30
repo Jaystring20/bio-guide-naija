@@ -229,6 +229,7 @@ const ResultReport = () => {
     dietaryPlanPidgin,
     checklist,
     checklistPidgin,
+    reportUrl: typeof window !== "undefined" ? `${window.location.origin}/app/result/${id}` : null,
   };
 
   const handleDownloadPDF = () => {
