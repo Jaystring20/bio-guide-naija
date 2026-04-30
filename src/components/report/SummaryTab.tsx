@@ -3,6 +3,7 @@ import { Activity, TrendingUp, AlertTriangle, CheckCircle2, Share2 } from "lucid
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ListenButton } from "./ListenButton";
+import { SourcesMethodology } from "./SourcesMethodology";
 
 interface SummaryTabProps {
   biomarkers: Biomarker[];
