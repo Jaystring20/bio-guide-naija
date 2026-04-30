@@ -11,6 +11,7 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
+import SourcesMethodologyPage from "./pages/SourcesMethodologyPage";
 import AdminLogin from "./pages/AdminLogin";
 import Onboarding from "./pages/Onboarding";
 import UploadLab from "./pages/UploadLab";
