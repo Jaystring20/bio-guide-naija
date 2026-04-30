@@ -82,12 +82,24 @@ const DIET_TOOL = {
           },
           required: ["foods_to_increase", "foods_to_reduce", "foods_to_avoid", "meal_suggestions", "weekly_meal_plan", "hydration_tips", "supplement_notes"],
         },
+      },
+      required: ["dietary_plan"],
+    },
+  }],
+};
+
+const CHECKLIST_TOOL = {
+  functionDeclarations: [{
+    name: "submit_consultation_checklist",
+    parameters: {
+      type: "object",
+      properties: {
         consultation_checklist: {
           type: "array",
           items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" }, priority: { type: "string", enum: ["high", "medium", "low"] } }, required: ["question", "context", "priority"] },
         },
       },
-      required: ["dietary_plan", "consultation_checklist"],
+      required: ["consultation_checklist"],
     },
   }],
 };
@@ -109,8 +121,23 @@ const DIET_PIDGIN_TOOL = {
             supplement_notes: { type: "array", items: { type: "string" } },
           },
         },
-        consultation_checklist_pidgin: { type: "array", items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" } }, required: ["question", "context"] } },
       },
+    },
+  }],
+};
+
+const CHECKLIST_PIDGIN_TOOL = {
+  functionDeclarations: [{
+    name: "submit_checklist_pidgin",
+    parameters: {
+      type: "object",
+      properties: {
+        consultation_checklist_pidgin: {
+          type: "array",
+          items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" } }, required: ["question", "context"] },
+        },
+      },
+      required: ["consultation_checklist_pidgin"],
     },
   }],
 };
@@ -175,8 +202,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "No biomarkers to base a diet plan on" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Mark in-flight so the UI can show "Regenerating…"
-    await supabase.from("lab_results").update({ diet_status: "pending" }).eq("id", resultId);
+    // Mark BOTH in-flight so the UI can show "Regenerating…" for diet AND checklist
+    await supabase.from("lab_results").update({
+      diet_status: "pending",
+      checklist_status: "pending",
+    }).eq("id", resultId);
 
     // ---- Demographics ----
     let demographics: { geopolitical_zone: string | null; age: number | null; sex: string | null } = { geopolitical_zone: null, age: null, sex: null };
@@ -188,11 +218,14 @@ serve(async (req) => {
       if (p) demographics = p as any;
     }
 
-    // ---- Diet generation ----
-    const dietStart = Date.now();
-    const dietPrompt = `Based on these lab results for a patient from the ${demographics.geopolitical_zone || "Nigerian"} region (age ${demographics.age || "unknown"}, sex ${demographics.sex || "unknown"}), generate a comprehensive Nigerian food-mapped dietary plan.
+    const abnormalBiomarkers = JSON.stringify(biomarkers.filter((b: any) => b.status !== "normal"));
 
-Biomarkers (abnormal only): ${JSON.stringify(biomarkers.filter((b: any) => b.status !== "normal"))}
+    // ---- D1: Diet plan (foods + meals) ----
+    const runDiet = async () => {
+      const dietStart = Date.now();
+      const dietPrompt = `Based on these lab results for a patient from the ${demographics.geopolitical_zone || "Nigerian"} region (age ${demographics.age || "unknown"}, sex ${demographics.sex || "unknown"}), generate a comprehensive Nigerian food-mapped dietary plan.
+
+Biomarkers (abnormal only): ${abnormalBiomarkers}
 
 RULES:
 - Use ONLY Nigerian foods with LOCAL MARKET NAMES
@@ -201,73 +234,147 @@ RULES:
 - Be specific about quantities and preparation tips
 - Write warmly and practically
 - Include a 7-day meal plan, hydration tips, natural supplements
-- Generate 3-7 personalized doctor questions with priority
 
 You MUST respond with a function call using the submit_diet_plan tool.`;
 
-    const dietBody = {
-      systemInstruction: { parts: [{ text: "You are VeriDIA's Nigerian Nutritional Intelligence Engine — a caring aunty giving food advice. Never suggest drugs. Always respond with a function call." }] },
-      contents: [{ role: "user", parts: [{ text: dietPrompt }] }],
-      tools: [DIET_TOOL],
-      toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_plan"] } },
+      const dietBody = {
+        systemInstruction: { parts: [{ text: "You are VeriDIA's Nigerian Nutritional Intelligence Engine — a caring aunty giving food advice. Never suggest drugs. Always respond with a function call." }] },
+        contents: [{ role: "user", parts: [{ text: dietPrompt }] }],
+        tools: [DIET_TOOL],
+        toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_plan"] } },
+      };
+
+      const { args, model, note } = await callGeminiForFunction(dietBody, geminiApiKey);
+      if (!args?.dietary_plan) {
+        log("diet_call", dietStart, false, model, note || "no function call");
+        await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", resultId);
+        return { ok: false as const };
+      }
+      log("diet_call", dietStart, true, model);
+      await supabase.from("lab_results").update({
+        dietary_plan: args.dietary_plan,
+        diet_status: "done",
+      }).eq("id", resultId);
+
+      // Pidgin diet — best-effort, in parallel with the rest
+      const pidStart = Date.now();
+      try {
+        const dietPidginInput = {
+          dietary_plan: {
+            foods_to_increase: args.dietary_plan.foods_to_increase?.map((f: any) => ({ name: f.name, benefit: f.benefit, preparation_tip: f.preparation_tip || "" })),
+            foods_to_reduce: args.dietary_plan.foods_to_reduce?.map((f: any) => ({ name: f.name, reason: f.reason })),
+            foods_to_avoid: args.dietary_plan.foods_to_avoid?.map((f: any) => ({ name: f.name, reason: f.reason })),
+            meal_suggestions: args.dietary_plan.meal_suggestions,
+            hydration_tips: args.dietary_plan.hydration_tips || [],
+            supplement_notes: args.dietary_plan.supplement_notes || [],
+          },
+        };
+        const pidBody = {
+          systemInstruction: { parts: [{ text: "Translate to Nigerian Pidgin. Keep food names and medical terms in English." }] },
+          contents: [{ role: "user", parts: [{ text: `Translate to warm Nigerian Pidgin: ${JSON.stringify(dietPidginInput)}` }] }],
+          tools: [DIET_PIDGIN_TOOL],
+          toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_pidgin"] } },
+        };
+        const { args: pidArgs, model: pidModel } = await callGeminiForFunction(pidBody, geminiApiKey);
+        if (pidArgs?.dietary_plan_pidgin) {
+          await supabase.from("lab_results").update({
+            dietary_plan_pidgin: pidArgs.dietary_plan_pidgin,
+          }).eq("id", resultId);
+          log("diet_pidgin_call", pidStart, true, pidModel);
+        } else {
+          log("diet_pidgin_call", pidStart, false, pidModel, "no function call");
+        }
+      } catch (e) {
+        log("diet_pidgin_call", pidStart, false, undefined, (e as Error).message);
+      }
+      return { ok: true as const };
     };
 
-    const { args: dietArgs, model: dietModel, note: dietNote } = await callGeminiForFunction(dietBody, geminiApiKey);
-    if (!dietArgs?.dietary_plan) {
-      log("diet_call", dietStart, false, dietModel, dietNote || "no function call");
-      const newSteps = [...((result.processing_steps as StepLog[] | null) || []), ...steps, { step: "regenerate_total", ms: Date.now() - t0, ok: false }];
-      await supabase.from("lab_results").update({ diet_status: "failed", processing_steps: newSteps }).eq("id", resultId);
-      return new Response(JSON.stringify({ error: "DIET_GENERATION_FAILED", message: "We couldn't generate the diet plan. Please try again in a moment." }), {
+    // ---- D2: Doctor's checklist (independent, much smaller) ----
+    const runChecklist = async () => {
+      const ckStart = Date.now();
+      const checklistPrompt = `Based on these lab results for a patient from the ${demographics.geopolitical_zone || "Nigerian"} region (age ${demographics.age || "unknown"}, sex ${demographics.sex || "unknown"}), generate 3-7 personalized questions the patient should ask their doctor.
+
+Biomarkers (abnormal only): ${abnormalBiomarkers}
+
+RULES:
+- Each question must be specific to one or more abnormal biomarkers
+- Provide brief context explaining WHY this question matters
+- Assign a priority: 'high' for critical/urgent concerns, 'medium' for important follow-ups, 'low' for general wellness
+- Write warmly and practically — like a caring family friend prepping the patient for their appointment
+- Never suggest drugs or diagnoses
+
+You MUST respond with a function call using the submit_consultation_checklist tool.`;
+
+      const checklistBody = {
+        systemInstruction: { parts: [{ text: "You are VeriDIA's Doctor-Visit Coach — you help Nigerian patients ask the right questions at their doctor's appointment. Never diagnose, never suggest drugs." }] },
+        contents: [{ role: "user", parts: [{ text: checklistPrompt }] }],
+        tools: [CHECKLIST_TOOL],
+        toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_consultation_checklist"] } },
+      };
+
+      const { args, model, note } = await callGeminiForFunction(checklistBody, geminiApiKey);
+      if (!args?.consultation_checklist?.length) {
+        log("checklist_call", ckStart, false, model, note || "no function call");
+        await supabase.from("lab_results").update({ checklist_status: "failed" }).eq("id", resultId);
+        return { ok: false as const };
+      }
+      log("checklist_call", ckStart, true, model);
+      await supabase.from("lab_results").update({
+        consultation_checklist: args.consultation_checklist,
+        checklist_status: "done",
+      }).eq("id", resultId);
+
+      // Pidgin checklist — best-effort
+      const pidStart = Date.now();
+      try {
+        const ckPidginInput = {
+          consultation_checklist: args.consultation_checklist.map((q: any) => ({ question: q.question, context: q.context || "" })),
+        };
+        const pidBody = {
+          systemInstruction: { parts: [{ text: "Translate to Nigerian Pidgin. Keep medical terms in English." }] },
+          contents: [{ role: "user", parts: [{ text: `Translate to warm Nigerian Pidgin: ${JSON.stringify(ckPidginInput)}` }] }],
+          tools: [CHECKLIST_PIDGIN_TOOL],
+          toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_checklist_pidgin"] } },
+        };
+        const { args: pidArgs, model: pidModel } = await callGeminiForFunction(pidBody, geminiApiKey);
+        if (pidArgs?.consultation_checklist_pidgin) {
+          await supabase.from("lab_results").update({
+            consultation_checklist_pidgin: pidArgs.consultation_checklist_pidgin,
+          }).eq("id", resultId);
+          log("checklist_pidgin_call", pidStart, true, pidModel);
+        } else {
+          log("checklist_pidgin_call", pidStart, false, pidModel, "no function call");
+        }
+      } catch (e) {
+        log("checklist_pidgin_call", pidStart, false, undefined, (e as Error).message);
+      }
+      return { ok: true as const };
+    };
+
+    // Run both in parallel
+    const [dietRes, ckRes] = await Promise.all([runDiet(), runChecklist()]);
+
+    const newSteps = [
+      ...((result.processing_steps as StepLog[] | null) || []),
+      ...steps,
+      { step: "regenerate_total", ms: Date.now() - t0, ok: dietRes.ok || ckRes.ok },
+    ];
+    await supabase.from("lab_results").update({ processing_steps: newSteps }).eq("id", resultId);
+
+    // If both failed, surface a clear error to the client
+    if (!dietRes.ok && !ckRes.ok) {
+      return new Response(JSON.stringify({ error: "REGENERATION_FAILED", message: "We couldn't regenerate either piece. Please try again in a moment." }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-    log("diet_call", dietStart, true, dietModel);
 
-    // Persist the English diet immediately
-    await supabase.from("lab_results").update({
-      dietary_plan: dietArgs.dietary_plan,
-      consultation_checklist: dietArgs.consultation_checklist || null,
-      diet_status: "done",
-    }).eq("id", resultId);
-
-    // ---- Pidgin (best-effort, do not block "done") ----
-    const pidStart = Date.now();
-    try {
-      const dietPidginInput = {
-        dietary_plan: {
-          foods_to_increase: dietArgs.dietary_plan.foods_to_increase?.map((f: any) => ({ name: f.name, benefit: f.benefit, preparation_tip: f.preparation_tip || "" })),
-          foods_to_reduce: dietArgs.dietary_plan.foods_to_reduce?.map((f: any) => ({ name: f.name, reason: f.reason })),
-          foods_to_avoid: dietArgs.dietary_plan.foods_to_avoid?.map((f: any) => ({ name: f.name, reason: f.reason })),
-          meal_suggestions: dietArgs.dietary_plan.meal_suggestions,
-          hydration_tips: dietArgs.dietary_plan.hydration_tips || [],
-          supplement_notes: dietArgs.dietary_plan.supplement_notes || [],
-        },
-        consultation_checklist: (dietArgs.consultation_checklist || []).map((q: any) => ({ question: q.question, context: q.context || "" })),
-      };
-      const pidBody = {
-        systemInstruction: { parts: [{ text: "Translate to Nigerian Pidgin. Keep food names and medical terms in English." }] },
-        contents: [{ role: "user", parts: [{ text: `Translate to warm Nigerian Pidgin: ${JSON.stringify(dietPidginInput)}` }] }],
-        tools: [DIET_PIDGIN_TOOL],
-        toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_pidgin"] } },
-      };
-      const { args: pidArgs, model: pidModel } = await callGeminiForFunction(pidBody, geminiApiKey);
-      if (pidArgs) {
-        await supabase.from("lab_results").update({
-          dietary_plan_pidgin: pidArgs.dietary_plan_pidgin || null,
-          consultation_checklist_pidgin: pidArgs.consultation_checklist_pidgin || null,
-        }).eq("id", resultId);
-        log("diet_pidgin_call", pidStart, true, pidModel);
-      } else {
-        log("diet_pidgin_call", pidStart, false, pidModel, "no function call");
-      }
-    } catch (e) {
-      log("diet_pidgin_call", pidStart, false, undefined, (e as Error).message);
-    }
-
-    const newSteps = [...((result.processing_steps as StepLog[] | null) || []), ...steps, { step: "regenerate_total", ms: Date.now() - t0, ok: true }];
-    await supabase.from("lab_results").update({ processing_steps: newSteps }).eq("id", resultId);
-
-    return new Response(JSON.stringify({ success: true, diet_status: "done", totalMs: Date.now() - t0 }), {
+    return new Response(JSON.stringify({
+      success: true,
+      diet_status: dietRes.ok ? "done" : "failed",
+      checklist_status: ckRes.ok ? "done" : "failed",
+      totalMs: Date.now() - t0,
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

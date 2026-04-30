@@ -1,87 +1,96 @@
-## Goal
+## Really nice Goal
 
-Right now the report pipeline is *mostly* parallel but still has serial bottlenecks that make some report sections feel slow. After this change, each AI piece writes to the database the instant it finishes, the UI re-renders immediately via the existing realtime channel, and a slow Pidgin translation can no longer hold up the report being marked "completed".
+Split the single heavy diet Gemini call into two smaller, independent calls that run concurrently:
 
-## Current behaviour (what's slow)
+- **Call D1: Foods + meal plan** → writes `dietary_plan` → drives the **Diet Plan** tab
+- **Call D2: Doctor's checklist** → writes `consultation_checklist` → drives the **Checklist** tab
 
-Sequence today:
+Each finishes on its own timeline, writes its own narrow `UPDATE`, and surfaces in the UI via the existing realtime channel. The Checklist tab is much smaller (5–7 short questions vs. 7-day meal plan + multi-array food lists), so it should land 30–50% faster than today's combined call. The diet plan tab also gets faster because its schema is smaller and `flash-lite` fallback succeeds more often on simpler schemas.
+
+## Current behaviour
+
+Today, one Gemini call returns `{dietary_plan, consultation_checklist}` — the user waits for *both* to land before either tab populates. If the diet schema fails the first attempt (common with `flash-lite`'s function-calling on the big schema), the checklist also gets delayed.
 
 ```text
-[ Biomarkers + summary ]      ← user waits for this (blocking, ~6-12s)
+   biomarkers ready
         │
         ▼
-   partial DB write  ──►  user lands on report page, sees biomarkers
+   ONE big Gemini call (foods + 7-day meals + checklist)
         │
         ▼
-  backgroundWork():
-        ├─ English diet  ─┐
-        ├─ Pidgin biomarkers ─┤  Promise.allSettled — waits for BOTH
-        ▼                    │
-   (waits for both)  ◄──────┘
+   write dietary_plan + consultation_checklist together
         │
         ▼
-   Pidgin diet (only starts now, even though Pidgin biomarkers may have finished long ago)
-        │
-        ▼
-   Final UPDATE: status = 'completed'  ← only now does the report leave 'processing'
+   Pidgin diet (chained)
 ```
-
-Two real serialization problems:
-1. **Pidgin diet waits for *Pidgin biomarkers* to finish**, even though Pidgin diet only depends on English diet.
-2. **Status doesn't flip to `completed` until Pidgin diet finishes** — so the spinner / "still working" hint stays visible long after the user-visible content is ready.
 
 ## New behaviour
 
 ```text
-[ Biomarkers + summary ]      ← still blocking; nothing else can start without these
+   biomarkers ready
         │
-        ▼
-   partial DB write  ──►  realtime: report page shows biomarkers + summary
+        ├──► Call D1: foods + meal plan ──► write dietary_plan, diet_status='done'
+        │           └──► chained: Pidgin diet ──► write dietary_plan_pidgin
         │
-        ▼
-  backgroundWork(): launches FOUR independent tasks
-        ├─ English diet ──► writes diet, diet_status='done'
-        │      └─► chains Pidgin diet ──► writes pidgin diet
-        ├─ Pidgin biomarkers ──► writes pidgin biomarkers
-        └─ status finalizer ──► after biomarkers+diet land, sets status='completed'
-                                (independent of Pidgin tasks)
+        ├──► Call D2: doctor's checklist ──► write consultation_checklist, checklist_status='done'
+        │           └──► chained: Pidgin checklist ──► write consultation_checklist_pidgin
+        │
+        └──► Pidgin biomarkers (already independent)
 ```
 
-Each successful Gemini call performs its own targeted `UPDATE` immediately, so realtime triggers a UI refresh per field. Pidgin failures no longer affect the English flow.
+Status flips to `completed` as soon as biomarkers + D1 (foods/meals) land. Checklist may still arrive after `completed` — UI handles this gracefully via its own status field.
 
 ## Technical changes
 
-### `supabase/functions/interpret-lab/index.ts`
+### 1. New schema field — `checklist_status`
 
-- **Restructure `backgroundWork()`** so the three independent chains run concurrently:
-  - Chain A: English diet → on success, fires its own Pidgin-diet translation (already chained, no need to wait for other tasks).
-  - Chain B: Pidgin biomarkers (independent of diet — starts immediately).
-  - Chain C: Status finalizer — waits only for Chain A's English-diet result and writes `status = 'completed' | 'critical'` plus the final `processing_steps` log. Pidgin tasks may still be in flight.
-- Replace the current single `Promise.allSettled(tasks)` + sequential Pidgin-diet block with: `await Promise.allSettled([chainA, chainB])` for log completeness, but the status flip happens inside Chain A's continuation — not after the `allSettled`.
-- Each Gemini result is persisted with its own narrow `UPDATE` (already true for diet; add the same pattern for the final write so it doesn't overwrite Pidgin fields that just landed).
-- Final `UPDATE` will only set `status`, `processing_steps`, `has_critical_alert`, `critical_alerts` — it will **not** re-write `biomarkers` or `ai_summary` (those were already written in the partial write, and re-writing them risks racing with Pidgin updates).
+Add `checklist_status text NOT NULL DEFAULT 'pending'` to `lab_results`, mirroring `diet_status` (values: `pending` | `done` | `failed`). Backfill: rows where `consultation_checklist IS NOT NULL` → `'done'`; rows where overall `status` is terminal but checklist is null AND row is older than 5 min → `'failed'`; else `'pending'`.
 
-### Frontend — no functional change needed
+### 2. `supabase/functions/interpret-lab/index.ts`
 
-- `src/pages/ResultReport.tsx` already subscribes to `postgres_changes` on this row and refetches on every UPDATE, so each independent write surfaces in the UI immediately.
-- Polling fallback (`refetchInterval`) already keys off `diet_status === 'pending'`; no change.
+Replace the current single diet call with two concurrent helper calls inside the Chain A path:
 
-### Files to be edited
+- `**callDietPlanOnly()**` — uses the existing `DIET_TOOL` schema **minus** `consultation_checklist` (so just `dietary_plan`). On success: `UPDATE dietary_plan, diet_status='done'`, then chain `translateDietToPidgin()` as today.
+- `**callChecklistOnly()**` — new, much smaller tool with just `consultation_checklist` array (3–7 prioritized questions). On success: `UPDATE consultation_checklist, checklist_status='done'`, then chain a small `translateChecklistToPidgin()` (writes `consultation_checklist_pidgin`).
 
-- `supabase/functions/interpret-lab/index.ts` (only file changed)
+Both run via `Promise.all` from the same `tasks.push(...)` slot so the existing `finalizeStatus()` logic (which fires after D1) keeps working unchanged. Checklist failure marks `checklist_status='failed'` but does **not** affect `diet_status` or overall status.
+
+Emergency path: skip D1 (as today), skip D2 too — both marked `failed`, finalize immediately.
+
+### 3. `supabase/functions/regenerate-diet/index.ts`
+
+Mirror the same split so the "Regenerate diet" button regenerates both pieces concurrently. Keep the single user-facing button — it sets both `diet_status` and `checklist_status` to `pending` and runs both calls in parallel.
+
+### 4. `src/pages/ResultReport.tsx`
+
+- Add a derived `inferredChecklistStatus` paralleling the existing `inferredDietStatus` block (lines 144–159), with the same legacy-row inference rules.
+- Update the `refetchInterval` to keep polling while *either* `diet_status === 'pending'` OR `checklist_status === 'pending'`.
+
+### 5. `src/components/report/ChecklistTab.tsx`
+
+Show a small inline "Generating doctor's questions…" loader when `checklistStatus === 'pending'` (similar to how the Diet tab today shows a pending state), and a "Regenerate checklist" affordance when `checklistStatus === 'failed'`. The existing diet-pending UI is the visual reference — same look, same wording style.
+
+### 6. `src/hooks/useRegenerateDiet.ts`
+
+No signature change needed — the regenerate edge function still owns the orchestration; the hook just kicks it off.
+
+### Files edited / created
+
+- `supabase/functions/interpret-lab/index.ts`
+- `supabase/functions/regenerate-diet/index.ts`
+- `src/pages/ResultReport.tsx`
+- `src/components/report/ChecklistTab.tsx`
+- New migration: add `checklist_status` column + check constraint + backfill
 
 ## Out of scope
 
-- No schema changes — `diet_status` already exists; no equivalent flag is needed for Pidgin (UI already gracefully renders `null` Pidgin fields).
-- No frontend changes — realtime subscription already handles per-field arrival.
-- Module/folder refactor (`src/modules/`, `_shared/`) is **not** part of this change. Per the architecture memory it remains deferred so this performance fix stays isolated.
+- Dropping the 7-day meal plan from the first call (option 2 from the previous breakdown). This split alone gives most of the win without changing user-visible content.
+- Switching to Lovable AI Gateway / newer Gemini models. Per memory, direct Gemini is a deliberate choice.
+- Module folder refactor — still deferred.
 
 ## Validation
 
-After deploy:
-1. Upload a fresh lab report and watch the report page:
-   - Biomarkers + summary appear within seconds.
-   - English diet appears next, independently.
-   - Pidgin biomarkers and Pidgin diet pop in whenever each finishes — order is no longer fixed.
-2. Check `processing_steps` in the DB row: `diet_call`, `pidgin_call`, `diet_pidgin_call` timings should overlap rather than stack.
-3. Confirm `status` flips to `completed` as soon as biomarkers + English diet are done, even if Pidgin variants are still streaming in.
+1. Upload a fresh lab → biomarkers + summary appear → diet plan and checklist tabs each populate independently. The checklist tab in particular should populate visibly faster than the diet tab on most uploads.
+2. Inspect `processing_steps` — `diet_call` and `checklist_call` timings should overlap, not stack.
+3. Force a diet failure (e.g. test with an unusual lab) → checklist should still land successfully, and vice versa.
+4. Test "Regenerate" — both pieces should regenerate in parallel.

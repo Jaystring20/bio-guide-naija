@@ -365,23 +365,25 @@ Extract all biomarkers with their values, units, reference ranges, status classi
       }
     }
 
-    // ---- Background tasks: diet plan + Pidgin in parallel ----
-    // Three independent chains:
-    //   A) English diet  -> chains its own Pidgin diet  -> chains finalizeStatus()
-    //   B) Pidgin biomarkers (independent — starts immediately)
-    //   C) (implicit) emergency path: skip diet, finalize immediately
+    // ---- Background tasks: diet plan + checklist + Pidgin in parallel ----
+    // Independent chains:
+    //   A1) English diet plan (foods + meals)  -> chains its own Pidgin diet
+    //       -> triggers finalizeStatus() the moment it lands
+    //   A2) English doctor's checklist (small, fast) -> chains its own Pidgin checklist
+    //   B)  Pidgin biomarkers (independent — starts immediately)
+    //   Emergency path: skip A1+A2, finalize immediately.
     //
-    // The final status flip happens as soon as biomarkers + English diet are
-    // done — it does NOT wait for Pidgin work. Pidgin variants stream into the
-    // UI via realtime as each one lands.
+    // The final status flip happens as soon as biomarkers + English diet (A1) are
+    // done — it does NOT wait for the checklist or any Pidgin work. Each piece
+    // streams into the UI via realtime as it lands.
     const backgroundWork = async () => {
       let statusFinalized = false;
       const finalizeStatus = async () => {
         if (statusFinalized) return;
         statusFinalized = true;
         const finalStatus = hasCritical ? "critical" : "completed";
-        // Narrow update — do NOT re-write biomarkers/ai_summary/pidgin fields,
-        // so we can't race with Pidgin writes that may land later.
+        // Narrow update — do NOT re-write biomarkers/ai_summary/diet/checklist/pidgin fields,
+        // so we can't race with concurrent writes that may land later.
         const { error: finalErr } = await supabase.from("lab_results").update({
           status: finalStatus,
           processing_steps: [...steps, { step: "total", ms: Date.now() - t0, ok: true }],
@@ -391,7 +393,7 @@ Extract all biomarkers with their values, units, reference ranges, status classi
 
       const tasks: Promise<any>[] = [];
 
-      // ---- Chain A: English diet -> Pidgin diet -> finalizeStatus ----
+      // ---- Chain A1: English diet plan (foods + meals) -> Pidgin diet -> finalizeStatus ----
       if (!hasEmergency) {
         tasks.push((async () => {
           const dietStart = Date.now();
@@ -406,8 +408,7 @@ RULES:
 - Never suggest pharmaceutical drugs
 - Be specific about quantities and preparation tips
 - Write warmly and practically
-- Include a 7-day meal plan, hydration tips, natural supplements
-- Generate 3-7 personalized doctor questions with priority`;
+- Include a 7-day meal plan, hydration tips, natural supplements`;
 
             const dietBody = {
               systemInstruction: { parts: [{ text: "You are VeriDIA's Nigerian Nutritional Intelligence Engine — a caring aunty giving food advice. Never suggest drugs." }] },
@@ -431,39 +432,28 @@ RULES:
                         },
                         required: ["foods_to_increase", "foods_to_reduce", "foods_to_avoid", "meal_suggestions", "weekly_meal_plan", "hydration_tips", "supplement_notes"],
                       },
-                      consultation_checklist: {
-                        type: "array",
-                        items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" }, priority: { type: "string", enum: ["high", "medium", "low"] } }, required: ["question", "context", "priority"] },
-                      },
                     },
-                    required: ["dietary_plan", "consultation_checklist"],
+                    required: ["dietary_plan"],
                   },
                 }],
               }],
               toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_plan"] } },
             };
 
-            // Use the function-call-aware retry helper. This is critical:
-            // gemini-2.5-flash-lite frequently returns 200 OK with plain text and
-            // no functionCall for the diet schema. callGeminiWithRetry only switched
-            // models on HTTP failures, so we'd silently lose the diet plan.
             const { args, model, note } = await callGeminiForFunction(dietBody, geminiApiKey);
             if (args?.dietary_plan) {
               await supabase.from("lab_results").update({
                 dietary_plan: args.dietary_plan,
-                consultation_checklist: args.consultation_checklist,
                 diet_status: "done",
               }).eq("id", labResultId);
               logStep("diet_call", dietStart, true, model);
 
-              // Diet is done — flip status to completed NOW (don't wait for Pidgin).
-              // Then kick off Pidgin-diet in parallel; it writes its own UPDATE
-              // when it finishes and surfaces via realtime.
+              // Diet is done — flip status to completed NOW (don't wait for Pidgin or checklist).
               await Promise.all([
                 finalizeStatus(),
-                translateDietToPidgin(args.dietary_plan, args.consultation_checklist),
+                translateDietToPidgin(args.dietary_plan),
               ]);
-              return { dietary_plan: args.dietary_plan, consultation_checklist: args.consultation_checklist };
+              return { dietary_plan: args.dietary_plan };
             }
             logStep("diet_call", dietStart, false, model, note || "no function call");
             await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
@@ -475,15 +465,77 @@ RULES:
           }
           return null;
         })());
+
+        // ---- Chain A2: Doctor's checklist (independent of A1) -> Pidgin checklist ----
+        tasks.push((async () => {
+          const ckStart = Date.now();
+          try {
+            const checklistPrompt = `Based on these lab results for a patient from the ${demographics.geopolitical_zone || "Nigerian"} region (age ${demographics.age || "unknown"}, sex ${demographics.sex || "unknown"}), generate 3-7 personalized questions the patient should ask their doctor.
+
+Biomarkers (abnormal only): ${JSON.stringify(biomarkers.filter((b: any) => b.status !== "normal"))}
+
+RULES:
+- Each question must be specific to one or more abnormal biomarkers
+- Provide brief context explaining WHY this question matters
+- Assign a priority: 'high' for critical/urgent concerns, 'medium' for important follow-ups, 'low' for general wellness
+- Write warmly and practically — like a caring family friend prepping the patient for their appointment
+- Never suggest drugs or diagnoses
+
+You MUST respond with a function call using the submit_consultation_checklist tool.`;
+
+            const checklistBody = {
+              systemInstruction: { parts: [{ text: "You are VeriDIA's Doctor-Visit Coach — you help Nigerian patients ask the right questions at their doctor's appointment. Never diagnose, never suggest drugs." }] },
+              contents: [{ role: "user", parts: [{ text: checklistPrompt }] }],
+              tools: [{
+                functionDeclarations: [{
+                  name: "submit_consultation_checklist",
+                  parameters: {
+                    type: "object",
+                    properties: {
+                      consultation_checklist: {
+                        type: "array",
+                        items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" }, priority: { type: "string", enum: ["high", "medium", "low"] } }, required: ["question", "context", "priority"] },
+                      },
+                    },
+                    required: ["consultation_checklist"],
+                  },
+                }],
+              }],
+              toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_consultation_checklist"] } },
+            };
+
+            const { args, model, note } = await callGeminiForFunction(checklistBody, geminiApiKey);
+            if (args?.consultation_checklist?.length) {
+              await supabase.from("lab_results").update({
+                consultation_checklist: args.consultation_checklist,
+                checklist_status: "done",
+              }).eq("id", labResultId);
+              logStep("checklist_call", ckStart, true, model);
+
+              // Translate checklist to Pidgin in parallel — non-blocking on UI.
+              await translateChecklistToPidgin(args.consultation_checklist);
+              return { consultation_checklist: args.consultation_checklist };
+            }
+            logStep("checklist_call", ckStart, false, model, note || "no function call");
+            await supabase.from("lab_results").update({ checklist_status: "failed" }).eq("id", labResultId);
+          } catch (e) {
+            logStep("checklist_call", ckStart, false, undefined, (e as Error).message);
+            await supabase.from("lab_results").update({ checklist_status: "failed" }).eq("id", labResultId);
+          }
+          return null;
+        })());
       } else {
-        // Emergency: skip diet generation; mark diet failed and finalize status
+        // Emergency: skip diet + checklist; mark both failed and finalize status
         // immediately so the report leaves 'processing' without waiting for Pidgin.
-        await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
+        await supabase.from("lab_results").update({
+          diet_status: "failed",
+          checklist_status: "failed",
+        }).eq("id", labResultId);
         await finalizeStatus();
       }
 
-      // ---- Helper: Pidgin translation of a finished English diet ----
-      async function translateDietToPidgin(dietary_plan: any, consultation_checklist: any) {
+      // ---- Helper: Pidgin translation of a finished English diet plan ----
+      async function translateDietToPidgin(dietary_plan: any) {
         const pidStart = Date.now();
         try {
           const dietPidginInput = {
@@ -495,7 +547,6 @@ RULES:
               hydration_tips: dietary_plan.hydration_tips || [],
               supplement_notes: dietary_plan.supplement_notes || [],
             },
-            consultation_checklist: (consultation_checklist || []).map((q: any) => ({ question: q.question, context: q.context || "" })),
           };
 
           const body = {
@@ -518,7 +569,6 @@ RULES:
                         supplement_notes: { type: "array", items: { type: "string" } },
                       },
                     },
-                    consultation_checklist_pidgin: { type: "array", items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" } }, required: ["question", "context"] } },
                   },
                 },
               }],
@@ -530,10 +580,9 @@ RULES:
           if (response.ok) {
             const data = await response.json();
             const args = extractFunctionCall(data);
-            if (args) {
+            if (args?.dietary_plan_pidgin) {
               await supabase.from("lab_results").update({
-                dietary_plan_pidgin: args.dietary_plan_pidgin || null,
-                consultation_checklist_pidgin: args.consultation_checklist_pidgin || null,
+                dietary_plan_pidgin: args.dietary_plan_pidgin,
               }).eq("id", labResultId);
               logStep("diet_pidgin_call", pidStart, true, model);
               return;
@@ -542,6 +591,53 @@ RULES:
           logStep("diet_pidgin_call", pidStart, false, model, "no function call");
         } catch (e) {
           logStep("diet_pidgin_call", pidStart, false, undefined, (e as Error).message);
+        }
+      }
+
+      // ---- Helper: Pidgin translation of a finished English checklist ----
+      async function translateChecklistToPidgin(consultation_checklist: any[]) {
+        const pidStart = Date.now();
+        try {
+          const ckPidginInput = {
+            consultation_checklist: (consultation_checklist || []).map((q: any) => ({ question: q.question, context: q.context || "" })),
+          };
+
+          const body = {
+            systemInstruction: { parts: [{ text: "Translate to Nigerian Pidgin. Keep medical terms in English." }] },
+            contents: [{ role: "user", parts: [{ text: `Translate to warm Nigerian Pidgin: ${JSON.stringify(ckPidginInput)}` }] }],
+            tools: [{
+              functionDeclarations: [{
+                name: "submit_checklist_pidgin",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    consultation_checklist_pidgin: {
+                      type: "array",
+                      items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" } }, required: ["question", "context"] },
+                    },
+                  },
+                  required: ["consultation_checklist_pidgin"],
+                },
+              }],
+            }],
+            toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_checklist_pidgin"] } },
+          };
+
+          const { response, model } = await callGeminiWithRetry(body, geminiApiKey);
+          if (response.ok) {
+            const data = await response.json();
+            const args = extractFunctionCall(data);
+            if (args?.consultation_checklist_pidgin) {
+              await supabase.from("lab_results").update({
+                consultation_checklist_pidgin: args.consultation_checklist_pidgin,
+              }).eq("id", labResultId);
+              logStep("checklist_pidgin_call", pidStart, true, model);
+              return;
+            }
+          }
+          logStep("checklist_pidgin_call", pidStart, false, model, "no function call");
+        } catch (e) {
+          logStep("checklist_pidgin_call", pidStart, false, undefined, (e as Error).message);
         }
       }
 
