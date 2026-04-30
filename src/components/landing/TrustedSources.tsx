@@ -21,7 +21,6 @@ import logoMayoClinic from "@/assets/sources/mayo-clinic.svg";
 import logoWHO from "@/assets/sources/who.svg";
 import logoCDC from "@/assets/sources/cdc.svg";
 import logoUSDA from "@/assets/sources/usda.svg";
-import logoWHOAfrica from "@/assets/sources/who-africa.svg";
 import logoAfricaCDC from "@/assets/sources/africa-cdc.png";
 import logoFMOH from "@/assets/sources/fmoh-nigeria.svg";
 import logoNHF from "@/assets/sources/nigerian-heart-foundation.png";
