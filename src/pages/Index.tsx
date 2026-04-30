@@ -14,6 +14,7 @@ import { Ripple } from "@/components/Ripple";
 import { cn } from "@/lib/utils";
 import { InlineNPSPrompt } from "@/components/feedback/InlineRatingPrompt";
 import { useMyFeedbackCount } from "@/hooks/useFeedback";
+import { InstallPrompt } from "@/components/InstallPrompt";
 
 const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
@@ -71,6 +72,7 @@ const Index = () => {
 
   return (
     <div className="px-5 pt-4 pb-4 max-w-lg mx-auto">
+      <InstallPrompt />
       {/* Hero gradient card */}
       <motion.div {...fade(0)} className="relative overflow-hidden rounded-3xl bg-gradient-hero p-6 mb-5 shadow-elevated">
         {/* Drifting aurora behind everything */}
