@@ -82,12 +82,24 @@ const DIET_TOOL = {
           },
           required: ["foods_to_increase", "foods_to_reduce", "foods_to_avoid", "meal_suggestions", "weekly_meal_plan", "hydration_tips", "supplement_notes"],
         },
+      },
+      required: ["dietary_plan"],
+    },
+  }],
+};
+
+const CHECKLIST_TOOL = {
+  functionDeclarations: [{
+    name: "submit_consultation_checklist",
+    parameters: {
+      type: "object",
+      properties: {
         consultation_checklist: {
           type: "array",
           items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" }, priority: { type: "string", enum: ["high", "medium", "low"] } }, required: ["question", "context", "priority"] },
         },
       },
-      required: ["dietary_plan", "consultation_checklist"],
+      required: ["consultation_checklist"],
     },
   }],
 };
@@ -109,8 +121,23 @@ const DIET_PIDGIN_TOOL = {
             supplement_notes: { type: "array", items: { type: "string" } },
           },
         },
-        consultation_checklist_pidgin: { type: "array", items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" } }, required: ["question", "context"] } },
       },
+    },
+  }],
+};
+
+const CHECKLIST_PIDGIN_TOOL = {
+  functionDeclarations: [{
+    name: "submit_checklist_pidgin",
+    parameters: {
+      type: "object",
+      properties: {
+        consultation_checklist_pidgin: {
+          type: "array",
+          items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" } }, required: ["question", "context"] },
+        },
+      },
+      required: ["consultation_checklist_pidgin"],
     },
   }],
 };
