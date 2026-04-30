@@ -72,6 +72,16 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
         getText={buildSpeech}
       />
 
+      {nutritionStatus === "pending" && (
+        <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-primary flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+          </span>
+          {isPidgin ? "We dey verify food info with USDA…" : "Verifying food facts with USDA…"}
+        </div>
+      )}
+
       {dietaryPlan.foods_to_increase?.length > 0 && (
         <div>
           <h3 className="font-display text-lg font-bold text-secondary mb-3">
@@ -92,6 +102,7 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                       💡 {isPidgin && pidginF?.preparation_tip ? pidginF.preparation_tip : f.preparation_tip}
                     </p>
                   )}
+                  <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
                 </div>
               );
             })}
@@ -114,6 +125,7 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                   <p className="text-body-sm text-muted-foreground mt-1">
                     {isPidgin && pidginF ? pidginF.reason : f.reason}
                   </p>
+                  <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
                 </div>
               );
             })}
@@ -136,6 +148,7 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                   <p className="text-body-sm text-muted-foreground mt-1">
                     {isPidgin && pidginF ? pidginF.reason : f.reason}
                   </p>
+                  <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
                 </div>
               );
             })}
