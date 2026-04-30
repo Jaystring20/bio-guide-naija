@@ -96,12 +96,32 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
         ))}
       </div>
 
-      <a href="tel:112" className="w-full max-w-sm mb-4">
+      <a href="tel:112" className="w-full max-w-sm mb-3">
         <Button className="w-full h-16 text-lg font-bold bg-accent-foreground text-destructive rounded-xl touch-target">
           <Phone className="w-6 h-6 mr-2" />
           Call Doctor Now
         </Button>
       </a>
+
+      {hasEmergency && (
+        <button
+          onClick={() => setMuted((m) => !m)}
+          className="flex items-center gap-2 text-destructive-foreground/80 text-body-sm underline mt-1 touch-target"
+          aria-label={muted ? "Unmute audio warning" : "Mute audio warning"}
+        >
+          {muted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+          {muted ? "Unmute audio warning" : "Mute audio warning"}
+        </button>
+      )}
+
+      {hasEmergency && (
+        <button
+          onClick={onAcknowledge}
+          className="text-destructive-foreground/70 underline text-body-sm mt-3"
+        >
+          I have contacted a doctor — show my results
+        </button>
+      )}
 
       {!hasEmergency && (
         <button
