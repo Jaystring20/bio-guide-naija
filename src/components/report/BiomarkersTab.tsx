@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { EmptyBiomarkersBanner } from "./EmptyBiomarkersBanner";
 import { ListenButton } from "./ListenButton";
 import { CitationChips } from "./CitationChips";
+import { VerifiedBadge } from "./VerifiedBadge";
 import { getCitationsForBiomarker } from "@/lib/medical-citations";
 
 interface BiomarkersTabProps {
@@ -101,6 +102,9 @@ export const BiomarkersTab = ({
                 <p className="text-body-sm text-muted-foreground truncate">
                   {b.value} {b.unit} <span className="text-xs">(Ref: {b.reference_range})</span>
                 </p>
+                <div className="mt-1.5">
+                  <VerifiedBadge biomarkerName={b.name} language={language} />
+                </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className={cn("px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap", STATUS_COLORS[b.status])}>
