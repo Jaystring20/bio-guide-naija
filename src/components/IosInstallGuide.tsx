@@ -7,9 +7,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Copy, Share, Plus, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Copy, Share, Plus, Home, ChevronLeft, ChevronRight, CloudOff } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface IosInstallGuideProps {
   open: boolean;
@@ -142,6 +143,7 @@ const STEPS = [
 export const IosInstallGuide = ({ open, onOpenChange }: IosInstallGuideProps) => {
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
+  const online = useOnlineStatus();
 
   useEffect(() => {
     if (!open) {
