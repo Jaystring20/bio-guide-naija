@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useRegenerateDiet } from "@/hooks/useRegenerateDiet";
@@ -29,13 +29,36 @@ const TAB_LABELS: Record<Language, Record<Tab, string>> = {
   pidgin: { summary: "Summary", results: "Results", diet: "Chop Plan", checklist: "Doctor Q's" },
 };
 
+const isTab = (v: string | null): v is Tab =>
+  !!v && (TABS as readonly string[]).includes(v);
+
 const ResultReport = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showEmergency, setShowEmergency] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>("summary");
+
+  // Active tab is persisted in the URL (?tab=...) so it survives refresh,
+  // back/forward, deep-links, and reconnections without any extra storage.
+  const tabParam = searchParams.get("tab");
+  const activeTab: Tab = isTab(tabParam) ? tabParam : "summary";
+  const setActiveTab = useCallback(
+    (next: Tab) => {
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          if (next === "summary") params.delete("tab");
+          else params.set("tab", next);
+          return params;
+        },
+        { replace: true },
+      );
+    },
+    [setSearchParams],
+  );
+
   const [language, setLanguage] = useState<Language>("en");
   const [showShareMenu, setShowShareMenu] = useState(false);
 
