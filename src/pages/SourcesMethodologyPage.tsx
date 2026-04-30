@@ -7,7 +7,8 @@
  * Sources & Methodology accordions on lab reports.
  */
 
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -22,11 +23,17 @@ import {
   FileCheck2,
   Scale,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VeridiaLogo } from "@/components/VeridiaLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TRUSTED_SOURCES } from "@/components/landing/TrustedSources";
+import {
+  BIOMARKER_CATALOG,
+  getBiomarkersForDomain,
+} from "@/lib/medical-citations";
+import { cn } from "@/lib/utils";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -56,6 +63,40 @@ const TIER_META: Record<
 
 const SourcesMethodologyPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Highlight the targeted biomarker card briefly when arriving via #bio-{slug}
+  const [highlightedSlug, setHighlightedSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    const hash = location.hash.replace(/^#/, "");
+    if (!hash.startsWith("bio-")) return;
+    const slug = hash.slice("bio-".length);
+    // Defer to next frame so the target element is mounted.
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(`bio-${slug}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        setHighlightedSlug(slug);
+        const t = window.setTimeout(() => setHighlightedSlug(null), 2200);
+        return () => window.clearTimeout(t);
+      }
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [location.hash, location.key]);
+
+  // Group catalog by first letter for the alphabetical jump-bar
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof BIOMARKER_CATALOG>();
+    [...BIOMARKER_CATALOG]
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .forEach((b) => {
+        const letter = b.label.charAt(0).toUpperCase();
+        if (!map.has(letter)) map.set(letter, []);
+        map.get(letter)!.push(b);
+      });
+    return Array.from(map.entries());
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -251,40 +292,194 @@ const SourcesMethodologyPage = () => {
                       </div>
                     </div>
                     <ul className="space-y-2 sm:pl-13">
-                      {items.map((s) => (
-                        <li key={s.name}>
-                          <a
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group flex items-start gap-3 bg-card border border-border rounded-xl p-3 hover:border-primary/40 transition-colors"
+                      {items.map((s) => {
+                        const linkedBiomarkers = s.domain
+                          ? getBiomarkersForDomain(s.domain)
+                          : [];
+                        const previewCount = 6;
+                        const preview = linkedBiomarkers.slice(0, previewCount);
+                        const remaining =
+                          linkedBiomarkers.length - preview.length;
+
+                        return (
+                          <li
+                            key={s.name}
+                            className="bg-card border border-border rounded-xl p-3 hover:border-primary/40 transition-colors"
                           >
-                            <div className="h-9 w-20 flex items-center justify-center flex-shrink-0">
-                              <img
-                                src={s.logo}
-                                alt={`${s.name} logo`}
-                                loading="lazy"
-                                className="max-h-9 max-w-full object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition"
-                              />
+                            <div className="flex items-start gap-3">
+                              <a
+                                href={s.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group h-9 w-20 flex items-center justify-center flex-shrink-0"
+                                aria-label={`Visit ${s.name}`}
+                              >
+                                <img
+                                  src={s.logo}
+                                  alt={`${s.name} logo`}
+                                  loading="lazy"
+                                  className="max-h-9 max-w-full object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition"
+                                />
+                              </a>
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <a
+                                  href={s.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group inline-flex items-center gap-1.5 font-semibold text-sm hover:text-primary transition-colors"
+                                >
+                                  {s.name}
+                                  <ExternalLink className="w-3 h-3 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+                                </a>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  {s.cite}
+                                </p>
+                                {preview.length > 0 && (
+                                  <div className="pt-1.5 flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                                      Used in:
+                                    </span>
+                                    {preview.map((b) => (
+                                      <a
+                                        key={b.slug}
+                                        href={`#bio-${b.slug}`}
+                                        className="inline-flex items-center text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5 transition-colors"
+                                      >
+                                        {b.label}
+                                      </a>
+                                    ))}
+                                    {remaining > 0 && (
+                                      <a
+                                        href="#biomarker-library"
+                                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                      >
+                                        +{remaining} more →
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex-1 space-y-0.5">
-                              <p className="font-semibold text-sm flex items-center gap-1.5">
-                                {s.name}
-                                <ExternalLink className="w-3 h-3 text-muted-foreground/60 group-hover:text-primary transition-colors" />
-                              </p>
-                              <p className="text-xs text-muted-foreground leading-relaxed">
-                                {s.cite}
-                              </p>
-                            </div>
-                          </a>
-                        </li>
-                      ))}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 );
               }
             )}
           </div>
+        </motion.section>
+
+        {/* ─── Biomarker Reference Library (deep-link targets) ─── */}
+        <motion.section
+          id="biomarker-library"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.05 }}
+          variants={fadeUp}
+          className="space-y-6 scroll-mt-24"
+        >
+          <div className="space-y-2">
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" /> Biomarker Reference Library
+            </h2>
+            <p className="text-muted-foreground leading-relaxed">
+              Every curated biomarker we cite, with direct links to its sources.
+              Each entry has its own anchor — share{" "}
+              <code className="text-xs px-1.5 py-0.5 rounded bg-muted text-foreground">
+                /sources#bio-hba1c
+              </code>{" "}
+              to point someone to a specific reference.
+            </p>
+          </div>
+
+          {/* Alphabetical jump-bar */}
+          <nav
+            aria-label="Jump to biomarkers by letter"
+            className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-card border border-border sticky top-16 md:top-20 z-30"
+          >
+            {grouped.map(([letter]) => (
+              <a
+                key={letter}
+                href={`#bio-letter-${letter}`}
+                className="w-7 h-7 inline-flex items-center justify-center rounded-md text-xs font-bold text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+              >
+                {letter}
+              </a>
+            ))}
+          </nav>
+
+          {/* Letter groups */}
+          <div className="space-y-8">
+            {grouped.map(([letter, entries]) => (
+              <div key={letter} className="space-y-3">
+                <h3
+                  id={`bio-letter-${letter}`}
+                  className="text-sm font-bold uppercase tracking-wider text-muted-foreground border-b border-border pb-2 scroll-mt-32"
+                >
+                  {letter}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {entries.map((b) => {
+                    const isHighlighted = highlightedSlug === b.slug;
+                    return (
+                      <article
+                        key={b.slug}
+                        id={`bio-${b.slug}`}
+                        className={cn(
+                          "scroll-mt-32 bg-card border border-border rounded-xl p-4 space-y-2 transition-all duration-500",
+                          isHighlighted &&
+                            "ring-2 ring-primary/60 border-primary/40 shadow-md"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-semibold text-sm text-foreground">
+                            {b.label}
+                          </h4>
+                          <a
+                            href={`#bio-${b.slug}`}
+                            className="text-[10px] text-muted-foreground/60 hover:text-primary font-mono transition-colors"
+                            aria-label={`Permalink to ${b.label}`}
+                            title="Copy link to this biomarker"
+                          >
+                            #
+                          </a>
+                        </div>
+                        <ul className="space-y-1">
+                          {b.citations.map((c, i) => (
+                            <li key={i}>
+                              <a
+                                href={c.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group inline-flex items-start gap-1.5 text-xs text-primary hover:underline leading-relaxed"
+                              >
+                                <ExternalLink className="w-3 h-3 mt-0.5 flex-shrink-0 opacity-70 group-hover:opacity-100" />
+                                <span>
+                                  <span className="font-medium text-muted-foreground">
+                                    {c.domain}:
+                                  </span>{" "}
+                                  <span className="text-foreground group-hover:text-primary transition-colors">
+                                    {c.title}
+                                  </span>
+                                </span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground text-center pt-2">
+            Showing {BIOMARKER_CATALOG.length} curated biomarkers. New entries
+            are added regularly as we expand coverage.
+          </p>
         </motion.section>
 
         {/* ─── Verification badges legend ─── */}

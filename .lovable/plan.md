@@ -1,127 +1,100 @@
-# Strengthening the Gemini ↔ Citation Handshake
+## Goal
 
-We'll do all five upgrades in order. Each step is shippable on its own, so you can review/use the report after every step.
+Make every source on `/sources` deep-linkable to the exact biomarker citations it backs, using public anchor links inside the same page (no auth, works for any visitor).
 
----
-
-## Step 1 — Expand the curated biomarker map (≈30 → ~55 biomarkers)
-
-**Goal:** make sure almost every biomarker on a Nigerian lab panel gets a real NIH/Mayo/WHO citation, not the generic fallback.
-
-Add curated entries for the panels Nigerian labs commonly run that we don't fully cover yet:
-
-- **FBC extras:** MCV, MCH, MCHC, RDW, neutrophils, lymphocytes, eosinophils
-- **LFT extras:** ALP, GGT, albumin, total protein, globulin
-- **U&E / kidney extras:** chloride, bicarbonate, phosphate, magnesium
-- **Lipid extras:** VLDL, non-HDL, lipoprotein(a)
-- **Endocrine:** Free T3, Free T4, fasting insulin, HOMA-IR, cortisol, prolactin
-- **Reproductive:** FSH, LH, estradiol, testosterone, beta-hCG
-- **Infectious / tropical (Nigerian context):** malaria parasitemia, HIV antibody, HBsAg, Anti-HCV, VDRL, widal, H. pylori, typhoid IgM/IgG
-- **Inflammation:** CRP, ESR, procalcitonin
-- **Urinalysis:** protein, glucose (urine), ketones, leukocytes, nitrites
-
-**File touched:** `src/lib/medical-citations.ts` (extend `RULES`).
-
-**No DB changes, no UI changes.** Existing `CitationChips` immediately picks them up.
-
----
-
-## Step 2 — Add a Nigerian / African authority tier
-
-**Goal:** boost local trust by linking to authorities that speak to Nigerian patients directly.
-
-Introduce a second-tier list shown alongside the international sources:
-
-- **Federal Ministry of Health Nigeria** — `health.gov.ng` (where treatment guidelines exist)
-- **Nigerian Heart Foundation** — for lipids/BP biomarkers
-- **Africa CDC** — `africacdc.org` (HIV, malaria, TB, NCDs)
-- **WHO Africa** — `afro.who.int` (Africa-specific fact sheets)
-- **NAFDAC** — for nutrient/supplement context
-
-Implementation:
-
-- Extend `MedicalCitation` with an optional `region: "global" | "africa" | "nigeria"` field (defaults to `"global"` so existing entries are untouched).
-- Add region-tagged entries to high-impact biomarkers (glucose, HbA1c, lipids, hemoglobin, malaria, HIV markers, BP-related).
-- `CitationChips` groups by region: **International sources** + **Nigeria & Africa** sub-rows.
-- Update `ALL_SOURCE_DOMAINS` in `SourcesMethodology` to include the new domains.
-
-**Files touched:** `src/lib/medical-citations.ts`, `src/components/report/CitationChips.tsx`, `src/components/report/SourcesMethodology.tsx`.
-
----
-
-## Step 3 — "Verified against" badge per biomarker
-
-**Goal:** users see the handshake at a glance, not just hidden under a chevron.
-
-Add a small, always-visible label on every biomarker card:
-
-```text
-┌─────────────────────────────────────────┐
-│ Fasting Glucose          126 mg/dL  ⚠   │
-│ ✓ Cross-checked against NIH MedlinePlus │
-│ [tap to expand for sources & guidance]  │
-└─────────────────────────────────────────┘
+URL pattern:
+```
+/sources                 → page intro
+/sources#bio-hba1c       → scrolls to the HbA1c reference card
+/sources#bio-cholesterol → scrolls to the Cholesterol reference card
 ```
 
-Behaviour:
+## What changes
 
-- If a biomarker has ≥1 curated citation → green check + "Cross-checked against {top domain}" (e.g. NIH MedlinePlus).
-- If only fallback → no badge (handled by Step 5).
-- Expanding the card still shows the full `CitationChips` list (Step 2 grouping included).
+### 1. `src/lib/medical-citations.ts` — add public catalog
 
-**Files touched:** `src/components/report/BiomarkersTab.tsx` (add badge above the value row), small new sub-component `VerifiedBadge.tsx`.
+Export a flat, slug-indexed list derived from the existing `RULES` array so the methodology page can iterate every curated biomarker and so each source card knows which biomarkers cite it.
 
-No DB changes.
+```ts
+export type BiomarkerCatalogEntry = {
+  slug: string;          // "hba1c", "vitamin-d", "alt"
+  label: string;         // display name derived from match key
+  citations: MedicalCitation[];
+};
 
----
+export const BIOMARKER_CATALOG: BiomarkerCatalogEntry[];      // ~85 entries
+export function getBiomarkersForDomain(domain): BiomarkerCatalogEntry[];
+```
 
-## Step 4 — Show sources on the PDF / share export
+This is purely additive — the existing `getCitationsForBiomarker`, `hasCuratedCitation`, `getPrimaryDomain` keep working unchanged.
 
-**Goal:** the credibility doesn't disappear when the user downloads or WhatsApps the report to a doctor.
+### 2. `src/components/landing/TrustedSources.tsx` — add `domain` field
 
-Update `src/components/report/PDFExport.tsx`:
+Add a `domain` property to each `TrustedSource` matching the strings used in `medical-citations.ts` (e.g. `"NIH MedlinePlus"`, `"Mayo Clinic"`, `"WHO"`, `"WHO Africa"`, `"FMOH Nigeria"`, `"USDA"`). This lets `/sources` query "which biomarkers cite this source?" via `getBiomarkersForDomain(source.domain)`.
 
-- For each biomarker section in the PDF, add a **"Sources:"** line listing the domains (e.g. *Sources: NIH MedlinePlus, Mayo Clinic, WHO*). URLs become clickable in the PDF.
-- For each food in the diet plan that has a USDA match, append a small *"USDA verified"* tag with the FDC ID.
-- Add a final **"Sources & Methodology"** page at the end of the PDF mirroring the in-app `SourcesMethodology` section, plus the medical disclaimer.
-- Pass `biomarker_citations` and `nutrition_citations` from `ResultReport.tsx` into `pdfData`.
+### 3. `src/pages/SourcesMethodologyPage.tsx` — three additions
 
-**Files touched:** `src/components/report/PDFExport.tsx`, `src/pages/ResultReport.tsx` (extend `pdfData`).
+**a. New section: "Biomarker Reference Library"** (between the Tier breakdown and the badge legend)
 
-No DB changes.
+A scannable, deep-linkable list of all ~85 curated biomarkers. Each entry is its own anchor target:
 
----
+```text
+┌─ #bio-hba1c ─────────────────────────────────────┐
+│ HbA1c                                            │
+│ Cited by: NIH MedlinePlus · Mayo Clinic · WHO    │
+│ → MedlinePlus: HbA1c Test ↗                      │
+│ → Mayo Clinic: A1C test ↗                        │
+└──────────────────────────────────────────────────┘
+```
 
-## Step 5 — Strict mode: flag unverified interpretations
+Implemented as a responsive grid of cards. Each card has `id="bio-{slug}"` so `/sources#bio-hba1c` scrolls to it. Includes a small alphabetical jump-bar (A · B · C …) at the top.
 
-**Goal:** never let an AI-only interpretation look as authoritative as a cross-checked one.
+**b. Update each source card in the Tier section**
 
-Behaviour:
+Below each source's existing description, add a "Used in:" row showing the first ~6 biomarkers it covers as deep-link chips:
 
-- If `getCitationsForBiomarker(name)` returns only the generic fallback, the biomarker card shows an amber pill: **"AI interpretation — source not verified"** instead of the green "Cross-checked" badge.
-- The same pill appears in the PDF.
-- `SourcesMethodology` adds one line explaining the difference between cross-checked and AI-only items.
-- Add a tiny helper `hasCuratedCitation(name)` to `medical-citations.ts` so the UI can branch cleanly.
+```text
+NIH MedlinePlus  ↗
+Plain-language explanations for every lab test.
+Used in: HbA1c · Glucose · Cholesterol · ALT · Ferritin · TSH · +52 more →
+```
 
-**Files touched:** `src/lib/medical-citations.ts` (helper), `src/components/report/BiomarkersTab.tsx`, `src/components/report/PDFExport.tsx`, `src/components/report/SourcesMethodology.tsx`.
+Each chip is `<a href="#bio-{slug}">` — clicking jumps to that biomarker's anchor in the library section below.
 
-No DB changes.
+**c. Smooth scroll + highlight on hash change**
 
----
+Use a small `useEffect` listening to `location.hash` to:
+- Smooth-scroll to the target
+- Briefly flash the target card with a `ring-primary/50` highlight so users see what was linked
+- Account for the sticky header (use `scroll-mt-24` on each anchor)
 
-## What stays the same (the "handshake" itself)
+### 4. `src/components/report/SourcesMethodology.tsx` — add outbound link (small)
 
-- Gemini still does the **interpretation**.
-- Gemini **never supplies URLs** — citations are attached server-/client-side from our allow-list.
-- USDA remains the single source of truth for nutrition verification (already wired).
-- No new secrets, no new third-party APIs, no Perplexity.
+In the in-report accordion, add a "View full methodology and biomarker library →" link at the bottom that goes to `/sources`. This closes the loop so users reading their report can jump out to the public reference page.
 
-## Order of execution
+## Files touched
 
-1. Step 1 — expand map  *(foundation; everything else benefits)*
-2. Step 2 — Nigerian/African tier  *(local credibility)*
-3. Step 3 — Verified badge  *(visible handshake)*
-4. Step 4 — PDF citations  *(credibility survives sharing)*
-5. Step 5 — Strict mode  *(never overstate certainty)*
+- `src/lib/medical-citations.ts` — append `BiomarkerCatalogEntry`, `BIOMARKER_CATALOG`, `getBiomarkersForDomain`, plus `slugify`/`titleCase` helpers. No changes to existing exports.
+- `src/components/landing/TrustedSources.tsx` — add `domain` field to each entry in `TRUSTED_SOURCES`.
+- `src/pages/SourcesMethodologyPage.tsx` — add Biomarker Reference Library section, "Used in:" chips on source cards, hash-scroll effect.
+- `src/components/report/SourcesMethodology.tsx` — add outbound `/sources` link at the bottom of the accordion.
 
-Each step ends in a working build you can review before we move to the next.
+## What stays the same
+
+- All existing report behaviour (citation chips, verified badges, PDF export) — untouched.
+- Public/auth boundaries — `/sources` remains a public page, no user data leaves the report view.
+- Citation sourcing logic — Gemini still never generates URLs; the catalog is built from the same vetted `RULES` already in use.
+
+## Out of scope (per your "anchor links inside /sources" choice)
+
+- No deep links into authenticated `/app/result/:id` views.
+- No per-user "your biomarker history" page.
+- No backend/database changes — the catalog is fully static and derived from the existing TS module.
+
+## How users will experience it
+
+1. Visit `/sources`, scroll to "Backed by these authorities".
+2. On the **NIH MedlinePlus** card, see "Used in: HbA1c · Glucose · Cholesterol …".
+3. Click "HbA1c" → page smooth-scrolls to the HbA1c card in the library, briefly highlighted, with all three of its citations listed.
+4. From a lab report, click "View full methodology and biomarker library" in the in-report Sources accordion → lands on `/sources`. From there, jump to any specific biomarker via the catalog.
+5. Share `getveridia.app/sources#bio-hba1c` directly — recipient lands on the right card without any login.

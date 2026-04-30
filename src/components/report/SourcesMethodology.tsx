@@ -64,6 +64,16 @@ export const SourcesMethodology = ({ language }: SourcesMethodologyProps) => {
                 : "⚠️ Even with credible sources, this app does not replace medical advice. Always share your lab results with a qualified clinician for diagnosis and treatment."}
             </p>
           </div>
+          <a
+            href="/sources"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80 transition-colors mt-2"
+          >
+            {isPidgin
+              ? "See full methodology + biomarker library →"
+              : "View full methodology and biomarker library →"}
+          </a>
         </div>
       )}
     </div>
