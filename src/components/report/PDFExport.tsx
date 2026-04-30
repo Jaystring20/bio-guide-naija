@@ -1,9 +1,28 @@
 import jsPDF from "jspdf";
-import { Biomarker, BiomarkerPidgin, DietaryPlan, DietaryPlanPidgin, ChecklistItem, ChecklistItemPidgin, Language, STATUS_LABELS } from "./types";
+import {
+  Biomarker,
+  BiomarkerPidgin,
+  DietaryPlan,
+  DietaryPlanPidgin,
+  ChecklistItem,
+  ChecklistItemPidgin,
+  Language,
+  STATUS_LABELS,
+} from "./types";
 
-interface PDFData {
+// ─────────────────────────────────────────────────────────────────────────────
+// Unified VeriDIA report PDF template.
+// One branded layout used for download + WhatsApp + Email + native share so the
+// output always looks the same, in the same order, with the same coverage.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PDFData {
   language: Language;
   uploadDate: string;
+  patientName?: string | null;
+  testDate?: string | null;
+  hasCriticalAlert?: boolean;
+  criticalAlerts?: any[] | null;
   aiSummary: string | null;
   aiSummaryPidgin: string | null;
   biomarkers: Biomarker[];
@@ -15,192 +34,675 @@ interface PDFData {
 }
 
 function isStructured(item: ChecklistItem): item is { question: string; context: string; priority: "high" | "medium" | "low" } {
-  return typeof item === "object" && "question" in item;
+  return typeof item === "object" && item !== null && "question" in item;
+}
+
+// Brand palette (RGB) — mirrors index.css tokens.
+const BRAND = {
+  primary: [46, 204, 113] as [number, number, number],   // Vital Green #2ECC71
+  navy: [28, 59, 112] as [number, number, number],       // Clinical Navy #1C3B70
+  red: [192, 57, 43] as [number, number, number],        // Emergency Red
+  amber: [243, 156, 18] as [number, number, number],     // Alert Amber
+  ink: [24, 28, 36] as [number, number, number],
+  body: [48, 54, 64] as [number, number, number],
+  muted: [120, 128, 140] as [number, number, number],
+  hairline: [228, 231, 236] as [number, number, number],
+  surface: [247, 249, 251] as [number, number, number],
+  white: [255, 255, 255] as [number, number, number],
+};
+
+const STATUS_RGB: Record<string, [number, number, number]> = {
+  normal: BRAND.primary,
+  borderline: BRAND.amber,
+  "deranged-low": BRAND.red,
+  "deranged-high": BRAND.red,
+  critical: BRAND.red,
+};
+
+const PAGE = { w: 210, h: 297 };
+const MARGIN = 15;
+const CONTENT_W = PAGE.w - MARGIN * 2;
+const HEADER_H = 14;
+const FOOTER_H = 14;
+const BODY_TOP = HEADER_H + 6;
+const BODY_BOTTOM = PAGE.h - FOOTER_H - 4;
+
+interface Ctx {
+  doc: jsPDF;
+  y: number;
+  pageNum: number;
+  data: PDFData;
+  isPidgin: boolean;
+}
+
+function setColor(doc: jsPDF, c: [number, number, number]) {
+  doc.setTextColor(c[0], c[1], c[2]);
+}
+function setFill(doc: jsPDF, c: [number, number, number]) {
+  doc.setFillColor(c[0], c[1], c[2]);
+}
+function setDraw(doc: jsPDF, c: [number, number, number]) {
+  doc.setDrawColor(c[0], c[1], c[2]);
+}
+
+function drawHeader(ctx: Ctx, totalPages?: number) {
+  const { doc, pageNum } = ctx;
+  // Brand bar
+  setFill(doc, BRAND.primary);
+  doc.rect(0, 0, PAGE.w, 4, "F");
+  // Wordmark
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  setColor(doc, BRAND.navy);
+  doc.text("VeriDIA", MARGIN, 11);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  setColor(doc, BRAND.muted);
+  doc.text(ctx.isPidgin ? "Your Health Report" : "Your Health Report", MARGIN + 22, 11);
+  // Page indicator (right)
+  const pageLabel = totalPages ? `Page ${pageNum} of ${totalPages}` : `Page ${pageNum}`;
+  doc.text(pageLabel, PAGE.w - MARGIN - doc.getTextWidth(pageLabel), 11);
+  // Hairline
+  setDraw(doc, BRAND.hairline);
+  doc.setLineWidth(0.2);
+  doc.line(MARGIN, HEADER_H, PAGE.w - MARGIN, HEADER_H);
+}
+
+function drawFooter(ctx: Ctx) {
+  const { doc, isPidgin } = ctx;
+  const yLine = PAGE.h - FOOTER_H;
+  setDraw(doc, BRAND.hairline);
+  doc.setLineWidth(0.2);
+  doc.line(MARGIN, yLine, PAGE.w - MARGIN, yLine);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  setColor(doc, BRAND.muted);
+  const disclaimer = isPidgin
+    ? "Information only o — no be medical advice. Abeg see your doctor."
+    : "For information only — not medical advice. Please consult your doctor.";
+  doc.text(disclaimer, MARGIN, yLine + 5);
+  const right = "getveridia.app";
+  doc.text(right, PAGE.w - MARGIN - doc.getTextWidth(right), yLine + 5);
+  doc.setFontSize(7);
+  doc.text("NDPA 2023 compliant", MARGIN, yLine + 9.5);
+}
+
+function newPage(ctx: Ctx) {
+  ctx.doc.addPage();
+  ctx.pageNum += 1;
+  ctx.y = BODY_TOP;
+  drawHeader(ctx);
+  drawFooter(ctx);
+}
+
+function ensureSpace(ctx: Ctx, needed: number) {
+  if (ctx.y + needed > BODY_BOTTOM) newPage(ctx);
+}
+
+function addParagraph(
+  ctx: Ctx,
+  text: string,
+  opts: { x?: number; size?: number; bold?: boolean; color?: [number, number, number]; maxWidth?: number; lineGap?: number } = {},
+) {
+  const { doc } = ctx;
+  const x = opts.x ?? MARGIN;
+  const size = opts.size ?? 10;
+  const maxWidth = opts.maxWidth ?? PAGE.w - x - MARGIN;
+  doc.setFont("helvetica", opts.bold ? "bold" : "normal");
+  doc.setFontSize(size);
+  setColor(doc, opts.color ?? BRAND.body);
+  const lines = doc.splitTextToSize(text || "", maxWidth) as string[];
+  const lineHeight = size * 0.45;
+  for (const line of lines) {
+    ensureSpace(ctx, lineHeight);
+    doc.text(line, x, ctx.y + lineHeight - 1);
+    ctx.y += lineHeight;
+  }
+  ctx.y += opts.lineGap ?? 1.5;
+}
+
+function sectionHeading(ctx: Ctx, label: string, color: [number, number, number]) {
+  ensureSpace(ctx, 14);
+  ctx.y += 3;
+  // Pill
+  const padX = 3;
+  ctx.doc.setFont("helvetica", "bold");
+  ctx.doc.setFontSize(11);
+  const labelW = ctx.doc.getTextWidth(label);
+  setFill(ctx.doc, color);
+  (ctx.doc as any).roundedRect(MARGIN, ctx.y, labelW + padX * 2, 7, 2, 2, "F");
+  setColor(ctx.doc, BRAND.white);
+  ctx.doc.text(label, MARGIN + padX, ctx.y + 5);
+  ctx.y += 11;
+}
+
+function statusBadge(ctx: Ctx, x: number, y: number, status: string) {
+  const color = STATUS_RGB[status] ?? BRAND.muted;
+  const label = STATUS_LABELS[status] ?? status;
+  ctx.doc.setFont("helvetica", "bold");
+  ctx.doc.setFontSize(7.5);
+  const w = ctx.doc.getTextWidth(label) + 4;
+  setFill(ctx.doc, color);
+  (ctx.doc as any).roundedRect(x, y - 3.5, w, 4.8, 1.5, 1.5, "F");
+  setColor(ctx.doc, BRAND.white);
+  ctx.doc.text(label, x + 2, y);
+  return w;
+}
+
+function priorityBadge(ctx: Ctx, x: number, y: number, priority: string) {
+  const color = priority === "high" ? BRAND.red : priority === "medium" ? BRAND.amber : BRAND.primary;
+  const label = priority.toUpperCase();
+  ctx.doc.setFont("helvetica", "bold");
+  ctx.doc.setFontSize(7);
+  const w = ctx.doc.getTextWidth(label) + 4;
+  setFill(ctx.doc, color);
+  (ctx.doc as any).roundedRect(x, y - 3.2, w, 4.5, 1.5, 1.5, "F");
+  setColor(ctx.doc, BRAND.white);
+  ctx.doc.text(label, x + 2, y);
+  return w;
+}
+
+// Cover page with health-score ring.
+function drawCover(ctx: Ctx) {
+  const { doc, data, isPidgin } = ctx;
+
+  // Brand band
+  setFill(doc, BRAND.navy);
+  doc.rect(0, 0, PAGE.w, 38, "F");
+  setFill(doc, BRAND.primary);
+  doc.rect(0, 38, PAGE.w, 2, "F");
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(22);
+  setColor(doc, BRAND.white);
+  doc.text("VeriDIA", MARGIN, 18);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  doc.text(isPidgin ? "Your Health Report" : "Your Health Report", MARGIN, 25);
+
+  const dateStr = new Date(data.uploadDate).toLocaleDateString("en-NG", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+  doc.setFontSize(9);
+  doc.text(dateStr, PAGE.w - MARGIN - doc.getTextWidth(dateStr), 25);
+
+  ctx.y = 50;
+
+  // Patient block
+  if (data.patientName) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    setColor(doc, BRAND.muted);
+    doc.text(isPidgin ? "PATIENT" : "PATIENT", MARGIN, ctx.y);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(15);
+    setColor(doc, BRAND.ink);
+    doc.text(data.patientName, MARGIN, ctx.y + 7);
+    ctx.y += 14;
+  }
+  if (data.testDate) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    setColor(doc, BRAND.muted);
+    const td = new Date(data.testDate).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
+    doc.text(`${isPidgin ? "Test date" : "Test date"}: ${td}`, MARGIN, ctx.y);
+    ctx.y += 6;
+  }
+
+  // Critical alert banner
+  if (data.hasCriticalAlert && data.criticalAlerts && data.criticalAlerts.length > 0) {
+    ctx.y += 4;
+    setFill(doc, BRAND.red);
+    (doc as any).roundedRect(MARGIN, ctx.y, CONTENT_W, 22, 3, 3, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setColor(doc, BRAND.white);
+    doc.text(isPidgin ? "⚠ CRITICAL — SEE DOCTOR NOW" : "⚠ CRITICAL — SEE A DOCTOR NOW", MARGIN + 5, ctx.y + 7);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    const names = data.criticalAlerts
+      .map((a: any) => a?.name || a?.biomarker || "")
+      .filter(Boolean)
+      .slice(0, 4)
+      .join(" • ");
+    if (names) doc.text(names, MARGIN + 5, ctx.y + 14);
+    ctx.y += 26;
+  }
+
+  // Health score ring
+  const total = data.biomarkers.length;
+  const normal = data.biomarkers.filter((b) => b.status === "normal").length;
+  const borderline = data.biomarkers.filter((b) => b.status === "borderline").length;
+  const abnormal = data.biomarkers.filter((b) => ["deranged-low", "deranged-high", "critical"].includes(b.status)).length;
+  const score = total > 0 ? Math.round((normal / total) * 100) : 0;
+
+  ctx.y += 6;
+  const cx = MARGIN + 28;
+  const cy = ctx.y + 28;
+  // Outer track
+  setDraw(doc, BRAND.hairline);
+  doc.setLineWidth(4);
+  doc.circle(cx, cy, 22, "S");
+  // Filled arc — approximate with line segments
+  const ringColor = score >= 70 ? BRAND.primary : score >= 40 ? BRAND.amber : BRAND.red;
+  setDraw(doc, ringColor);
+  doc.setLineWidth(4);
+  const segs = Math.max(1, Math.round((score / 100) * 60));
+  for (let i = 0; i < segs; i++) {
+    const a1 = -Math.PI / 2 + (i / 60) * Math.PI * 2;
+    const a2 = -Math.PI / 2 + ((i + 1) / 60) * Math.PI * 2;
+    const x1 = cx + Math.cos(a1) * 22;
+    const y1 = cy + Math.sin(a1) * 22;
+    const x2 = cx + Math.cos(a2) * 22;
+    const y2 = cy + Math.sin(a2) * 22;
+    doc.line(x1, y1, x2, y2);
+  }
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  setColor(doc, BRAND.ink);
+  const scoreText = `${score}%`;
+  doc.text(scoreText, cx - doc.getTextWidth(scoreText) / 2, cy + 1);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  setColor(doc, BRAND.muted);
+  const lbl = isPidgin ? "Normal" : "Normal";
+  doc.text(lbl, cx - doc.getTextWidth(lbl) / 2, cy + 7);
+
+  // Stats column to the right
+  const sx = MARGIN + 64;
+  let sy = ctx.y + 4;
+  const drawStat = (color: [number, number, number], count: number, label: string) => {
+    setFill(doc, color);
+    (doc as any).roundedRect(sx, sy, 6, 6, 1.5, 1.5, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    setColor(doc, BRAND.ink);
+    doc.text(String(count), sx + 10, sy + 5);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    setColor(doc, BRAND.muted);
+    doc.text(label, sx + 22, sy + 5);
+    sy += 11;
+  };
+  drawStat(BRAND.primary, normal, isPidgin ? "Normal" : "Normal");
+  drawStat(BRAND.amber, borderline, isPidgin ? "Borderline" : "Borderline");
+  drawStat(BRAND.red, abnormal, isPidgin ? "Wahala" : "Abnormal");
+
+  ctx.y += 60;
+
+  // AI summary
+  const summary = ctx.isPidgin ? data.aiSummaryPidgin || data.aiSummary : data.aiSummary;
+  if (summary) {
+    setFill(doc, BRAND.surface);
+    const summaryLines = doc.splitTextToSize(summary, CONTENT_W - 8) as string[];
+    const blockH = 12 + summaryLines.length * 4.6;
+    (doc as any).roundedRect(MARGIN, ctx.y, CONTENT_W, blockH, 3, 3, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    setColor(doc, BRAND.navy);
+    doc.text(isPidgin ? "WETIN AI TALK" : "AI HEALTH SUMMARY", MARGIN + 5, ctx.y + 7);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    setColor(doc, BRAND.body);
+    summaryLines.forEach((line, i) => {
+      doc.text(line, MARGIN + 5, ctx.y + 13 + i * 4.6);
+    });
+    ctx.y += blockH + 4;
+  }
+
+  drawFooter(ctx);
+}
+
+function renderBiomarkers(ctx: Ctx) {
+  const { data, isPidgin, doc } = ctx;
+  if (data.biomarkers.length === 0) return;
+  sectionHeading(ctx, isPidgin ? "Your Results" : "Biomarker Results", BRAND.navy);
+
+  data.biomarkers.forEach((b) => {
+    const pidginB = data.biomarkersPidgin?.find((p) => p.name === b.name);
+    ensureSpace(ctx, 26);
+
+    // Name + value row
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setColor(doc, BRAND.ink);
+    doc.text(b.name, MARGIN, ctx.y + 4);
+
+    const valueText = `${b.value} ${b.unit}`;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setColor(doc, STATUS_RGB[b.status] ?? BRAND.body);
+    doc.text(valueText, PAGE.w - MARGIN - doc.getTextWidth(valueText), ctx.y + 4);
+    ctx.y += 6;
+
+    // Ref + status badge
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8.5);
+    setColor(doc, BRAND.muted);
+    const refText = `${isPidgin ? "Ref" : "Ref"}: ${b.reference_range}`;
+    doc.text(refText, MARGIN, ctx.y + 3);
+    statusBadge(ctx, MARGIN + doc.getTextWidth(refText) + 4, ctx.y + 3, b.status);
+    ctx.y += 5;
+
+    // Explanation
+    const explanation = isPidgin && pidginB ? pidginB.explanation : b.explanation;
+    if (explanation) addParagraph(ctx, explanation, { size: 9.5, color: BRAND.body });
+
+    // Why it matters
+    const why = isPidgin && pidginB ? pidginB.why_it_matters : b.why_it_matters;
+    if (why) {
+      addParagraph(ctx, isPidgin ? "Why e matter:" : "Why it matters:", {
+        size: 8.5, bold: true, color: BRAND.navy, lineGap: 0.5,
+      });
+      addParagraph(ctx, why, { size: 9, color: BRAND.body });
+    }
+
+    // Trend
+    const trend = isPidgin && pidginB ? pidginB.trend_context : b.trend_context;
+    if (trend) {
+      addParagraph(ctx, `↗ ${trend}`, { size: 8.5, color: BRAND.muted });
+    }
+
+    // Tip
+    const tip = isPidgin && pidginB ? pidginB.lifestyle_tip : b.lifestyle_tip;
+    if (tip) {
+      addParagraph(ctx, `💡 ${tip}`, { size: 8.5, color: BRAND.muted });
+    }
+
+    // Hairline separator
+    setDraw(doc, BRAND.hairline);
+    doc.setLineWidth(0.2);
+    doc.line(MARGIN, ctx.y + 1, PAGE.w - MARGIN, ctx.y + 1);
+    ctx.y += 4;
+  });
+}
+
+function renderDiet(ctx: Ctx) {
+  const { data, isPidgin, doc } = ctx;
+  const diet = data.dietaryPlan;
+  if (!diet) return;
+  const pidginDiet = data.dietaryPlanPidgin;
+
+  sectionHeading(ctx, isPidgin ? "Your Diet Plan" : "Your Diet Plan", BRAND.primary);
+
+  const renderFoodList = (
+    title: string,
+    color: [number, number, number],
+    items: Array<{ name: string; local_name?: string; benefit?: string; reason?: string; preparation_tip?: string }> | undefined,
+    pidginItems: Array<{ name?: string; benefit?: string; reason?: string; preparation_tip?: string }> | undefined,
+  ) => {
+    if (!items?.length) return;
+    addParagraph(ctx, title, { size: 10.5, bold: true, color, lineGap: 1 });
+    items.forEach((f, i) => {
+      const pf = pidginItems?.[i];
+      const head = `• ${f.name}${f.local_name ? `  (${f.local_name})` : ""}`;
+      addParagraph(ctx, head, { size: 9.5, bold: true, color: BRAND.ink, x: MARGIN + 2, lineGap: 0.5 });
+      const detail = isPidgin && pf ? pf.benefit ?? pf.reason : f.benefit ?? f.reason;
+      if (detail) addParagraph(ctx, detail, { size: 9, color: BRAND.body, x: MARGIN + 6, lineGap: 0.5 });
+      const tip = isPidgin && pf?.preparation_tip ? pf.preparation_tip : f.preparation_tip;
+      if (tip) addParagraph(ctx, `💡 ${tip}`, { size: 8.5, color: BRAND.muted, x: MARGIN + 6 });
+    });
+    ctx.y += 2;
+  };
+
+  renderFoodList(
+    isPidgin ? "✅ Chop More Of This" : "✅ Foods to Eat More",
+    BRAND.primary,
+    diet.foods_to_increase,
+    pidginDiet?.foods_to_increase,
+  );
+  renderFoodList(
+    isPidgin ? "⚠ Reduce This One" : "⚠ Foods to Reduce",
+    BRAND.amber,
+    diet.foods_to_reduce,
+    pidginDiet?.foods_to_reduce,
+  );
+  renderFoodList(
+    isPidgin ? "🚫 No Touch This One" : "🚫 Foods to Avoid",
+    BRAND.red,
+    diet.foods_to_avoid,
+    pidginDiet?.foods_to_avoid,
+  );
+
+  // Meal ideas
+  if (diet.meal_suggestions?.length) {
+    addParagraph(ctx, isPidgin ? "🍽 Food Ideas" : "🍽 Meal Ideas", { size: 10.5, bold: true, color: BRAND.navy });
+    diet.meal_suggestions.forEach((m, i) => {
+      const pm = pidginDiet?.meal_suggestions?.[i];
+      addParagraph(ctx, `• ${m.meal}`, { size: 9.5, bold: true, color: BRAND.ink, x: MARGIN + 2, lineGap: 0.5 });
+      const desc = isPidgin && pm ? pm.description : m.description;
+      if (desc) addParagraph(ctx, desc, { size: 9, color: BRAND.body, x: MARGIN + 6 });
+    });
+    ctx.y += 2;
+  }
+
+  // Weekly meal plan table
+  if (diet.weekly_meal_plan?.length) {
+    addParagraph(ctx, isPidgin ? "📅 7-Day Chop Plan" : "📅 7-Day Meal Plan", { size: 10.5, bold: true, color: BRAND.navy });
+    const colWidths = [22, (CONTENT_W - 22) / 3, (CONTENT_W - 22) / 3, (CONTENT_W - 22) / 3];
+    const headers = isPidgin ? ["Day", "Morning", "Afternoon", "Night"] : ["Day", "Breakfast", "Lunch", "Dinner"];
+
+    // Header row
+    ensureSpace(ctx, 8);
+    setFill(doc, BRAND.surface);
+    doc.rect(MARGIN, ctx.y, CONTENT_W, 7, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    setColor(doc, BRAND.navy);
+    let xCursor = MARGIN + 2;
+    headers.forEach((h, i) => {
+      doc.text(h, xCursor, ctx.y + 5);
+      xCursor += colWidths[i];
+    });
+    ctx.y += 7;
+
+    diet.weekly_meal_plan.forEach((day) => {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      setColor(doc, BRAND.body);
+      const cells = [day.day, day.breakfast, day.lunch, day.dinner];
+      const wrapped = cells.map((c, i) => doc.splitTextToSize(String(c || ""), colWidths[i] - 3) as string[]);
+      const rowH = Math.max(...wrapped.map((w) => w.length)) * 4 + 3;
+      ensureSpace(ctx, rowH);
+      setDraw(doc, BRAND.hairline);
+      doc.setLineWidth(0.15);
+      doc.line(MARGIN, ctx.y, PAGE.w - MARGIN, ctx.y);
+      let cx = MARGIN + 2;
+      wrapped.forEach((lines, i) => {
+        if (i === 0) {
+          doc.setFont("helvetica", "bold");
+          setColor(doc, BRAND.navy);
+        } else {
+          doc.setFont("helvetica", "normal");
+          setColor(doc, BRAND.body);
+        }
+        lines.forEach((ln, li) => {
+          doc.text(ln, cx, ctx.y + 4 + li * 4);
+        });
+        cx += colWidths[i];
+      });
+      ctx.y += rowH;
+    });
+    ctx.y += 3;
+  }
+
+  // Hydration
+  if (diet.hydration_tips?.length) {
+    addParagraph(ctx, isPidgin ? "💧 Water Matter" : "💧 Hydration Tips", { size: 10.5, bold: true, color: BRAND.navy });
+    diet.hydration_tips.forEach((tip, i) => {
+      const pt = pidginDiet?.hydration_tips?.[i];
+      addParagraph(ctx, `• ${isPidgin && pt ? pt : tip}`, { size: 9, color: BRAND.body, x: MARGIN + 2 });
+    });
+    ctx.y += 2;
+  }
+
+  // Supplements
+  if (diet.supplement_notes?.length) {
+    addParagraph(ctx, isPidgin ? "🌿 Natural Booster" : "🌿 Natural Supplements", { size: 10.5, bold: true, color: BRAND.navy });
+    diet.supplement_notes.forEach((note, i) => {
+      const pn = pidginDiet?.supplement_notes?.[i];
+      addParagraph(ctx, `• ${isPidgin && pn ? pn : note}`, { size: 9, color: BRAND.body, x: MARGIN + 2 });
+    });
+  }
+}
+
+function renderChecklist(ctx: Ctx) {
+  const { data, isPidgin, doc } = ctx;
+  if (!data.checklist.length) return;
+  sectionHeading(ctx, isPidgin ? "Questions for Doctor" : "Questions for Your Doctor", BRAND.navy);
+
+  data.checklist.forEach((q, i) => {
+    const pidginQ = data.checklistPidgin?.[i];
+    const structured = isStructured(q);
+    const questionText = isPidgin && pidginQ ? pidginQ.question : structured ? q.question : (q as string);
+    const context = isPidgin && pidginQ ? pidginQ.context : structured ? q.context : "";
+    const priority = structured ? q.priority : null;
+
+    ensureSpace(ctx, 14);
+    // Number bubble
+    setFill(doc, BRAND.navy);
+    doc.circle(MARGIN + 3, ctx.y + 3, 3, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    setColor(doc, BRAND.white);
+    const num = String(i + 1);
+    doc.text(num, MARGIN + 3 - doc.getTextWidth(num) / 2, ctx.y + 4.2);
+
+    // Question text
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    setColor(doc, BRAND.ink);
+    const qLines = doc.splitTextToSize(questionText, CONTENT_W - 24) as string[];
+    qLines.forEach((ln, li) => {
+      doc.text(ln, MARGIN + 9, ctx.y + 4 + li * 4.4);
+    });
+    let blockH = qLines.length * 4.4;
+
+    // Priority badge (right aligned)
+    if (priority) {
+      priorityBadge(ctx, PAGE.w - MARGIN - 14, ctx.y + 4, priority);
+    }
+    ctx.y += blockH + 1;
+
+    if (context) {
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      setColor(doc, BRAND.muted);
+      const cLines = doc.splitTextToSize(`${isPidgin ? "Why e matter: " : "Why this matters: "}${context}`, CONTENT_W - 12) as string[];
+      cLines.forEach((ln) => {
+        ensureSpace(ctx, 4);
+        doc.text(ln, MARGIN + 9, ctx.y + 3);
+        ctx.y += 3.8;
+      });
+    }
+    ctx.y += 3;
+  });
+}
+
+function renderDisclaimerPage(ctx: Ctx) {
+  const { doc, isPidgin } = ctx;
+  newPage(ctx);
+  sectionHeading(ctx, isPidgin ? "Important Notice" : "Important Notice", BRAND.red);
+  addParagraph(ctx,
+    isPidgin
+      ? "This report na for information only o. E no be medical advice. The AI no fit replace your doctor. Abeg always go see your doctor before you change your medicine, your chop, or your treatment."
+      : "This report is for informational purposes only and does not constitute medical advice. AI is not a substitute for a qualified healthcare provider. Always consult your doctor before changing medication, diet, or treatment.",
+    { size: 10, color: BRAND.body },
+  );
+  addParagraph(ctx,
+    isPidgin
+      ? "Your data dey safe with us. We follow Nigeria Data Protection Act (NDPA 2023). We dey delete your lab pictures after we don read them."
+      : "Your data is protected under the Nigeria Data Protection Act (NDPA 2023). Lab images are deleted after processing.",
+    { size: 9.5, color: BRAND.muted },
+  );
+  ctx.y += 4;
+  addParagraph(ctx, "Generated by VeriDIA — getveridia.app", { size: 9, color: BRAND.muted });
+}
+
+function buildReportPdf(data: PDFData): { doc: jsPDF; fileName: string } {
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const ctx: Ctx = {
+    doc,
+    y: BODY_TOP,
+    pageNum: 1,
+    data,
+    isPidgin: data.language === "pidgin",
+  };
+
+  // Cover (no header — uses its own brand band)
+  drawCover(ctx);
+
+  // Body sections each start on a new page so the cover stays clean.
+  newPage(ctx);
+  renderBiomarkers(ctx);
+
+  if (data.dietaryPlan) {
+    newPage(ctx);
+    renderDiet(ctx);
+  }
+
+  if (data.checklist.length > 0) {
+    newPage(ctx);
+    renderChecklist(ctx);
+  }
+
+  renderDisclaimerPage(ctx);
+
+  // Stamp "Page X of Y" by re-drawing headers on every page now that we know totals.
+  const total = (doc as any).getNumberOfPages();
+  for (let p = 2; p <= total; p++) {
+    doc.setPage(p);
+    // Wipe old header area then redraw with totals.
+    setFill(doc, BRAND.white);
+    doc.rect(0, 0, PAGE.w, HEADER_H + 0.5, "F");
+    setFill(doc, BRAND.primary);
+    doc.rect(0, 0, PAGE.w, 4, "F");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    setColor(doc, BRAND.navy);
+    doc.text("VeriDIA", MARGIN, 11);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    setColor(doc, BRAND.muted);
+    doc.text(ctx.isPidgin ? "Your Health Report" : "Your Health Report", MARGIN + 22, 11);
+    const pageLabel = `Page ${p} of ${total}`;
+    doc.text(pageLabel, PAGE.w - MARGIN - doc.getTextWidth(pageLabel), 11);
+    setDraw(doc, BRAND.hairline);
+    doc.setLineWidth(0.2);
+    doc.line(MARGIN, HEADER_H, PAGE.w - MARGIN, HEADER_H);
+  }
+
+  const fileName = `VeriDIA-Report-${new Date(data.uploadDate)
+    .toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" })
+    .replace(/\s/g, "-")}.pdf`;
+
+  return { doc, fileName };
 }
 
 export function generatePDF(data: PDFData, returnBlob?: boolean): { blob: Blob | null; fileName: string } {
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 15;
-  const contentWidth = pageWidth - margin * 2;
-  let y = margin;
-
-  const lang = data.language;
-  const isPidgin = lang === "pidgin";
-
-  const checkPage = (needed: number) => {
-    if (y + needed > 275) {
-      doc.addPage();
-      y = margin;
-    }
-  };
-
-  const addText = (text: string, x: number, fontSize: number, opts?: { bold?: boolean; color?: [number, number, number]; maxWidth?: number }) => {
-    doc.setFontSize(fontSize);
-    doc.setFont("helvetica", opts?.bold ? "bold" : "normal");
-    if (opts?.color) doc.setTextColor(...opts.color);
-    else doc.setTextColor(33, 33, 33);
-    const lines = doc.splitTextToSize(text, opts?.maxWidth || contentWidth);
-    checkPage(lines.length * fontSize * 0.45);
-    doc.text(lines, x, y);
-    y += lines.length * fontSize * 0.45 + 2;
-  };
-
-  // Header
-  doc.setFillColor(15, 23, 42);
-  doc.rect(0, 0, pageWidth, 30, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.setFont("helvetica", "bold");
-  doc.text("VeriDIA", margin, 14);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(isPidgin ? "Your Health Report" : "Your Health Report", margin, 22);
-  const dateStr = new Date(data.uploadDate).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" });
-  doc.text(dateStr, pageWidth - margin - doc.getTextWidth(dateStr), 22);
-  y = 40;
-
-  // Summary
-  const summaryText = isPidgin ? (data.aiSummaryPidgin || data.aiSummary) : data.aiSummary;
-  if (summaryText) {
-    addText(isPidgin ? "Wetin Your Result Talk" : "Health Summary", margin, 14, { bold: true, color: [59, 130, 246] });
-    y += 2;
-    addText(summaryText, margin, 10);
-    y += 6;
-  }
-
-  // Biomarker stats
-  const normal = data.biomarkers.filter(b => b.status === "normal").length;
-  const borderline = data.biomarkers.filter(b => b.status === "borderline").length;
-  const abnormal = data.biomarkers.filter(b => ["deranged-low", "deranged-high", "critical"].includes(b.status)).length;
-  addText(`${isPidgin ? "Normal" : "Normal"}: ${normal}  |  ${isPidgin ? "Borderline" : "Borderline"}: ${borderline}  |  ${isPidgin ? "Wahala" : "Abnormal"}: ${abnormal}`, margin, 10, { bold: true });
-  y += 4;
-
-  // Biomarkers
-  doc.setDrawColor(200, 200, 200);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 6;
-  addText(isPidgin ? "Your Results One By One" : "Biomarker Results", margin, 14, { bold: true, color: [59, 130, 246] });
-  y += 2;
-
-  data.biomarkers.forEach((b, i) => {
-    checkPage(30);
-    const pidginB = data.biomarkersPidgin?.find(p => p.name === b.name);
-
-    addText(`${b.name} — ${b.value} ${b.unit} (${isPidgin ? "Ref" : "Ref"}: ${b.reference_range})`, margin, 10, { bold: true });
-    addText(`Status: ${STATUS_LABELS[b.status]}`, margin + 2, 9, {
-      color: b.status === "normal" ? [22, 163, 74] : b.status === "borderline" ? [202, 138, 4] : [220, 38, 38],
-    });
-    const explanation = isPidgin && pidginB ? pidginB.explanation : b.explanation;
-    addText(explanation, margin + 2, 9, { maxWidth: contentWidth - 4 });
-
-    const tip = isPidgin && pidginB ? pidginB.lifestyle_tip : b.lifestyle_tip;
-    if (tip) {
-      addText(`💡 ${tip}`, margin + 2, 8, { color: [100, 100, 100], maxWidth: contentWidth - 4 });
-    }
-    y += 3;
-  });
-
-  // Diet Plan
-  const diet = data.dietaryPlan;
-  if (diet) {
-    checkPage(20);
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 6;
-    addText(isPidgin ? "Wetin You Suppose Chop" : "Your Diet Plan", margin, 14, { bold: true, color: [22, 163, 74] });
-    y += 2;
-
-    const pidginDiet = data.dietaryPlanPidgin;
-
-    if (diet.foods_to_increase?.length) {
-      addText(isPidgin ? "✅ Chop More Of This" : "✅ Foods to Eat More", margin, 11, { bold: true, color: [22, 163, 74] });
-      diet.foods_to_increase.forEach((f, i) => {
-        checkPage(12);
-        const pidginF = pidginDiet?.foods_to_increase?.[i];
-        const benefit = isPidgin && pidginF ? pidginF.benefit : f.benefit;
-        addText(`• ${f.name} (${f.local_name}) — ${benefit}`, margin + 2, 9, { maxWidth: contentWidth - 4 });
-      });
-      y += 3;
-    }
-
-    if (diet.foods_to_reduce?.length) {
-      addText(isPidgin ? "⚠️ Reduce This One" : "⚠️ Foods to Reduce", margin, 11, { bold: true, color: [202, 138, 4] });
-      diet.foods_to_reduce.forEach((f, i) => {
-        checkPage(12);
-        const pidginF = pidginDiet?.foods_to_reduce?.[i];
-        const reason = isPidgin && pidginF ? pidginF.reason : f.reason;
-        addText(`• ${f.name} (${f.local_name}) — ${reason}`, margin + 2, 9, { maxWidth: contentWidth - 4 });
-      });
-      y += 3;
-    }
-
-    if (diet.foods_to_avoid?.length) {
-      addText(isPidgin ? "🚫 No Touch This One" : "🚫 Foods to Avoid", margin, 11, { bold: true, color: [220, 38, 38] });
-      diet.foods_to_avoid.forEach((f, i) => {
-        checkPage(12);
-        const pidginF = pidginDiet?.foods_to_avoid?.[i];
-        const reason = isPidgin && pidginF ? pidginF.reason : f.reason;
-        addText(`• ${f.name} (${f.local_name}) — ${reason}`, margin + 2, 9, { maxWidth: contentWidth - 4 });
-      });
-      y += 3;
-    }
-  }
-
-  // Doctor Questions
-  if (data.checklist.length > 0) {
-    checkPage(20);
-    doc.setDrawColor(200, 200, 200);
-    doc.line(margin, y, pageWidth - margin, y);
-    y += 6;
-    addText(isPidgin ? "Wetin You Go Ask Doctor" : "Questions for Your Doctor", margin, 14, { bold: true, color: [59, 130, 246] });
-    y += 2;
-
-    data.checklist.forEach((q, i) => {
-      checkPage(15);
-      const pidginQ = data.checklistPidgin?.[i];
-      const questionText = isStructured(q) ? q.question : q;
-      const displayQ = isPidgin && pidginQ ? pidginQ.question : questionText;
-      addText(`${i + 1}. ${displayQ}`, margin + 2, 9, { bold: true, maxWidth: contentWidth - 4 });
-    });
-  }
-
-  // Footer disclaimer
-  checkPage(20);
-  y += 8;
-  doc.setDrawColor(200, 200, 200);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 5;
-  addText(
-    isPidgin
-      ? "⚠️ This report na for information only o. E no be medical advice. Abeg go see your doctor."
-      : "⚠️ This report is for informational purposes only and does not constitute medical advice. Please consult your healthcare provider.",
-    margin, 8, { color: [120, 120, 120] }
-  );
-  addText("Generated by VeriDIA — getveridia.app", margin, 7, { color: [150, 150, 150] });
-
-  const fileName = `VeriDIA-Report-${new Date(data.uploadDate).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }).replace(/\s/g, "-")}.pdf`;
-
+  const { doc, fileName } = buildReportPdf(data);
   if (returnBlob) {
     return { blob: doc.output("blob") as Blob, fileName };
   }
-
   doc.save(fileName);
   return { blob: null, fileName };
 }
 
 export async function sharePDF(data: PDFData, method: "whatsapp" | "email" | "native") {
-  const { blob, fileName } = generatePDF({ ...data }, true) as { blob: Blob; fileName: string };
+  const { blob, fileName } = generatePDF(data, true) as { blob: Blob; fileName: string };
 
   if (method === "native" && navigator.share && blob) {
     try {
       const file = new File([blob], fileName, { type: "application/pdf" });
-      await navigator.share({
-        title: "VeriDIA Lab Report",
-        text: "Check out my lab report from VeriDIA",
-        files: [file],
-      });
-      return true;
+      // @ts-ignore — canShare is widely supported
+      if (!navigator.canShare || navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: "VeriDIA Lab Report",
+          text: "Check out my lab report from VeriDIA",
+          files: [file],
+        });
+        return true;
+      }
     } catch (e: any) {
       if (e.name === "AbortError") return false;
       // Fall through to download
@@ -208,8 +710,23 @@ export async function sharePDF(data: PDFData, method: "whatsapp" | "email" | "na
   }
 
   if (method === "whatsapp") {
-    // WhatsApp doesn't support file attachments via URL, so we download the PDF
-    // and open WhatsApp with a text message
+    // Try native file share targeted at WhatsApp first (works on mobile).
+    const file = new File([blob], fileName, { type: "application/pdf" });
+    // @ts-ignore
+    if (navigator.share && (!navigator.canShare || navigator.canShare({ files: [file] }))) {
+      try {
+        await navigator.share({
+          title: "VeriDIA Lab Report",
+          text: "Here's my lab report from VeriDIA 🩺",
+          files: [file],
+        });
+        return true;
+      } catch (e: any) {
+        if (e.name === "AbortError") return false;
+        // fall through to deep-link fallback
+      }
+    }
+    // Fallback: download PDF + open WhatsApp text composer.
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -218,14 +735,13 @@ export async function sharePDF(data: PDFData, method: "whatsapp" | "email" | "na
     URL.revokeObjectURL(url);
 
     const text = encodeURIComponent(
-      "Here's my lab report from VeriDIA 🩺\nDownload the PDF I just shared and check it out!\n\nhttps://getveridia.app"
+      "Here's my lab report from VeriDIA 🩺\nDownload the PDF I just shared and check it out!\n\nhttps://getveridia.app",
     );
     window.open(`https://wa.me/?text=${text}`, "_blank");
     return true;
   }
 
   if (method === "email") {
-    // Download PDF, then open email client
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -235,7 +751,7 @@ export async function sharePDF(data: PDFData, method: "whatsapp" | "email" | "na
 
     const subject = encodeURIComponent("My VeriDIA Lab Report");
     const body = encodeURIComponent(
-      "Hi,\n\nPlease find my lab report from VeriDIA attached (downloaded separately).\n\nGenerated by VeriDIA — https://getveridia.app"
+      "Hi,\n\nPlease find my lab report from VeriDIA attached (downloaded separately).\n\nGenerated by VeriDIA — https://getveridia.app",
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
     return true;

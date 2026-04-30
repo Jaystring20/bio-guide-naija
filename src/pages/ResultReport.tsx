@@ -2,12 +2,14 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useDependants } from "@/hooks/useDependants";
 import { useRegenerateDiet } from "@/hooks/useRegenerateDiet";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { EmergencyAlert } from "@/components/EmergencyAlert";
 import { Button } from "@/components/ui/button";
-import { Loader2, Download, Share2, MessageCircle, Mail, ShieldCheck, RefreshCw, AlertTriangle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Loader2, Download, Mail, Share2, MoreHorizontal, ShieldCheck, RefreshCw, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Biomarker, BiomarkerPidgin, DietaryPlan, DietaryPlanPidgin, ChecklistItem, ChecklistItemPidgin, Language } from "@/components/report/types";
 import { SummaryTab } from "@/components/report/SummaryTab";
@@ -34,8 +36,9 @@ const isTab = (v: string | null): v is Tab =>
 
 const ResultReport = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { isAdmin } = useUserRole();
+  const { dependants } = useDependants();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [showEmergency, setShowEmergency] = useState(false);
@@ -60,7 +63,6 @@ const ResultReport = () => {
   );
 
   const [language, setLanguage] = useState<Language>("en");
-  const [showShareMenu, setShowShareMenu] = useState(false);
 
   const { data: result, isLoading, refetch } = useQuery({
     queryKey: ["lab-result", id, isAdmin],
@@ -202,9 +204,23 @@ const ResultReport = () => {
 
   const hasPidgin = !!biomarkersPidgin || !!aiSummaryPidgin;
 
+  // Resolve the patient/dependant name for the PDF cover.
+  const patientName = (() => {
+    if (result.dependant_id) {
+      const dep = dependants.find((d) => d.id === result.dependant_id);
+      if (dep?.full_name) return dep.full_name;
+    }
+    if (isAdminViewing) return ownerInfo?.full_name || ownerInfo?.email || null;
+    return profile?.full_name || null;
+  })();
+
   const pdfData = {
     language,
     uploadDate: result.upload_date,
+    patientName,
+    testDate: (result as any).test_date as string | null,
+    hasCriticalAlert: result.has_critical_alert,
+    criticalAlerts,
     aiSummary,
     aiSummaryPidgin,
     biomarkers,
@@ -220,7 +236,6 @@ const ResultReport = () => {
   };
 
   const handleShare = async (method: "whatsapp" | "email" | "native") => {
-    setShowShareMenu(false);
     await sharePDF(pdfData, method);
   };
 
@@ -395,71 +410,74 @@ const ResultReport = () => {
         </motion.div>
       </AnimatePresence>
 
-      {/* Floating action buttons */}
-      <div className="fixed bottom-24 right-4 z-40 flex flex-col items-center gap-2">
-        {/* Share menu */}
-        {showShareMenu && (
-          <div className="flex flex-col gap-2 mb-1 animate-in slide-in-from-bottom-2 fade-in duration-200">
+      {/* Spacer so the fixed bottom action bar doesn't cover content */}
+      <div className="h-28" aria-hidden="true" />
+
+      {/* Sticky bottom action bar — WhatsApp share is the obvious one-tap action */}
+      <div className="fixed left-0 right-0 bottom-20 z-40 px-3 pointer-events-none">
+        <div className="max-w-lg mx-auto pointer-events-auto">
+          <div className="rounded-2xl bg-card/95 backdrop-blur border border-border shadow-lg p-2 flex items-center gap-2">
             <Button
               onClick={() => handleShare("whatsapp")}
-              className="h-11 w-11 rounded-full bg-[hsl(142,70%,45%)] text-white shadow-md hover:bg-[hsl(142,70%,40%)]"
-              size="icon"
-              title="Share via WhatsApp"
+              className="flex-1 h-12 rounded-xl bg-[hsl(142,70%,45%)] text-white hover:bg-[hsl(142,70%,40%)] font-semibold touch-target"
             >
-              <MessageCircle className="w-5 h-5" />
+              {/* WhatsApp glyph */}
+              <svg viewBox="0 0 24 24" className="w-5 h-5 mr-2 fill-current" aria-hidden="true">
+                <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.59-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.555-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.607zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.625.712.227 1.36.195 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413z" />
+              </svg>
+              {language === "pidgin" ? "Send to WhatsApp" : "Send to WhatsApp"}
             </Button>
+
             <Button
-              onClick={() => handleShare("email")}
-              className="h-11 w-11 rounded-full bg-secondary text-secondary-foreground shadow-md hover:bg-secondary/90"
-              size="icon"
-              title="Share via Email"
+              onClick={handleDownloadPDF}
+              variant="outline"
+              className="h-12 px-4 rounded-xl touch-target"
+              title={language === "pidgin" ? "Download PDF" : "Download PDF"}
             >
-              <Mail className="w-5 h-5" />
+              <Download className="w-4 h-4 mr-1.5" />
+              <span className="text-sm font-semibold">PDF</span>
             </Button>
-            {typeof navigator !== "undefined" && navigator.share && (
-              <Button
-                onClick={() => handleShare("native")}
-                className="h-11 w-11 rounded-full bg-primary text-primary-foreground shadow-md hover:bg-primary/90"
-                size="icon"
-                title="More sharing options"
-              >
-                <Share2 className="w-5 h-5" />
-              </Button>
-            )}
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-12 w-12 rounded-xl touch-target"
+                  aria-label={language === "pidgin" ? "More share options" : "More share options"}
+                >
+                  <MoreHorizontal className="w-5 h-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" side="top" className="w-56 p-2">
+                <button
+                  onClick={() => handleShare("email")}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted text-left text-sm"
+                >
+                  <Mail className="w-4 h-4 text-muted-foreground" />
+                  {language === "pidgin" ? "Send by Email" : "Send by Email"}
+                </button>
+                {typeof navigator !== "undefined" && (navigator as any).share && (
+                  <button
+                    onClick={() => handleShare("native")}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted text-left text-sm"
+                  >
+                    <Share2 className="w-4 h-4 text-muted-foreground" />
+                    {language === "pidgin" ? "Other apps" : "Other apps"}
+                  </button>
+                )}
+                <button
+                  onClick={handleDownloadPDF}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted text-left text-sm"
+                >
+                  <Download className="w-4 h-4 text-muted-foreground" />
+                  {language === "pidgin" ? "Download PDF" : "Download PDF"}
+                </button>
+              </PopoverContent>
+            </Popover>
           </div>
-        )}
-
-        {/* Share toggle */}
-        <Button
-          onClick={() => setShowShareMenu(!showShareMenu)}
-          className={cn(
-            "h-12 w-12 rounded-full shadow-lg touch-target transition-colors",
-            showShareMenu
-              ? "bg-muted text-muted-foreground"
-              : "bg-secondary text-secondary-foreground"
-          )}
-          size="icon"
-        >
-          <Share2 className="w-5 h-5" />
-        </Button>
-
-        {/* PDF download */}
-        <div className="flex flex-col items-center gap-1">
-          <Button
-            onClick={handleDownloadPDF}
-            className="h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-lg hover:shadow-xl touch-target"
-            size="icon"
-          >
-            <Download className="w-6 h-6" />
-          </Button>
-          <span className="text-[10px] font-semibold text-muted-foreground">PDF</span>
         </div>
       </div>
-
-      {/* Backdrop to close share menu */}
-      {showShareMenu && (
-        <div className="fixed inset-0 z-30" onClick={() => setShowShareMenu(false)} />
-      )}
     </div>
   );
 };
