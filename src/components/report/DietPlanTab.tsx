@@ -12,7 +12,7 @@ interface DietPlanTabProps {
   nutritionStatus?: "pending" | "done" | "failed" | null;
 }
 
-export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language }: DietPlanTabProps) => {
+export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritionCitations, nutritionStatus }: DietPlanTabProps) => {
   const [showWeeklyPlan, setShowWeeklyPlan] = useState(false);
   const isPidgin = language === "pidgin";
   const pidgin = dietaryPlanPidgin;
