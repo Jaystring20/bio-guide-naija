@@ -2,6 +2,7 @@ import { Biomarker, Language } from "./types";
 import { Activity, TrendingUp, AlertTriangle, CheckCircle2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { ListenButton } from "./ListenButton";
 
 interface SummaryTabProps {
   biomarkers: Biomarker[];
@@ -89,6 +90,20 @@ export const SummaryTab = ({ biomarkers, aiSummary, aiSummaryPidgin, uploadDate,
           <p className="text-body-sm leading-relaxed">{summary}</p>
         </div>
       )}
+
+      <ListenButton
+        language={language}
+        label={isPidgin ? "summary" : "summary"}
+        getText={() => {
+          const intro = isPidgin
+            ? `Your VeriDIA health summary. ${total} things wey dem check.`
+            : `Your VeriDIA health summary. ${total} biomarkers analyzed.`;
+          const counts = isPidgin
+            ? `${normal} dey okay, ${borderline} dey borderline, and ${abnormal} get wahala.`
+            : `${normal} are normal, ${borderline} are borderline, and ${abnormal} are abnormal.`;
+          return [intro, counts, summary || ""].filter(Boolean).join(" ");
+        }}
+      />
 
       <Button onClick={shareReport} className="w-full h-12 rounded-xl bg-accent text-accent-foreground touch-target">
         <Share2 className="w-4 h-4 mr-2" /> {isPidgin ? "Share Am" : "Share Report Summary"}
