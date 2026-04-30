@@ -31,6 +31,8 @@ export interface PDFData {
   dietaryPlanPidgin: DietaryPlanPidgin | null;
   checklist: ChecklistItem[];
   checklistPidgin: ChecklistItemPidgin[] | null;
+  /** Public URL back to this report (used in share messages). Optional. */
+  reportUrl?: string | null;
 }
 
 function isStructured(item: ChecklistItem): item is { question: string; context: string; priority: "high" | "medium" | "low" } {
