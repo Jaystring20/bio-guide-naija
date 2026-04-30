@@ -1,5 +1,6 @@
-import { AlertTriangle, Phone } from "lucide-react";
+import { AlertTriangle, Phone, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useEffect, useRef, useState } from "react";
 
 type CriticalAlert = {
   biomarker: string;
@@ -16,6 +17,50 @@ type Props = {
 
 export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
   const hasEmergency = alerts.some((a) => a.severity === "emergency");
+  const [muted, setMuted] = useState(false);
+  const intervalRef = useRef<number | null>(null);
+
+  // Speak an audio warning when an emergency-severity alert mounts.
+  // Repeats every ~12s so a caregiver across the room still hears it,
+  // until the user mutes, acknowledges, or leaves the screen.
+  useEffect(() => {
+    if (!hasEmergency || muted) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    const names = alerts
+      .filter((a) => a.severity === "emergency")
+      .map((a) => a.biomarker)
+      .slice(0, 3)
+      .join(", ");
+    const phrase = names
+      ? `Emergency. Contact a doctor now. Critical values detected for ${names}.`
+      : "Emergency. Contact a doctor now. Critical values detected.";
+
+    const speak = () => {
+      try {
+        window.speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(phrase);
+        utt.rate = 0.95;
+        utt.pitch = 1;
+        utt.volume = 1;
+        utt.lang = "en-NG";
+        window.speechSynthesis.speak(utt);
+      } catch {
+        /* no-op: TTS unsupported */
+      }
+    };
+
+    speak();
+    intervalRef.current = window.setInterval(speak, 12000);
+    return () => {
+      if (intervalRef.current) window.clearInterval(intervalRef.current);
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        /* no-op */
+      }
+    };
+  }, [hasEmergency, muted, alerts]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-destructive flex flex-col items-center justify-center p-6 text-destructive-foreground overflow-hidden">
