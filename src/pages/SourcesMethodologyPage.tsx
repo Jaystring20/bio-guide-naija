@@ -292,34 +292,77 @@ const SourcesMethodologyPage = () => {
                       </div>
                     </div>
                     <ul className="space-y-2 sm:pl-13">
-                      {items.map((s) => (
-                        <li key={s.name}>
-                          <a
-                            href={s.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group flex items-start gap-3 bg-card border border-border rounded-xl p-3 hover:border-primary/40 transition-colors"
+                      {items.map((s) => {
+                        const linkedBiomarkers = s.domain
+                          ? getBiomarkersForDomain(s.domain)
+                          : [];
+                        const previewCount = 6;
+                        const preview = linkedBiomarkers.slice(0, previewCount);
+                        const remaining =
+                          linkedBiomarkers.length - preview.length;
+
+                        return (
+                          <li
+                            key={s.name}
+                            className="bg-card border border-border rounded-xl p-3 hover:border-primary/40 transition-colors"
                           >
-                            <div className="h-9 w-20 flex items-center justify-center flex-shrink-0">
-                              <img
-                                src={s.logo}
-                                alt={`${s.name} logo`}
-                                loading="lazy"
-                                className="max-h-9 max-w-full object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition"
-                              />
+                            <div className="flex items-start gap-3">
+                              <a
+                                href={s.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="group h-9 w-20 flex items-center justify-center flex-shrink-0"
+                                aria-label={`Visit ${s.name}`}
+                              >
+                                <img
+                                  src={s.logo}
+                                  alt={`${s.name} logo`}
+                                  loading="lazy"
+                                  className="max-h-9 max-w-full object-contain grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition"
+                                />
+                              </a>
+                              <div className="flex-1 min-w-0 space-y-1">
+                                <a
+                                  href={s.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group inline-flex items-center gap-1.5 font-semibold text-sm hover:text-primary transition-colors"
+                                >
+                                  {s.name}
+                                  <ExternalLink className="w-3 h-3 text-muted-foreground/60 group-hover:text-primary transition-colors" />
+                                </a>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  {s.cite}
+                                </p>
+                                {preview.length > 0 && (
+                                  <div className="pt-1.5 flex flex-wrap items-center gap-1.5">
+                                    <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground/80">
+                                      Used in:
+                                    </span>
+                                    {preview.map((b) => (
+                                      <a
+                                        key={b.slug}
+                                        href={`#bio-${b.slug}`}
+                                        className="inline-flex items-center text-xs font-medium text-primary bg-primary/5 hover:bg-primary/10 border border-primary/20 rounded-full px-2 py-0.5 transition-colors"
+                                      >
+                                        {b.label}
+                                      </a>
+                                    ))}
+                                    {remaining > 0 && (
+                                      <a
+                                        href="#biomarker-library"
+                                        className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                                      >
+                                        +{remaining} more →
+                                      </a>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                            <div className="flex-1 space-y-0.5">
-                              <p className="font-semibold text-sm flex items-center gap-1.5">
-                                {s.name}
-                                <ExternalLink className="w-3 h-3 text-muted-foreground/60 group-hover:text-primary transition-colors" />
-                              </p>
-                              <p className="text-xs text-muted-foreground leading-relaxed">
-                                {s.cite}
-                              </p>
-                            </div>
-                          </a>
-                        </li>
-                      ))}
+                          </li>
+                        );
+                      })}
                     </ul>
                   </div>
                 );
