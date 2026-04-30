@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { InlineRatingPrompt } from "@/components/feedback/InlineRatingPrompt";
 import { EmptyBiomarkersBanner } from "@/components/report/EmptyBiomarkersBanner";
+import { DietPlanSkeleton } from "@/components/report/DietPlanSkeleton";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
 type Tab = typeof TABS[number];
@@ -277,20 +278,34 @@ const ResultReport = () => {
 
       {/* Tabs */}
       <div className="grid grid-cols-2 gap-2 mb-6">
-        {TABS.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "px-3 py-3 rounded-xl font-semibold text-body-sm text-center touch-target transition-colors",
-              activeTab === tab
-                ? "bg-primary text-primary-foreground"
-                : "bg-card border border-border text-foreground"
-            )}
-          >
-            {TAB_LABELS[language][tab]}
-          </button>
-        ))}
+        {TABS.map((tab) => {
+          const tabPending =
+            (tab === "diet" && dietPending && !dietaryPlan) ||
+            (tab === "checklist" && inferredChecklistStatus === "pending" && checklist.length === 0);
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "px-3 py-3 rounded-xl font-semibold text-body-sm text-center touch-target transition-colors relative",
+                activeTab === tab
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card border border-border text-foreground"
+              )}
+              aria-label={tabPending ? `${TAB_LABELS[language][tab]} (still loading)` : TAB_LABELS[language][tab]}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {TAB_LABELS[language][tab]}
+                {tabPending && (
+                  <span className="relative flex h-2 w-2" aria-hidden="true">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-accent" />
+                  </span>
+                )}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <AnimatePresence mode="wait">
@@ -318,13 +333,7 @@ const ResultReport = () => {
             <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
           )}
           {activeTab === "diet" && !dietaryPlan && dietPending && !regenerating && (
-            <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
-              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
-              <p className="font-semibold text-body">Cooking your diet plan…</p>
-              <p className="text-muted-foreground text-body-sm mt-1">
-                We're matching your results to Nigerian foods. This usually takes another 10–20 seconds.
-              </p>
-            </div>
+            <DietPlanSkeleton language={language} />
           )}
           {activeTab === "diet" && !dietaryPlan && (dietFailed || regenerating) && (
             <div className="rounded-2xl border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-6 shadow-soft">
