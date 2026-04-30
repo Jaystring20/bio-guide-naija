@@ -7,9 +7,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Copy, Share, Plus, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, Copy, Share, Plus, Home, ChevronLeft, ChevronRight, CloudOff } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 interface IosInstallGuideProps {
   open: boolean;
@@ -142,6 +143,7 @@ const STEPS = [
 export const IosInstallGuide = ({ open, onOpenChange }: IosInstallGuideProps) => {
   const [step, setStep] = useState(0);
   const [copied, setCopied] = useState(false);
+  const online = useOnlineStatus();
 
   useEffect(() => {
     if (!open) {
@@ -176,6 +178,13 @@ export const IosInstallGuide = ({ open, onOpenChange }: IosInstallGuideProps) =>
             Step {step + 1} of {STEPS.length} · Safari only
           </DialogDescription>
         </DialogHeader>
+
+        {!online && (
+          <div className="mx-6 mt-1 flex items-center gap-2 rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-semibold text-amber-700 dark:text-amber-300">
+            <CloudOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            You’re offline — installing on iPhone works without a connection.
+          </div>
+        )}
 
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-1.5 pb-2">
