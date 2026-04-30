@@ -368,13 +368,36 @@ const ResultReport = () => {
               resultId={id ?? null}
             />
           )}
-          {activeTab === "diet" && dietaryPlan && (
+          {activeTab === "diet" && criticalAlerts.some((a: any) => a?.severity === "emergency") && (
+            <div className="rounded-2xl border-2 border-destructive bg-destructive/10 p-6 shadow-soft">
+              <div className="flex items-start gap-3 mb-3">
+                <AlertTriangle className="w-6 h-6 text-destructive shrink-0 mt-0.5 animate-heartbeat" />
+                <div>
+                  <p className="font-display font-bold text-lg text-destructive">
+                    {language === "pidgin" ? "Diet advice no dey available" : "Diet advice is paused"}
+                  </p>
+                  <p className="text-body-sm mt-2 leading-relaxed">
+                    {language === "pidgin"
+                      ? "Your results show emergency values. Diet plan no fit replace doctor wahala. Abeg call your doctor first — once dem clear you, your diet plan go come back."
+                      : "Your results contain emergency-level values. A diet plan is not a substitute for medical care right now. Please contact a doctor first — your personalised diet plan will be available again once a clinician has reviewed your results."}
+                  </p>
+                </div>
+              </div>
+              <a href="tel:112" className="block">
+                <Button className="w-full h-12 bg-destructive text-destructive-foreground touch-target">
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  {language === "pidgin" ? "Call Doctor Now" : "Call Doctor Now"}
+                </Button>
+              </a>
+            </div>
+          )}
+          {activeTab === "diet" && !criticalAlerts.some((a: any) => a?.severity === "emergency") && dietaryPlan && (
             <DietPlanTab dietaryPlan={dietaryPlan} dietaryPlanPidgin={dietaryPlanPidgin} language={language} />
           )}
-          {activeTab === "diet" && !dietaryPlan && dietPending && !regenerating && (
+          {activeTab === "diet" && !criticalAlerts.some((a: any) => a?.severity === "emergency") && !dietaryPlan && dietPending && !regenerating && (
             <DietPlanSkeleton language={language} />
           )}
-          {activeTab === "diet" && !dietaryPlan && (dietFailed || regenerating) && (
+          {activeTab === "diet" && !criticalAlerts.some((a: any) => a?.severity === "emergency") && !dietaryPlan && (dietFailed || regenerating) && (
             <div className="rounded-2xl border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-6 shadow-soft">
               <div className="flex items-start gap-3 mb-3">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
