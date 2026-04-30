@@ -696,3 +696,55 @@ export const ALL_SOURCE_DOMAINS = [
   "Nigerian Heart Foundation (nigerianheartfoundation.org)",
   "USDA FoodData Central (fdc.nal.usda.gov)",
 ];
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Public catalog used by the /sources methodology page for deep links.
+ * Each entry is a curated biomarker + its citations. Anchor format:
+ *   #bio-{slug}  e.g. "hba1c" → "#bio-hba1c", "vitamin d" → "#bio-vitamin-d"
+ * ─────────────────────────────────────────────────────────────────────── */
+
+export type BiomarkerCatalogEntry = {
+  /** Stable slug used in the URL hash, e.g. "hba1c" */
+  slug: string;
+  /** Display name derived from the match key */
+  label: string;
+  citations: MedicalCitation[];
+};
+
+const slugify = (s: string) =>
+  s
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+const titleCaseLabel = (s: string) => {
+  // Keep common short medical acronyms uppercase.
+  const ACRONYMS = new Set([
+    "alt", "ast", "alp", "ggt", "tsh", "ldl", "hdl", "vldl", "wbc", "rbc",
+    "mcv", "mch", "rdw", "egfr", "bun", "crp", "esr", "psa", "hcg", "fsh",
+    "lh", "hba1c", "hbsag", "hcv", "hiv", "vdrl", "pcv", "inr", "pt", "aptt",
+    "g6pd", "tibc", "ft3", "ft4", "t3", "t4", "ncd",
+  ]);
+  return s
+    .split(/\s+/)
+    .map((w) => {
+      if (ACRONYMS.has(w)) return w.toUpperCase();
+      if (w.length <= 2) return w;
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    })
+    .join(" ");
+};
+
+export const BIOMARKER_CATALOG: BiomarkerCatalogEntry[] = RULES.map((r) => ({
+  slug: slugify(r.match),
+  label: titleCaseLabel(r.match),
+  citations: r.citations,
+}));
+
+/** All biomarker entries that cite a given source domain. */
+export function getBiomarkersForDomain(domain: string): BiomarkerCatalogEntry[] {
+  return BIOMARKER_CATALOG.filter((b) =>
+    b.citations.some((c) => c.domain === domain)
+  );
+}
+
