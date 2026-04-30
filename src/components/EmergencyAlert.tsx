@@ -34,8 +34,12 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
 
     const emergencyAlerts = alerts.filter((a) => a.severity === "emergency").slice(0, 3);
 
+    // If the caregiver prefers Pidgin, start the loop on Pidgin so the very
+    // first utterance matches their language; otherwise start in English.
+    const pidginFirst = preferredLang === "pidgin";
+
     const buildPhrase = (loopIndex: number): string => {
-      const isPidgin = loopIndex % 2 === 1;
+      const isPidgin = pidginFirst ? loopIndex % 2 === 0 : loopIndex % 2 === 1;
       const includeValues = loopIndex % 2 === 0; // alternate: with-values vs names-only
 
       if (emergencyAlerts.length === 0) {
@@ -62,7 +66,7 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
     const speak = () => {
       try {
         window.speechSynthesis.cancel();
-        const isPidgin = loop % 2 === 1;
+        const isPidgin = pidginFirst ? loop % 2 === 0 : loop % 2 === 1;
         const utt = new SpeechSynthesisUtterance(buildPhrase(loop));
         utt.rate = 0.95;
         utt.pitch = 1;
@@ -86,7 +90,7 @@ export const EmergencyAlert = ({ alerts, onAcknowledge }: Props) => {
         /* no-op */
       }
     };
-  }, [hasEmergency, muted, alerts]);
+  }, [hasEmergency, muted, alerts, preferredLang]);
 
   return (
     <div className="fixed inset-0 z-[100] bg-destructive flex flex-col items-center justify-center p-6 text-destructive-foreground overflow-hidden">
