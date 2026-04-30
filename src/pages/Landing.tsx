@@ -101,6 +101,7 @@ const Landing = () => {
               ["#how-it-works", "How It Works"],
               ["#who-its-for", "Who It's For"],
               ["#features", "Features"],
+              ["#our-sources", "Our Sources"],
               ["#testimonials", "Testimonials"],
             ].map(([href, label]) => (
               <a
