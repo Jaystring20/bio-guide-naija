@@ -366,10 +366,32 @@ Extract all biomarkers with their values, units, reference ranges, status classi
     }
 
     // ---- Background tasks: diet plan + Pidgin in parallel ----
+    // Three independent chains:
+    //   A) English diet  -> chains its own Pidgin diet  -> chains finalizeStatus()
+    //   B) Pidgin biomarkers (independent — starts immediately)
+    //   C) (implicit) emergency path: skip diet, finalize immediately
+    //
+    // The final status flip happens as soon as biomarkers + English diet are
+    // done — it does NOT wait for Pidgin work. Pidgin variants stream into the
+    // UI via realtime as each one lands.
     const backgroundWork = async () => {
+      let statusFinalized = false;
+      const finalizeStatus = async () => {
+        if (statusFinalized) return;
+        statusFinalized = true;
+        const finalStatus = hasCritical ? "critical" : "completed";
+        // Narrow update — do NOT re-write biomarkers/ai_summary/pidgin fields,
+        // so we can't race with Pidgin writes that may land later.
+        const { error: finalErr } = await supabase.from("lab_results").update({
+          status: finalStatus,
+          processing_steps: [...steps, { step: "total", ms: Date.now() - t0, ok: true }],
+        }).eq("id", labResultId);
+        if (finalErr) console.error("Final write failed:", finalErr.message, finalErr);
+      };
+
       const tasks: Promise<any>[] = [];
 
-      // Diet plan (skip on emergency)
+      // ---- Chain A: English diet -> Pidgin diet -> finalizeStatus ----
       if (!hasEmergency) {
         tasks.push((async () => {
           const dietStart = Date.now();
