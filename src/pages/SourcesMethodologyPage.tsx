@@ -252,21 +252,29 @@ const SourcesMethodologyPage = () => {
               {
                 icon: ShieldCheck,
                 title: "Public & official",
+                tldr: "Government, WHO, or teaching hospital — never random websites.",
+                pidgin: "Na government, WHO, or teaching hospital — no be just any website.",
                 body: "A government health agency, WHO body, accredited teaching hospital, or peer-reviewed reference. No blogs, no listicles.",
               },
               {
                 icon: FileCheck2,
                 title: "Stable URL",
+                tldr: "The link must still work months from now.",
+                pidgin: "The link must still dey work even after many months.",
                 body: "The page must have a long-lived URL we can link to without breaking. We re-check links periodically.",
               },
               {
                 icon: Scale,
                 title: "Plain-language",
+                tldr: "Patient-friendly pages, not dense research papers.",
+                pidgin: "Page wey people fit understand, no be heavy doctor paper.",
                 body: "Where possible, we link to the patient-facing version (e.g. NIH MedlinePlus) rather than a research paper.",
               },
               {
                 icon: MapPin,
                 title: "Relevant to Nigeria",
+                tldr: "For local issues like malaria or sickle cell, we use Naija and Africa sources.",
+                pidgin: "For things like malaria or sickle cell, we go use Naija and Africa source.",
                 body: "For tropical or genetic conditions (malaria, sickle cell, G6PD) we prefer regional authorities like WHO Africa or FMOH.",
               },
             ].map((c, i) => (
@@ -276,7 +284,27 @@ const SourcesMethodologyPage = () => {
               >
                 <c.icon className="w-5 h-5 text-secondary" />
                 <p className="font-semibold text-sm">{c.title}</p>
-                <p className="text-xs text-muted-foreground leading-relaxed">
+
+                {/* Quick summaries */}
+                <div className="space-y-1.5 pt-1">
+                  <p className="text-xs text-foreground bg-primary/5 border-l-2 border-primary/60 rounded-r px-2.5 py-1 leading-snug">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-primary mr-1">
+                      In short
+                    </span>
+                    {c.tldr}
+                  </p>
+                  <p
+                    lang="pcm"
+                    className="text-xs text-foreground bg-secondary/5 border-l-2 border-secondary/60 rounded-r px-2.5 py-1 leading-snug"
+                  >
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-secondary mr-1">
+                      Pidgin
+                    </span>
+                    {c.pidgin}
+                  </p>
+                </div>
+
+                <p className="text-xs text-muted-foreground leading-relaxed pt-1">
                   {c.body}
                 </p>
               </div>
