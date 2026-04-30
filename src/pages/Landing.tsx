@@ -231,6 +231,9 @@ const Landing = () => {
         </motion.div>
       </section>
 
+      {/* ═══ Trust Logos Strip ═══ */}
+      <TrustLogosStrip />
+
       {/* ═══ Real People. Real Results. ═══ */}
       <section className="relative py-20 md:py-28 px-4 overflow-hidden bg-gradient-to-b from-background to-card/40">
         <div className="absolute inset-0 pointer-events-none opacity-60">
