@@ -9,6 +9,7 @@ import AddDependantDialog from "@/components/AddDependantDialog";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useEmergencyAudioLang } from "@/hooks/useEmergencyAudioLang";
 import type { Dependant, DependantInput } from "@/hooks/useDependants";
 
 const ZONE_LABELS: Record<string, string> = {
