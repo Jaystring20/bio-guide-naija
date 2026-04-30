@@ -455,22 +455,96 @@ RULES:
                 diet_status: "done",
               }).eq("id", labResultId);
               logStep("diet_call", dietStart, true, model);
+
+              // Diet is done — flip status to completed NOW (don't wait for Pidgin).
+              // Then kick off Pidgin-diet in parallel; it writes its own UPDATE
+              // when it finishes and surfaces via realtime.
+              await Promise.all([
+                finalizeStatus(),
+                translateDietToPidgin(args.dietary_plan, args.consultation_checklist),
+              ]);
               return { dietary_plan: args.dietary_plan, consultation_checklist: args.consultation_checklist };
             }
             logStep("diet_call", dietStart, false, model, note || "no function call");
             await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
+            await finalizeStatus();
           } catch (e) {
             logStep("diet_call", dietStart, false, undefined, (e as Error).message);
             await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
+            await finalizeStatus();
           }
           return null;
         })());
       } else {
-        // Emergency: we intentionally skip diet generation. Mark as failed so the
-        // UI shows a clear "regenerate when ready" affordance instead of an
-        // infinite spinner.
+        // Emergency: skip diet generation; mark diet failed and finalize status
+        // immediately so the report leaves 'processing' without waiting for Pidgin.
         await supabase.from("lab_results").update({ diet_status: "failed" }).eq("id", labResultId);
+        await finalizeStatus();
       }
+
+      // ---- Helper: Pidgin translation of a finished English diet ----
+      async function translateDietToPidgin(dietary_plan: any, consultation_checklist: any) {
+        const pidStart = Date.now();
+        try {
+          const dietPidginInput = {
+            dietary_plan: {
+              foods_to_increase: dietary_plan.foods_to_increase?.map((f: any) => ({ name: f.name, benefit: f.benefit, preparation_tip: f.preparation_tip || "" })),
+              foods_to_reduce: dietary_plan.foods_to_reduce?.map((f: any) => ({ name: f.name, reason: f.reason })),
+              foods_to_avoid: dietary_plan.foods_to_avoid?.map((f: any) => ({ name: f.name, reason: f.reason })),
+              meal_suggestions: dietary_plan.meal_suggestions,
+              hydration_tips: dietary_plan.hydration_tips || [],
+              supplement_notes: dietary_plan.supplement_notes || [],
+            },
+            consultation_checklist: (consultation_checklist || []).map((q: any) => ({ question: q.question, context: q.context || "" })),
+          };
+
+          const body = {
+            systemInstruction: { parts: [{ text: "Translate to Nigerian Pidgin. Keep food names and medical terms in English." }] },
+            contents: [{ role: "user", parts: [{ text: `Translate to warm Nigerian Pidgin: ${JSON.stringify(dietPidginInput)}` }] }],
+            tools: [{
+              functionDeclarations: [{
+                name: "submit_diet_pidgin",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    dietary_plan_pidgin: {
+                      type: "object",
+                      properties: {
+                        foods_to_increase: { type: "array", items: { type: "object", properties: { name: { type: "string" }, benefit: { type: "string" }, preparation_tip: { type: "string" } }, required: ["name", "benefit"] } },
+                        foods_to_reduce: { type: "array", items: { type: "object", properties: { name: { type: "string" }, reason: { type: "string" } }, required: ["name", "reason"] } },
+                        foods_to_avoid: { type: "array", items: { type: "object", properties: { name: { type: "string" }, reason: { type: "string" } }, required: ["name", "reason"] } },
+                        meal_suggestions: { type: "array", items: { type: "object", properties: { meal: { type: "string" }, description: { type: "string" } }, required: ["meal", "description"] } },
+                        hydration_tips: { type: "array", items: { type: "string" } },
+                        supplement_notes: { type: "array", items: { type: "string" } },
+                      },
+                    },
+                    consultation_checklist_pidgin: { type: "array", items: { type: "object", properties: { question: { type: "string" }, context: { type: "string" } }, required: ["question", "context"] } },
+                  },
+                },
+              }],
+            }],
+            toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["submit_diet_pidgin"] } },
+          };
+
+          const { response, model } = await callGeminiWithRetry(body, geminiApiKey);
+          if (response.ok) {
+            const data = await response.json();
+            const args = extractFunctionCall(data);
+            if (args) {
+              await supabase.from("lab_results").update({
+                dietary_plan_pidgin: args.dietary_plan_pidgin || null,
+                consultation_checklist_pidgin: args.consultation_checklist_pidgin || null,
+              }).eq("id", labResultId);
+              logStep("diet_pidgin_call", pidStart, true, model);
+              return;
+            }
+          }
+          logStep("diet_pidgin_call", pidStart, false, model, "no function call");
+        } catch (e) {
+          logStep("diet_pidgin_call", pidStart, false, undefined, (e as Error).message);
+        }
+      }
+
 
       // Pidgin translation (parallel with diet)
       tasks.push((async () => {
