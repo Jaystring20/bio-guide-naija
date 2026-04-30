@@ -130,6 +130,12 @@ export const InstallPrompt = () => {
                 <span className="font-medium"> Add to Home Screen</span> to install.
               </p>
             ) : null}
+            {!online && (
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-amber-500/15 px-2 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300">
+                <CloudOff className="h-3.5 w-3.5" aria-hidden />
+                You can still install while offline — no connection needed.
+              </p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               {deferred && (
                 <Button
