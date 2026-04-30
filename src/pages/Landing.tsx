@@ -12,6 +12,7 @@ import { VeridiaLogo } from "@/components/VeridiaLogo";
 import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { TrustLogosStrip, TrustedSourcesSection } from "@/components/landing/TrustedSources";
 
 /* ── Animation helpers ── */
 const fadeUp = {
@@ -71,6 +72,7 @@ const Landing = () => {
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <a href="#who-its-for" className="hover:text-foreground transition-colors">Who It's For</a>
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
+            <a href="#our-sources" className="hover:text-foreground transition-colors">Our Sources</a>
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
           </div>
 
@@ -99,6 +101,7 @@ const Landing = () => {
               ["#how-it-works", "How It Works"],
               ["#who-its-for", "Who It's For"],
               ["#features", "Features"],
+              ["#our-sources", "Our Sources"],
               ["#testimonials", "Testimonials"],
             ].map(([href, label]) => (
               <a
@@ -229,6 +232,9 @@ const Landing = () => {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* ═══ Trust Logos Strip ═══ */}
+      <TrustLogosStrip />
 
       {/* ═══ Real People. Real Results. ═══ */}
       <section className="relative py-20 md:py-28 px-4 overflow-hidden bg-gradient-to-b from-background to-card/40">
@@ -553,6 +559,9 @@ const Landing = () => {
           </div>
         </AnimatedSection>
       </section>
+
+      {/* ═══ Trusted Sources (full section) ═══ */}
+      <TrustedSourcesSection />
 
       {/* ═══ Compliance & Trust ═══ */}
       <section className="py-20 md:py-28 px-4">
