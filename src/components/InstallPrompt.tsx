@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Download, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { IosInstallGuide } from "@/components/IosInstallGuide";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -45,6 +46,7 @@ export const InstallPrompt = () => {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosTip, setShowIosTip] = useState(false);
   const [hidden, setHidden] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
 
   useEffect(() => {
     if (isInIframe() || isStandalone() || wasRecentlyDismissed()) return;
@@ -82,50 +84,68 @@ export const InstallPrompt = () => {
     setHidden(true);
   };
 
-  if (hidden) return null;
+  if (hidden) {
+    // Even when hidden, mount the guide so other entry points can open it.
+    return <IosInstallGuide open={guideOpen} onOpenChange={setGuideOpen} />;
+  }
 
   return (
-    <div
-      role="dialog"
-      aria-label="Install VeriDIA"
-      className="mx-4 mt-4 mb-2 rounded-2xl border-2 border-primary/30 bg-card p-4 shadow-lg"
-    >
-      <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
-          <Download className="h-5 w-5" aria-hidden />
+    <>
+      <div
+        role="dialog"
+        aria-label="Install VeriDIA"
+        className="mx-4 mt-4 mb-2 rounded-2xl border-2 border-primary/30 bg-card p-4 shadow-lg"
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/15 text-primary">
+            <Download className="h-5 w-5" aria-hidden />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-base font-semibold text-foreground">Install VeriDIA</p>
+            {deferred ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Add VeriDIA to your home screen for faster access.
+              </p>
+            ) : showIosTip ? (
+              <p className="mt-1 text-sm text-muted-foreground">
+                Tap <Share className="mx-1 inline h-4 w-4 align-text-bottom" aria-label="Share" /> then
+                <span className="font-medium"> Add to Home Screen</span> to install.
+              </p>
+            ) : null}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {deferred && (
+                <Button
+                  size="sm"
+                  onClick={install}
+                  className="h-9 rounded-full px-4 text-sm font-semibold"
+                >
+                  Install app
+                </Button>
+              )}
+              {showIosTip && (
+                <Button
+                  size="sm"
+                  variant={deferred ? "secondary" : "default"}
+                  onClick={() => setGuideOpen(true)}
+                  className="h-9 rounded-full px-4 text-sm font-semibold"
+                >
+                  Show me how
+                </Button>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={dismiss}
+            aria-label="Dismiss install prompt"
+            className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-base font-semibold text-foreground">Install VeriDIA</p>
-          {deferred ? (
-            <p className="mt-1 text-sm text-muted-foreground">
-              Add VeriDIA to your home screen for faster access.
-            </p>
-          ) : showIosTip ? (
-            <p className="mt-1 text-sm text-muted-foreground">
-              Tap <Share className="mx-1 inline h-4 w-4 align-text-bottom" aria-label="Share" /> then
-              <span className="font-medium"> Add to Home Screen</span> to install.
-            </p>
-          ) : null}
-          {deferred && (
-            <Button
-              size="sm"
-              onClick={install}
-              className="mt-3 h-9 rounded-full px-4 text-sm font-semibold"
-            >
-              Install app
-            </Button>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={dismiss}
-          aria-label="Dismiss install prompt"
-          className="rounded-full p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-        >
-          <X className="h-4 w-4" />
-        </button>
       </div>
-    </div>
+      <IosInstallGuide open={guideOpen} onOpenChange={setGuideOpen} />
+    </>
   );
 };
 
