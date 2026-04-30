@@ -7,7 +7,8 @@
  * Sources & Methodology accordions on lab reports.
  */
 
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -22,11 +23,17 @@ import {
   FileCheck2,
   Scale,
   Sparkles,
+  BookOpen,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { VeridiaLogo } from "@/components/VeridiaLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TRUSTED_SOURCES } from "@/components/landing/TrustedSources";
+import {
+  BIOMARKER_CATALOG,
+  getBiomarkersForDomain,
+} from "@/lib/medical-citations";
+import { cn } from "@/lib/utils";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
