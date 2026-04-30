@@ -224,6 +224,17 @@ export const TrustedSourcesSection = () => {
             Every result you see in the app links directly to its specific source page so you can verify it yourself.
           </p>
         </div>
+
+        {/* Methodology link */}
+        <div className="text-center">
+          <a
+            href="/sources"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+          >
+            Read the full Sources & Methodology
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+        </div>
       </div>
     </section>
   );
