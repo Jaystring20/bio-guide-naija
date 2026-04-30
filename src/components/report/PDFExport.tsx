@@ -757,6 +757,7 @@ function buildReportPdf(data: PDFData): { doc: jsPDF; fileName: string } {
     renderChecklist(ctx);
   }
 
+  renderSourcesPage(ctx);
   renderDisclaimerPage(ctx);
 
   // Stamp "Page X of Y" by re-drawing headers on every page now that we know totals.
