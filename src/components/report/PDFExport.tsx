@@ -489,6 +489,13 @@ function renderDiet(ctx: Ctx) {
       if (detail) addParagraph(ctx, detail, { size: 9, color: BRAND.body, x: MARGIN + 6, lineGap: 0.5 });
       const tip = isPidgin && pf?.preparation_tip ? pf.preparation_tip : f.preparation_tip;
       if (tip) addParagraph(ctx, `💡 ${tip}`, { size: 8.5, color: BRAND.muted, x: MARGIN + 6 });
+      const usda = findUsdaMatch(f.name, data.nutritionCitations);
+      if (usda) {
+        const tag = usda.fdc_id
+          ? `✓ USDA verified · FDC ${usda.fdc_id}`
+          : `✓ USDA verified`;
+        addParagraph(ctx, tag, { size: 7.5, bold: true, color: BRAND.primary, x: MARGIN + 6, lineGap: 0.5 });
+      }
     });
     ctx.y += 2;
   };
