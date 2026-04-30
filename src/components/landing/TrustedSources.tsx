@@ -175,7 +175,7 @@ const TypographicLogo = ({ source, variant = "strip", className }: SourceLogoPro
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 select-none transition-colors duration-300",
+        "flex items-center gap-2.5 select-none transition-transform duration-300 ease-out group-hover:scale-110",
         className
       )}
       aria-hidden
