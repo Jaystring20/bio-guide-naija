@@ -164,8 +164,6 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
  *    typographic tile so the layout never collapses.
  * ───────────────────────────────────────────────────────────── */
 
-import { useState } from "react";
-
 type SourceLogoProps = {
   source: TrustedSource;
   variant?: "strip" | "card";
