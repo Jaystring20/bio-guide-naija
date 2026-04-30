@@ -350,41 +350,15 @@ const ResultReport = () => {
               </Button>
             </div>
           )}
-          {activeTab === "checklist" && checklist.length > 0 && (
-            <ChecklistTab checklist={checklist} checklistPidgin={checklistPidgin} language={language} />
-          )}
-          {activeTab === "checklist" && checklist.length === 0 && dietPending && !regenerating && (
-            <div className="rounded-2xl border border-border bg-card p-6 text-center shadow-soft">
-              <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
-              <p className="font-semibold text-body">Preparing doctor questions…</p>
-              <p className="text-muted-foreground text-body-sm mt-1">
-                Personalised questions will appear here in a moment.
-              </p>
-            </div>
-          )}
-          {activeTab === "checklist" && checklist.length === 0 && (dietFailed || regenerating) && (
-            <div className="rounded-2xl border border-amber-300/50 bg-amber-50 dark:bg-amber-950/20 p-6 shadow-soft">
-              <div className="flex items-start gap-3 mb-3">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <p className="font-semibold text-body">Doctor questions weren't generated</p>
-                  <p className="text-muted-foreground text-body-sm mt-1">
-                    They'll be created together with your diet plan. Tap below to retry.
-                  </p>
-                </div>
-              </div>
-              <Button
-                onClick={regenerateDiet}
-                disabled={regenerating}
-                className="w-full bg-primary text-primary-foreground touch-target"
-              >
-                {regenerating ? (
-                  <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Regenerating…</>
-                ) : (
-                  <><RefreshCw className="w-4 h-4 mr-2" /> Regenerate diet & doctor questions</>
-                )}
-              </Button>
-            </div>
+          {activeTab === "checklist" && (
+            <ChecklistTab
+              checklist={checklist}
+              checklistPidgin={checklistPidgin}
+              language={language}
+              status={inferredChecklistStatus}
+              onRegenerate={regenerateDiet}
+              regenerating={regenerating}
+            />
           )}
         </motion.div>
       </AnimatePresence>
