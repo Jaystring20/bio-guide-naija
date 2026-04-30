@@ -11,6 +11,7 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useEmergencyAudioLang } from "@/hooks/useEmergencyAudioLang";
 import type { Dependant, DependantInput } from "@/hooks/useDependants";
+import { InstalledBadge } from "@/components/InstalledBadge";
 
 const ZONE_LABELS: Record<string, string> = {
   "south-south": "South-South",
@@ -230,6 +231,11 @@ const Profile = () => {
             );
           })}
         </div>
+      </div>
+
+      {/* App install status */}
+      <div className="mb-4">
+        <InstalledBadge variant="row" />
       </div>
 
       {/* Privacy + Disclaimer combined */}
