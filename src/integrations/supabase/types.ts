@@ -110,6 +110,7 @@ export type Database = {
           ai_summary_pidgin: string | null
           biomarkers: Json | null
           biomarkers_pidgin: Json | null
+          checklist_status: string
           consultation_checklist: Json | null
           consultation_checklist_pidgin: Json | null
           created_at: string
@@ -132,6 +133,7 @@ export type Database = {
           ai_summary_pidgin?: string | null
           biomarkers?: Json | null
           biomarkers_pidgin?: Json | null
+          checklist_status?: string
           consultation_checklist?: Json | null
           consultation_checklist_pidgin?: Json | null
           created_at?: string
@@ -154,6 +156,7 @@ export type Database = {
           ai_summary_pidgin?: string | null
           biomarkers?: Json | null
           biomarkers_pidgin?: Json | null
+          checklist_status?: string
           consultation_checklist?: Json | null
           consultation_checklist_pidgin?: Json | null
           created_at?: string
