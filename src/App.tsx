@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ActiveProfileProvider } from "@/contexts/ActiveProfileContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AppShell } from "@/components/AppShell";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
@@ -130,6 +131,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <OfflineBanner />
             <AnimatedRoutes />
           </BrowserRouter>
         </TooltipProvider>
