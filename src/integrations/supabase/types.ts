@@ -123,6 +123,8 @@ export type Database = {
           grounding_status: string
           has_critical_alert: boolean
           id: string
+          nafdac_citations: Json | null
+          nafdac_status: string
           nutrition_citations: Json | null
           nutrition_status: string
           processing_steps: Json | null
@@ -150,6 +152,8 @@ export type Database = {
           grounding_status?: string
           has_critical_alert?: boolean
           id?: string
+          nafdac_citations?: Json | null
+          nafdac_status?: string
           nutrition_citations?: Json | null
           nutrition_status?: string
           processing_steps?: Json | null
@@ -177,6 +181,8 @@ export type Database = {
           grounding_status?: string
           has_critical_alert?: boolean
           id?: string
+          nafdac_citations?: Json | null
+          nafdac_status?: string
           nutrition_citations?: Json | null
           nutrition_status?: string
           processing_steps?: Json | null
