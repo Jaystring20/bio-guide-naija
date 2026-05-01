@@ -13,7 +13,6 @@ import { Aurora } from "@/components/Aurora";
 import { CountUp } from "@/components/CountUp";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { TrustLogosStrip, TrustedSourcesSection } from "@/components/landing/TrustedSources";
-import { AdvisoryBoardPreview } from "@/components/landing/AdvisoryBoardPreview";
 
 /* ── Animation helpers ── */
 const fadeUp = {
@@ -74,7 +73,6 @@ const Landing = () => {
             <a href="#who-its-for" className="hover:text-foreground transition-colors">Who It's For</a>
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#our-sources" className="hover:text-foreground transition-colors">Our Sources</a>
-            <a href="#advisory-board" className="hover:text-foreground transition-colors">Advisory Board</a>
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
           </div>
 
@@ -104,7 +102,6 @@ const Landing = () => {
               ["#who-its-for", "Who It's For"],
               ["#features", "Features"],
               ["#our-sources", "Our Sources"],
-              ["#advisory-board", "Advisory Board"],
               ["#testimonials", "Testimonials"],
             ].map(([href, label]) => (
               <a
@@ -566,8 +563,6 @@ const Landing = () => {
       {/* ═══ Trusted Sources (full section) ═══ */}
       <TrustedSourcesSection />
 
-      {/* ═══ Advisory Board preview ═══ */}
-      <AdvisoryBoardPreview />
 
       {/* ═══ Compliance & Trust ═══ */}
       <section className="py-20 md:py-28 px-4">
