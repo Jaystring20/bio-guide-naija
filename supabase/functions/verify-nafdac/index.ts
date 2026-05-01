@@ -46,21 +46,37 @@ function cleanProductName(raw: string): string {
   return (raw || "").replaceAll("#", "").replaceAll("*", "").trim();
 }
 
-// Pull the first noun phrase from a free-form supplement note.
-// e.g. "Iron supplement: take with vitamin C for better absorption" -> "Iron supplement"
-//      "Consider Vitamin D3 (1000 IU) daily" -> "Vitamin D3"
+// Stop-words that shouldn't be sent as the search term.
+// Greenbook's search is keyword-based, so "iron supplement" returns 0 but
+// "iron" returns 67. We pull the meaningful active-ingredient keyword.
+const SUPPLEMENT_STOPWORDS = new Set([
+  "supplement", "supplements", "tablet", "tablets", "capsule", "capsules",
+  "pill", "pills", "syrup", "drops", "powder", "sachet", "daily", "iu",
+  "mg", "mcg", "g", "ml", "the", "a", "an", "of", "for", "with", "and",
+  "or", "consider", "take", "try", "add", "use", "natural", "your",
+  "recommended", "optional", "maybe",
+]);
+
+// Extract the strongest searchable token(s) from a free-form supplement note.
+// Strategy: keep up to 2 leading content words (so "vitamin d" is preserved),
+// but drop generic stopwords like "supplement". This aligns with how the
+// Greenbook search indexes products by active ingredient / brand.
 function parseSupplementTerm(note: string): string | null {
   if (!note || typeof note !== "string") return null;
   const trimmed = note.trim();
   if (!trimmed) return null;
   // Cut at first colon, dash, or period.
-  let term = trimmed.split(/[:.\-—–]/, 1)[0].trim();
-  // Strip leading filler words.
-  term = term.replace(/^(consider|take|try|add|use|recommend(?:ed)?|optional|maybe)\s+/i, "");
-  // Strip trailing parenthesized dose/qualifier.
-  term = term.replace(/\s*\([^)]*\)\s*$/g, "").trim();
-  // Cap length so we don't search a whole sentence.
-  if (term.length > 60) term = term.slice(0, 60);
+  let head = trimmed.split(/[:.\-—–]/, 1)[0].trim();
+  // Drop trailing parenthesized dose/qualifier.
+  head = head.replace(/\s*\([^)]*\)\s*$/g, "").trim();
+  // Tokenize on whitespace + remove pure-numeric and stopwords.
+  const tokens = head
+    .split(/\s+/)
+    .map((t) => t.replace(/[^\p{L}\p{N}-]/gu, ""))
+    .filter((t) => t && !/^\d+$/.test(t) && !SUPPLEMENT_STOPWORDS.has(t.toLowerCase()));
+  if (tokens.length === 0) return null;
+  // Use first 1-2 content tokens (e.g. "Vitamin D3", "Iron", "Folic Acid").
+  const term = tokens.slice(0, 2).join(" ");
   return term.length >= 3 ? term : null;
 }
 
