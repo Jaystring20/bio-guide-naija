@@ -304,7 +304,7 @@ export const TrustLogosStrip = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.04 }}
-              className="group flex items-center justify-center min-h-[56px]"
+              className="group flex items-center justify-center min-h-[56px] lg:px-2 lg:min-w-[120px]"
               title={`${s.name} — opens in new tab`}
               aria-label={s.name}
             >
