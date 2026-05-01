@@ -116,6 +116,7 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                   <div className="flex flex-wrap items-center gap-1">
                     <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
                     <NafdacBadge citation={nafdacCitations?.[f.name]} language={language} />
+                    <FdaSafetyBadge entry={fdaSafety?.[f.name]} language={language} />
                   </div>
                 </div>
               );
@@ -142,6 +143,7 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                   <div className="flex flex-wrap items-center gap-1">
                     <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
                     <NafdacBadge citation={nafdacCitations?.[f.name]} language={language} />
+                    <FdaSafetyBadge entry={fdaSafety?.[f.name]} language={language} />
                   </div>
                 </div>
               );
@@ -168,6 +170,7 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                   <div className="flex flex-wrap items-center gap-1">
                     <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
                     <NafdacBadge citation={nafdacCitations?.[f.name]} language={language} />
+                    <FdaSafetyBadge entry={fdaSafety?.[f.name]} language={language} />
                   </div>
                 </div>
               );
