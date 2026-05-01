@@ -255,10 +255,18 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
             {dietaryPlan.supplement_notes.map((note, i) => {
               const pidginNote = pidgin?.supplement_notes?.[i];
               const nafdac = nafdacCitations?.[note];
+              const fda = fdaSafety?.[note];
+              const isHighRisk = fda && (fda.severity === "critical" || fda.severity === "high");
+              const containerCls = isHighRisk
+                ? "bg-destructive/10 rounded-xl p-3 border-2 border-destructive/40"
+                : "bg-secondary/10 rounded-xl p-3 border border-secondary/20";
               return (
-                <div key={i} className="bg-secondary/10 rounded-xl p-3 border border-secondary/20">
+                <div key={i} className={containerCls}>
                   <p className="text-body-sm">{isPidgin && pidginNote ? pidginNote : note}</p>
-                  <NafdacBadge citation={nafdac} language={language} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <NafdacBadge citation={nafdac} language={language} />
+                    <FdaSafetyBadge entry={fda} language={language} />
+                  </div>
                 </div>
               );
             })}
