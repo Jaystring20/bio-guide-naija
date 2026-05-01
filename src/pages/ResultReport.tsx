@@ -230,6 +230,7 @@ const ResultReport = () => {
     checklist,
     checklistPidgin,
     nutritionCitations: ((result as any).nutrition_citations as any[] | null) ?? null,
+    nafdacCitations: ((result as any).nafdac_citations as Record<string, any> | null) ?? null,
     reportUrl: typeof window !== "undefined" ? `${window.location.origin}/app/result/${id}` : null,
   };
 
