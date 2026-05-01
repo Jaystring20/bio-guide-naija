@@ -256,21 +256,26 @@ You MUST respond with a function call using the submit_diet_plan tool.`;
         diet_status: "done",
         nutrition_status: "pending",
         nutrition_citations: null,
+        nafdac_status: "pending",
+        nafdac_citations: null,
       }).eq("id", resultId);
 
-      // Fire-and-forget USDA nutrition verification.
+      // Fire-and-forget source verification (USDA + NAFDAC, independent).
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        const authHeader = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
         fetch(`${supabaseUrl}/functions/v1/verify-nutrition`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-          },
+          headers: { "Content-Type": "application/json", "Authorization": authHeader },
           body: JSON.stringify({ labResultId: resultId }),
         }).catch((err) => console.log("verify-nutrition trigger failed:", err.message));
+        fetch(`${supabaseUrl}/functions/v1/verify-nafdac`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": authHeader },
+          body: JSON.stringify({ labResultId: resultId }),
+        }).catch((err) => console.log("verify-nafdac trigger failed:", err.message));
       } catch (e) {
-        console.log("verify-nutrition fire failed:", (e as Error).message);
+        console.log("source-verification fire failed:", (e as Error).message);
       }
 
       // Pidgin diet — best-effort, in parallel with the rest
