@@ -165,6 +165,17 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     cite: "Local authority for hypertension and cardiovascular guidance.",
     domain: "Nigerian Heart Foundation",
   },
+  {
+    name: "NAFDAC",
+    url: "https://nafdac.gov.ng/",
+    mark: "NAFDAC",
+    wordmark: "National Agency for",
+    subWordmark: "Food & Drug Admin · NG",
+    // No clean public NAFDAC mark bundled — use the styled typographic tile.
+    tier: "Naija & Africa",
+    cite: "Nigerian regulator confirming the foods and supplements we recommend are registered and safe.",
+    domain: "NAFDAC",
+  },
 ];
 
 /* ─────────────────────────────────────────────────────────────
