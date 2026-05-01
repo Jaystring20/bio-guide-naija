@@ -100,6 +100,17 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     domain: "CDC",
   },
   {
+    name: "U.S. FDA",
+    url: "https://www.fda.gov/",
+    mark: "FDA",
+    wordmark: "U.S. Food &",
+    subWordmark: "Drug Administration",
+    // No clean public FDA mark bundled — use the styled typographic tile.
+    tier: "International",
+    cite: "Global reference for food safety, supplement standards and Nutrition Facts labels.",
+    domain: "U.S. FDA",
+  },
+  {
     name: "USDA FoodData Central",
     url: "https://fdc.nal.usda.gov/",
     mark: "USDA",
@@ -153,6 +164,17 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     tier: "Naija & Africa",
     cite: "Local authority for hypertension and cardiovascular guidance.",
     domain: "Nigerian Heart Foundation",
+  },
+  {
+    name: "NAFDAC",
+    url: "https://nafdac.gov.ng/",
+    mark: "NAFDAC",
+    wordmark: "National Agency for",
+    subWordmark: "Food & Drug Admin · NG",
+    // No clean public NAFDAC mark bundled — use the styled typographic tile.
+    tier: "Naija & Africa",
+    cite: "Nigerian regulator confirming the foods and supplements we recommend are registered and safe.",
+    domain: "NAFDAC",
   },
 ];
 
@@ -271,7 +293,7 @@ export const TrustLogosStrip = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-9 gap-x-4 gap-y-6 items-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-wrap lg:justify-center gap-x-4 gap-y-6 items-center">
           {strip.map((s, i) => (
             <motion.a
               key={s.name}
@@ -282,7 +304,7 @@ export const TrustLogosStrip = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.04 }}
-              className="group flex items-center justify-center min-h-[56px]"
+              className="group flex items-center justify-center min-h-[56px] lg:px-2 lg:min-w-[120px]"
               title={`${s.name} — opens in new tab`}
               aria-label={s.name}
             >

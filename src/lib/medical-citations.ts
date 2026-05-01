@@ -77,6 +77,37 @@ const AFRICA_ANAEMIA: MedicalCitation = {
   region: "africa",
 };
 
+// U.S. FDA — global authority on food safety, supplement standards and Nutrition Facts labels.
+const US_FDA_NUTRITION: MedicalCitation = {
+  title: "Nutrition Facts Label — U.S. FDA",
+  url: "https://www.fda.gov/food/nutrition-facts-label",
+  domain: "U.S. FDA",
+};
+const US_FDA_SODIUM: MedicalCitation = {
+  title: "Sodium in Your Diet — U.S. FDA",
+  url: "https://www.fda.gov/food/nutrition-education-resources-materials/sodium-your-diet",
+  domain: "U.S. FDA",
+};
+const US_FDA_SUPPLEMENTS: MedicalCitation = {
+  title: "Dietary Supplements — U.S. FDA",
+  url: "https://www.fda.gov/food/dietary-supplements",
+  domain: "U.S. FDA",
+};
+
+// NAFDAC — Nigerian regulator for food, drugs and supplements.
+const NAFDAC_FOOD: MedicalCitation = {
+  title: "Food Safety & Applied Nutrition — NAFDAC",
+  url: "https://nafdac.gov.ng/our-services/registration-services/food/",
+  domain: "NAFDAC",
+  region: "nigeria",
+};
+const NAFDAC_DRUGS: MedicalCitation = {
+  title: "Drug Registration & Regulation — NAFDAC",
+  url: "https://nafdac.gov.ng/our-services/registration-services/drug/",
+  domain: "NAFDAC",
+  region: "nigeria",
+};
+
 const RULES: CitationRule[] = [
   // ─── Glycaemic ───────────────────────────────────────────
   {
@@ -85,6 +116,7 @@ const RULES: CitationRule[] = [
       { title: "Blood Glucose Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/blood-glucose-test/", domain: "NIH MedlinePlus" },
       { title: "Diabetes — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/diabetes/symptoms-causes/syc-20371444", domain: "Mayo Clinic" },
       { title: "Diabetes Fact Sheet — WHO", url: "https://www.who.int/news-room/fact-sheets/detail/diabetes", domain: "WHO" },
+      US_FDA_NUTRITION,
       AFRICA_DIABETES,
       NG_FMOH,
     ],
@@ -117,6 +149,7 @@ const RULES: CitationRule[] = [
       { title: "Cholesterol Levels — MedlinePlus", url: "https://medlineplus.gov/cholesterollevelswhatyouneedtoknow.html", domain: "NIH MedlinePlus" },
       { title: "High Cholesterol — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/high-blood-cholesterol/symptoms-causes/syc-20350800", domain: "Mayo Clinic" },
       { title: "Cardiovascular Diseases — WHO", url: "https://www.who.int/health-topics/cardiovascular-diseases", domain: "WHO" },
+      US_FDA_NUTRITION,
       AFRICA_CVD,
       NG_HEART,
     ],
@@ -126,6 +159,7 @@ const RULES: CitationRule[] = [
     citations: [
       { title: "LDL: The 'Bad' Cholesterol — MedlinePlus", url: "https://medlineplus.gov/ldlthebadcholesterol.html", domain: "NIH MedlinePlus" },
       { title: "Cholesterol Test — Mayo Clinic", url: "https://www.mayoclinic.org/tests-procedures/cholesterol-test/about/pac-20384601", domain: "Mayo Clinic" },
+      US_FDA_NUTRITION,
       NG_HEART,
     ],
   },
@@ -133,6 +167,7 @@ const RULES: CitationRule[] = [
     match: "hdl",
     citations: [
       { title: "HDL: The 'Good' Cholesterol — MedlinePlus", url: "https://medlineplus.gov/hdlthegoodcholesterol.html", domain: "NIH MedlinePlus" },
+      US_FDA_NUTRITION,
       NG_HEART,
     ],
   },
@@ -159,6 +194,7 @@ const RULES: CitationRule[] = [
     citations: [
       { title: "Triglycerides Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/triglycerides-test/", domain: "NIH MedlinePlus" },
       { title: "Triglycerides — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/high-blood-cholesterol/in-depth/triglycerides/art-20048186", domain: "Mayo Clinic" },
+      US_FDA_NUTRITION,
       NG_HEART,
     ],
   },
@@ -299,6 +335,8 @@ const RULES: CitationRule[] = [
     match: "sodium",
     citations: [
       { title: "Sodium Blood Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/sodium-blood-test/", domain: "NIH MedlinePlus" },
+      US_FDA_SODIUM,
+      NAFDAC_FOOD,
     ],
   },
   {
@@ -465,18 +503,23 @@ const RULES: CitationRule[] = [
     match: "vitamin d",
     citations: [
       { title: "Vitamin D Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/vitamin-d-test/", domain: "NIH MedlinePlus" },
+      US_FDA_SUPPLEMENTS,
+      NAFDAC_DRUGS,
     ],
   },
   {
     match: "vitamin b12",
     citations: [
       { title: "Vitamin B12 Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/vitamin-b12-level/", domain: "NIH MedlinePlus" },
+      US_FDA_SUPPLEMENTS,
+      NAFDAC_DRUGS,
     ],
   },
   {
     match: "folate",
     citations: [
       { title: "Folate Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/folate-test/", domain: "NIH MedlinePlus" },
+      US_FDA_SUPPLEMENTS,
     ],
   },
   {
@@ -484,6 +527,8 @@ const RULES: CitationRule[] = [
     citations: [
       { title: "Iron Tests — MedlinePlus", url: "https://medlineplus.gov/lab-tests/iron-tests/", domain: "NIH MedlinePlus" },
       { title: "Iron Deficiency Anemia — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034", domain: "Mayo Clinic" },
+      US_FDA_SUPPLEMENTS,
+      NAFDAC_DRUGS,
       AFRICA_ANAEMIA,
     ],
   },
