@@ -46,6 +46,8 @@ export interface PDFData {
   checklistPidgin: ChecklistItemPidgin[] | null;
   /** USDA-verified nutrition entries keyed by lowercase food name (optional). */
   nutritionCitations?: NutritionCitation[] | null;
+  /** NAFDAC-registered product map keyed by food/supplement name (optional). */
+  nafdacCitations?: Record<string, { product_name: string; nrn: string; applicant: string; url: string }> | null;
   /** Public URL back to this report (used in share messages). Optional. */
   reportUrl?: string | null;
 }
@@ -495,6 +497,14 @@ function renderDiet(ctx: Ctx) {
           ? `✓ USDA verified · FDC ${usda.fdc_id}`
           : `✓ USDA verified`;
         addParagraph(ctx, tag, { size: 7.5, bold: true, color: BRAND.primary, x: MARGIN + 6, lineGap: 0.5 });
+      }
+      const naf = data.nafdacCitations?.[f.name];
+      if (naf?.nrn) {
+        addParagraph(
+          ctx,
+          `🇳🇬 NAFDAC registered · NRN ${naf.nrn}${naf.applicant ? ` · ${naf.applicant}` : ""}`,
+          { size: 7.5, bold: true, color: BRAND.primary, x: MARGIN + 6, lineGap: 0.5 },
+        );
       }
     });
     ctx.y += 2;

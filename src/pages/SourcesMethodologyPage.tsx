@@ -187,6 +187,13 @@ const SourcesMethodologyPage = () => {
                   "Each ingredient is cross-checked live against USDA FoodData Central. If we can't verify it, we tag it so you know.",
               },
               {
+                title: "We cross-check supplements & branded foods with NAFDAC",
+                tldr: "For supplements and packaged foods, we look them up in Nigeria's official NAFDAC Greenbook to confirm they're registered for sale.",
+                pidgin: "For supplement and packaged food, we go check NAFDAC Greenbook to confirm say government register am for Nigeria.",
+                body:
+                  "When the plan suggests a supplement (like iron or vitamin D) or names a branded food (like Indomie or Coca-Cola), we query the NAFDAC Greenbook live and only show a green NAFDAC badge when there is an active registration. Generic raw foods (e.g. ugu leaves, beans) don't appear in the registry, so absence of a NAFDAC badge there is normal — not a red flag.",
+              },
+              {
                 title: "We tag what's verified vs AI-only",
                 tldr: "Green ✓ = source confirmed. Amber ⚠ = AI only — be extra careful.",
                 pidgin: "Green ✓ na say we get source. Yellow ⚠ na say AI talk am alone — take am with care.",

@@ -3,6 +3,7 @@ import { DietaryPlan, DietaryPlanPidgin, Language } from "./types";
 import { ChevronDown, ChevronUp, Droplets, Leaf } from "lucide-react";
 import { ListenButton } from "./ListenButton";
 import { UsdaBadge, NutritionCitation } from "./UsdaBadge";
+import { NafdacBadge, NafdacCitation } from "./NafdacBadge";
 
 interface DietPlanTabProps {
   dietaryPlan: DietaryPlan;
@@ -10,9 +11,11 @@ interface DietPlanTabProps {
   language: Language;
   nutritionCitations?: Record<string, NutritionCitation> | null;
   nutritionStatus?: "pending" | "done" | "failed" | null;
+  nafdacCitations?: Record<string, NafdacCitation> | null;
+  nafdacStatus?: "pending" | "done" | "failed" | null;
 }
 
-export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritionCitations, nutritionStatus }: DietPlanTabProps) => {
+export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritionCitations, nutritionStatus, nafdacCitations, nafdacStatus }: DietPlanTabProps) => {
   const [showWeeklyPlan, setShowWeeklyPlan] = useState(false);
   const isPidgin = language === "pidgin";
   const pidgin = dietaryPlanPidgin;
@@ -72,13 +75,15 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
         getText={buildSpeech}
       />
 
-      {nutritionStatus === "pending" && (
+      {(nutritionStatus === "pending" || nafdacStatus === "pending") && (
         <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-primary flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
           </span>
-          {isPidgin ? "We dey verify food info with USDA…" : "Verifying food facts with USDA…"}
+          {isPidgin
+            ? "We dey verify food info with USDA & NAFDAC…"
+            : "Verifying food facts with USDA & NAFDAC…"}
         </div>
       )}
 
@@ -102,7 +107,10 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                       💡 {isPidgin && pidginF?.preparation_tip ? pidginF.preparation_tip : f.preparation_tip}
                     </p>
                   )}
-                  <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
+                    <NafdacBadge citation={nafdacCitations?.[f.name]} language={language} />
+                  </div>
                 </div>
               );
             })}
@@ -125,7 +133,10 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                   <p className="text-body-sm text-muted-foreground mt-1">
                     {isPidgin && pidginF ? pidginF.reason : f.reason}
                   </p>
-                  <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
+                    <NafdacBadge citation={nafdacCitations?.[f.name]} language={language} />
+                  </div>
                 </div>
               );
             })}
@@ -148,7 +159,10 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
                   <p className="text-body-sm text-muted-foreground mt-1">
                     {isPidgin && pidginF ? pidginF.reason : f.reason}
                   </p>
-                  <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
+                  <div className="flex flex-wrap items-center gap-1">
+                    <UsdaBadge citation={nutritionCitations?.[f.name]} language={language} />
+                    <NafdacBadge citation={nafdacCitations?.[f.name]} language={language} />
+                  </div>
                 </div>
               );
             })}
@@ -231,9 +245,11 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
           <div className="space-y-2">
             {dietaryPlan.supplement_notes.map((note, i) => {
               const pidginNote = pidgin?.supplement_notes?.[i];
+              const nafdac = nafdacCitations?.[note];
               return (
                 <div key={i} className="bg-secondary/10 rounded-xl p-3 border border-secondary/20">
                   <p className="text-body-sm">{isPidgin && pidginNote ? pidginNote : note}</p>
+                  <NafdacBadge citation={nafdac} language={language} />
                 </div>
               );
             })}

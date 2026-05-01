@@ -446,22 +446,29 @@ RULES:
                 dietary_plan: args.dietary_plan,
                 diet_status: "done",
                 nutrition_status: "pending",
+                nafdac_status: "pending",
+                nafdac_citations: null,
               }).eq("id", labResultId);
               logStep("diet_call", dietStart, true, model);
 
-              // Fire-and-forget USDA nutrition verification (adds source citations to each food).
+              // Fire-and-forget source verification (independent layers — each can fail without affecting the other).
               try {
                 const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+                const authHeader = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+                // USDA nutrition lookup
                 fetch(`${supabaseUrl}/functions/v1/verify-nutrition`, {
                   method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-                  },
+                  headers: { "Content-Type": "application/json", "Authorization": authHeader },
                   body: JSON.stringify({ labResultId }),
                 }).catch((err) => console.log("verify-nutrition trigger failed:", err.message));
+                // NAFDAC registration cross-check
+                fetch(`${supabaseUrl}/functions/v1/verify-nafdac`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Authorization": authHeader },
+                  body: JSON.stringify({ labResultId }),
+                }).catch((err) => console.log("verify-nafdac trigger failed:", err.message));
               } catch (e) {
-                console.log("verify-nutrition fire failed:", (e as Error).message);
+                console.log("source-verification fire failed:", (e as Error).message);
               }
 
               // Diet is done — flip status to completed NOW (don't wait for Pidgin or checklist).
