@@ -448,6 +448,8 @@ RULES:
                 nutrition_status: "pending",
                 nafdac_status: "pending",
                 nafdac_citations: null,
+                fda_safety_status: "pending",
+                fda_safety: null,
               }).eq("id", labResultId);
               logStep("diet_call", dietStart, true, model);
 
@@ -467,6 +469,12 @@ RULES:
                   headers: { "Content-Type": "application/json", "Authorization": authHeader },
                   body: JSON.stringify({ labResultId }),
                 }).catch((err) => console.log("verify-nafdac trigger failed:", err.message));
+                // FDA safety check (curated ingredient list + Class I recall lookup)
+                fetch(`${supabaseUrl}/functions/v1/verify-fda-safety`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json", "Authorization": authHeader },
+                  body: JSON.stringify({ labResultId }),
+                }).catch((err) => console.log("verify-fda-safety trigger failed:", err.message));
               } catch (e) {
                 console.log("source-verification fire failed:", (e as Error).message);
               }

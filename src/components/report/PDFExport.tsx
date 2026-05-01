@@ -48,6 +48,16 @@ export interface PDFData {
   nutritionCitations?: NutritionCitation[] | null;
   /** NAFDAC-registered product map keyed by food/supplement name (optional). */
   nafdacCitations?: Record<string, { product_name: string; nrn: string; applicant: string; url: string }> | null;
+  /** FDA safety flags map keyed by food/supplement name (optional). */
+  fdaSafety?: Record<string, {
+    matched_term: string;
+    severity: "critical" | "high" | "medium";
+    source: "fda_ingredient_list" | "openfda_recall";
+    category?: number;
+    fda_url: string;
+    reason_short: string;
+    recent_class_i_recalls?: Array<{ date: string; reason: string; firm: string; status: string }>;
+  }> | null;
   /** Public URL back to this report (used in share messages). Optional. */
   reportUrl?: string | null;
 }
@@ -506,6 +516,16 @@ function renderDiet(ctx: Ctx) {
           { size: 7.5, bold: true, color: BRAND.primary, x: MARGIN + 6, lineGap: 0.5 },
         );
       }
+      const fda = data.fdaSafety?.[f.name];
+      if (fda) {
+        const isHigh = fda.severity === "critical" || fda.severity === "high";
+        const prefix = isHigh ? "🚫 FDA SAFETY CONCERN" : "⚠ FDA recall on file";
+        addParagraph(
+          ctx,
+          `${prefix} (${fda.matched_term}) — ${fda.reason_short}`,
+          { size: 7.5, bold: true, color: isHigh ? BRAND.red : BRAND.amber, x: MARGIN + 6, lineGap: 0.5 },
+        );
+      }
     });
     ctx.y += 2;
   };
@@ -607,6 +627,16 @@ function renderDiet(ctx: Ctx) {
     diet.supplement_notes.forEach((note, i) => {
       const pn = pidginDiet?.supplement_notes?.[i];
       addParagraph(ctx, `• ${isPidgin && pn ? pn : note}`, { size: 9, color: BRAND.body, x: MARGIN + 2 });
+      const fda = data.fdaSafety?.[note];
+      if (fda) {
+        const isHigh = fda.severity === "critical" || fda.severity === "high";
+        const prefix = isHigh ? "🚫 FDA SAFETY CONCERN" : "⚠ FDA recall on file";
+        addParagraph(
+          ctx,
+          `${prefix} (${fda.matched_term}) — ${fda.reason_short}`,
+          { size: 8, bold: true, color: isHigh ? BRAND.red : BRAND.amber, x: MARGIN + 6, lineGap: 0.5 },
+        );
+      }
     });
   }
 }

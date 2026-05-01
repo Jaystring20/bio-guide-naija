@@ -231,6 +231,7 @@ const ResultReport = () => {
     checklistPidgin,
     nutritionCitations: ((result as any).nutrition_citations as any[] | null) ?? null,
     nafdacCitations: ((result as any).nafdac_citations as Record<string, any> | null) ?? null,
+    fdaSafety: ((result as any).fda_safety as Record<string, any> | null) ?? null,
     reportUrl: typeof window !== "undefined" ? `${window.location.origin}/app/result/${id}` : null,
   };
 
@@ -402,6 +403,8 @@ const ResultReport = () => {
               nutritionStatus={(result as any).nutrition_status as "pending" | "done" | "failed" | null}
               nafdacCitations={(result as any).nafdac_citations as Record<string, any> | null}
               nafdacStatus={(result as any).nafdac_status as "pending" | "done" | "failed" | null}
+              fdaSafety={(result as any).fda_safety as Record<string, any> | null}
+              fdaSafetyStatus={(result as any).fda_safety_status as "pending" | "done" | "failed" | null}
             />
           )}
           {activeTab === "diet" && !criticalAlerts.some((a: any) => a?.severity === "emergency") && !dietaryPlan && dietPending && !regenerating && (

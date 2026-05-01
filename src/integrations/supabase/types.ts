@@ -120,6 +120,8 @@ export type Database = {
           diet_status: string
           dietary_plan: Json | null
           dietary_plan_pidgin: Json | null
+          fda_safety: Json | null
+          fda_safety_status: string
           grounding_status: string
           has_critical_alert: boolean
           id: string
@@ -149,6 +151,8 @@ export type Database = {
           diet_status?: string
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
+          fda_safety?: Json | null
+          fda_safety_status?: string
           grounding_status?: string
           has_critical_alert?: boolean
           id?: string
@@ -178,6 +182,8 @@ export type Database = {
           diet_status?: string
           dietary_plan?: Json | null
           dietary_plan_pidgin?: Json | null
+          fda_safety?: Json | null
+          fda_safety_status?: string
           grounding_status?: string
           has_critical_alert?: boolean
           id?: string
