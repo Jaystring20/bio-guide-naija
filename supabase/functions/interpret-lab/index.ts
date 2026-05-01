@@ -448,6 +448,8 @@ RULES:
                 nutrition_status: "pending",
                 nafdac_status: "pending",
                 nafdac_citations: null,
+                fda_safety_status: "pending",
+                fda_safety: null,
               }).eq("id", labResultId);
               logStep("diet_call", dietStart, true, model);
 
