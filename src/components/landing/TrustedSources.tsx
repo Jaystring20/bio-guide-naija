@@ -293,7 +293,7 @@ export const TrustLogosStrip = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-9 gap-x-4 gap-y-6 items-center">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:flex lg:flex-wrap lg:justify-center gap-x-4 gap-y-6 items-center">
           {strip.map((s, i) => (
             <motion.a
               key={s.name}
