@@ -100,6 +100,17 @@ export const TRUSTED_SOURCES: TrustedSource[] = [
     domain: "CDC",
   },
   {
+    name: "U.S. FDA",
+    url: "https://www.fda.gov/",
+    mark: "FDA",
+    wordmark: "U.S. Food &",
+    subWordmark: "Drug Administration",
+    // No clean public FDA mark bundled — use the styled typographic tile.
+    tier: "International",
+    cite: "Global reference for food safety, supplement standards and Nutrition Facts labels.",
+    domain: "U.S. FDA",
+  },
+  {
     name: "USDA FoodData Central",
     url: "https://fdc.nal.usda.gov/",
     mark: "USDA",
