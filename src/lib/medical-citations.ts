@@ -116,6 +116,7 @@ const RULES: CitationRule[] = [
       { title: "Blood Glucose Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/blood-glucose-test/", domain: "NIH MedlinePlus" },
       { title: "Diabetes — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/diabetes/symptoms-causes/syc-20371444", domain: "Mayo Clinic" },
       { title: "Diabetes Fact Sheet — WHO", url: "https://www.who.int/news-room/fact-sheets/detail/diabetes", domain: "WHO" },
+      US_FDA_NUTRITION,
       AFRICA_DIABETES,
       NG_FMOH,
     ],
