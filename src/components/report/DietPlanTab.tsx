@@ -4,6 +4,8 @@ import { ChevronDown, ChevronUp, Droplets, Leaf } from "lucide-react";
 import { ListenButton } from "./ListenButton";
 import { UsdaBadge, NutritionCitation } from "./UsdaBadge";
 import { NafdacBadge, NafdacCitation } from "./NafdacBadge";
+import { FdaSafetyBadge, FdaSafetyEntry } from "./FdaSafetyBadge";
+import { FdaSafetyAlert } from "./FdaSafetyAlert";
 
 interface DietPlanTabProps {
   dietaryPlan: DietaryPlan;
@@ -13,9 +15,11 @@ interface DietPlanTabProps {
   nutritionStatus?: "pending" | "done" | "failed" | null;
   nafdacCitations?: Record<string, NafdacCitation> | null;
   nafdacStatus?: "pending" | "done" | "failed" | null;
+  fdaSafety?: Record<string, FdaSafetyEntry> | null;
+  fdaSafetyStatus?: "pending" | "done" | "failed" | null;
 }
 
-export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritionCitations, nutritionStatus, nafdacCitations, nafdacStatus }: DietPlanTabProps) => {
+export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritionCitations, nutritionStatus, nafdacCitations, nafdacStatus, fdaSafety, fdaSafetyStatus }: DietPlanTabProps) => {
   const [showWeeklyPlan, setShowWeeklyPlan] = useState(false);
   const isPidgin = language === "pidgin";
   const pidgin = dietaryPlanPidgin;
@@ -75,15 +79,17 @@ export const DietPlanTab = ({ dietaryPlan, dietaryPlanPidgin, language, nutritio
         getText={buildSpeech}
       />
 
-      {(nutritionStatus === "pending" || nafdacStatus === "pending") && (
+      <FdaSafetyAlert fdaSafety={fdaSafety} language={language} />
+
+      {(nutritionStatus === "pending" || nafdacStatus === "pending" || fdaSafetyStatus === "pending") && (
         <div className="rounded-lg bg-primary/5 border border-primary/20 px-3 py-2 text-xs text-primary flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
             <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
           </span>
           {isPidgin
-            ? "We dey verify food info with USDA & NAFDAC…"
-            : "Verifying food facts with USDA & NAFDAC…"}
+            ? "We dey verify food info with USDA, NAFDAC & FDA…"
+            : "Verifying food facts with USDA, NAFDAC & FDA…"}
         </div>
       )}
 
