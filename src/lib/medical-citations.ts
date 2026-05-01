@@ -77,6 +77,37 @@ const AFRICA_ANAEMIA: MedicalCitation = {
   region: "africa",
 };
 
+// U.S. FDA — global authority on food safety, supplement standards and Nutrition Facts labels.
+const US_FDA_NUTRITION: MedicalCitation = {
+  title: "Nutrition Facts Label — U.S. FDA",
+  url: "https://www.fda.gov/food/nutrition-facts-label",
+  domain: "U.S. FDA",
+};
+const US_FDA_SODIUM: MedicalCitation = {
+  title: "Sodium in Your Diet — U.S. FDA",
+  url: "https://www.fda.gov/food/nutrition-education-resources-materials/sodium-your-diet",
+  domain: "U.S. FDA",
+};
+const US_FDA_SUPPLEMENTS: MedicalCitation = {
+  title: "Dietary Supplements — U.S. FDA",
+  url: "https://www.fda.gov/food/dietary-supplements",
+  domain: "U.S. FDA",
+};
+
+// NAFDAC — Nigerian regulator for food, drugs and supplements.
+const NAFDAC_FOOD: MedicalCitation = {
+  title: "Food Safety & Applied Nutrition — NAFDAC",
+  url: "https://nafdac.gov.ng/our-services/registration-services/food/",
+  domain: "NAFDAC",
+  region: "nigeria",
+};
+const NAFDAC_DRUGS: MedicalCitation = {
+  title: "Drug Registration & Regulation — NAFDAC",
+  url: "https://nafdac.gov.ng/our-services/registration-services/drug/",
+  domain: "NAFDAC",
+  region: "nigeria",
+};
+
 const RULES: CitationRule[] = [
   // ─── Glycaemic ───────────────────────────────────────────
   {
