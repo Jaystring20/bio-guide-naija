@@ -194,6 +194,13 @@ const SourcesMethodologyPage = () => {
                   "When the plan suggests a supplement (like iron or vitamin D) or names a branded food (like Indomie or Coca-Cola), we query the NAFDAC Greenbook live and only show a green NAFDAC badge when there is an active registration. Generic raw foods (e.g. ugu leaves, beans) don't appear in the registry, so absence of a NAFDAC badge there is normal — not a red flag.",
               },
               {
+                title: "We screen supplements against the U.S. FDA safety lists",
+                tldr: "Every supplement is checked against the FDA's published list of unsafe ingredients AND the live openFDA Class I recall feed.",
+                pidgin: "Every supplement we go check am against FDA list of bad ingredient and FDA Class I recall, so we go fit warn you sharp-sharp.",
+                body:
+                  "We match supplement ingredients against the FDA's curated list of substances flagged as unsafe (Cat 2), unlawful drugs sold as supplements (Cat 3 & 4), or adulterated (Cat 7) — items like Kratom, Ephedra, DMAA, hidden Ibuprofen, SARMs and similar. We also query openFDA for any Class I recall (serious health hazard) in the last 24 months. High-risk hits get a red 'FDA SAFETY CONCERN' badge with a direct link to the FDA notice; recall-only hits get an amber 'FDA recall on file' pill. Important: the absence of a badge means we couldn't find a published FDA concern — it does NOT mean the FDA has approved the item.",
+              },
+              {
                 title: "We tag what's verified vs AI-only",
                 tldr: "Green ✓ = source confirmed. Amber ⚠ = AI only — be extra careful.",
                 pidgin: "Green ✓ na say we get source. Yellow ⚠ na say AI talk am alone — take am with care.",
