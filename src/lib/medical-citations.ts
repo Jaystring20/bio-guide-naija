@@ -503,18 +503,23 @@ const RULES: CitationRule[] = [
     match: "vitamin d",
     citations: [
       { title: "Vitamin D Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/vitamin-d-test/", domain: "NIH MedlinePlus" },
+      US_FDA_SUPPLEMENTS,
+      NAFDAC_DRUGS,
     ],
   },
   {
     match: "vitamin b12",
     citations: [
       { title: "Vitamin B12 Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/vitamin-b12-level/", domain: "NIH MedlinePlus" },
+      US_FDA_SUPPLEMENTS,
+      NAFDAC_DRUGS,
     ],
   },
   {
     match: "folate",
     citations: [
       { title: "Folate Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/folate-test/", domain: "NIH MedlinePlus" },
+      US_FDA_SUPPLEMENTS,
     ],
   },
   {
@@ -522,6 +527,8 @@ const RULES: CitationRule[] = [
     citations: [
       { title: "Iron Tests — MedlinePlus", url: "https://medlineplus.gov/lab-tests/iron-tests/", domain: "NIH MedlinePlus" },
       { title: "Iron Deficiency Anemia — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/iron-deficiency-anemia/symptoms-causes/syc-20355034", domain: "Mayo Clinic" },
+      US_FDA_SUPPLEMENTS,
+      NAFDAC_DRUGS,
       AFRICA_ANAEMIA,
     ],
   },
