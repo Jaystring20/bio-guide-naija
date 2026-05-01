@@ -148,6 +148,7 @@ const RULES: CitationRule[] = [
       { title: "Cholesterol Levels — MedlinePlus", url: "https://medlineplus.gov/cholesterollevelswhatyouneedtoknow.html", domain: "NIH MedlinePlus" },
       { title: "High Cholesterol — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/high-blood-cholesterol/symptoms-causes/syc-20350800", domain: "Mayo Clinic" },
       { title: "Cardiovascular Diseases — WHO", url: "https://www.who.int/health-topics/cardiovascular-diseases", domain: "WHO" },
+      US_FDA_NUTRITION,
       AFRICA_CVD,
       NG_HEART,
     ],
@@ -157,6 +158,7 @@ const RULES: CitationRule[] = [
     citations: [
       { title: "LDL: The 'Bad' Cholesterol — MedlinePlus", url: "https://medlineplus.gov/ldlthebadcholesterol.html", domain: "NIH MedlinePlus" },
       { title: "Cholesterol Test — Mayo Clinic", url: "https://www.mayoclinic.org/tests-procedures/cholesterol-test/about/pac-20384601", domain: "Mayo Clinic" },
+      US_FDA_NUTRITION,
       NG_HEART,
     ],
   },
@@ -164,6 +166,7 @@ const RULES: CitationRule[] = [
     match: "hdl",
     citations: [
       { title: "HDL: The 'Good' Cholesterol — MedlinePlus", url: "https://medlineplus.gov/hdlthegoodcholesterol.html", domain: "NIH MedlinePlus" },
+      US_FDA_NUTRITION,
       NG_HEART,
     ],
   },
@@ -190,6 +193,7 @@ const RULES: CitationRule[] = [
     citations: [
       { title: "Triglycerides Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/triglycerides-test/", domain: "NIH MedlinePlus" },
       { title: "Triglycerides — Mayo Clinic", url: "https://www.mayoclinic.org/diseases-conditions/high-blood-cholesterol/in-depth/triglycerides/art-20048186", domain: "Mayo Clinic" },
+      US_FDA_NUTRITION,
       NG_HEART,
     ],
   },
