@@ -12,6 +12,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Landing from "./pages/Landing";
 import SourcesMethodologyPage from "./pages/SourcesMethodologyPage";
+import AdvisoryBoardPage from "./pages/AdvisoryBoardPage";
 import AdminLogin from "./pages/AdminLogin";
 import Onboarding from "./pages/Onboarding";
 import UploadLab from "./pages/UploadLab";
@@ -85,6 +86,7 @@ const AnimatedRoutes = () => {
         {/* Back-compat: old /landing → / */}
         <Route path="/landing" element={<Navigate to="/" replace />} />
         <Route path="/sources" element={<PageFade><SourcesMethodologyPage /></PageFade>} />
+        <Route path="/advisory-board" element={<PageFade><AdvisoryBoardPage /></PageFade>} />
 
         <Route path="/auth" element={<PageFade><Auth /></PageFade>} />
         <Route path="/admin-login" element={<PageFade><AdminLogin /></PageFade>} />
