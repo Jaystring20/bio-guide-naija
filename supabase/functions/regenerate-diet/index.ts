@@ -258,9 +258,11 @@ You MUST respond with a function call using the submit_diet_plan tool.`;
         nutrition_citations: null,
         nafdac_status: "pending",
         nafdac_citations: null,
+        fda_safety_status: "pending",
+        fda_safety: null,
       }).eq("id", resultId);
 
-      // Fire-and-forget source verification (USDA + NAFDAC, independent).
+      // Fire-and-forget source verification (USDA + NAFDAC + FDA, independent).
       try {
         const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
         const authHeader = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
@@ -274,6 +276,11 @@ You MUST respond with a function call using the submit_diet_plan tool.`;
           headers: { "Content-Type": "application/json", "Authorization": authHeader },
           body: JSON.stringify({ labResultId: resultId }),
         }).catch((err) => console.log("verify-nafdac trigger failed:", err.message));
+        fetch(`${supabaseUrl}/functions/v1/verify-fda-safety`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Authorization": authHeader },
+          body: JSON.stringify({ labResultId: resultId }),
+        }).catch((err) => console.log("verify-fda-safety trigger failed:", err.message));
       } catch (e) {
         console.log("source-verification fire failed:", (e as Error).message);
       }
