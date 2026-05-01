@@ -335,6 +335,8 @@ const RULES: CitationRule[] = [
     match: "sodium",
     citations: [
       { title: "Sodium Blood Test — MedlinePlus", url: "https://medlineplus.gov/lab-tests/sodium-blood-test/", domain: "NIH MedlinePlus" },
+      US_FDA_SODIUM,
+      NAFDAC_FOOD,
     ],
   },
   {
