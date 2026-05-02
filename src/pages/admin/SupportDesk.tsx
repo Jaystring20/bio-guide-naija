@@ -432,6 +432,9 @@ export default function SupportDesk() {
               defaultPriority={(diagnosis?.level === "danger" ? "high" : "normal") as IssuePriority}
             />
           )}
+
+          {/* Diagnosis */}
+          {diagnosis && (
             <div
               className={cn(
                 "rounded-2xl border p-4 shadow-soft",
