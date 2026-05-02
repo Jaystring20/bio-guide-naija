@@ -24,6 +24,7 @@ import Profile from "./pages/Profile";
 import Family from "./pages/Family";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ControlRoom from "./pages/admin/ControlRoom";
+import SupportDesk from "./pages/admin/SupportDesk";
 import { AdminRoute } from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
@@ -110,6 +111,7 @@ const AnimatedRoutes = () => {
           <Route path="profile" element={<PageFade><Profile /></PageFade>} />
           <Route path="admin" element={<AdminRoute><PageFade><AdminDashboard /></PageFade></AdminRoute>} />
           <Route path="admin/control-room" element={<AdminRoute><PageFade><ControlRoom /></PageFade></AdminRoute>} />
+          <Route path="admin/support" element={<AdminRoute><PageFade><SupportDesk /></PageFade></AdminRoute>} />
         </Route>
 
         {/* Back-compat redirects for old top-level app paths */}

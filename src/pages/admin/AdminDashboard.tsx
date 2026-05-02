@@ -24,6 +24,7 @@ import {
   Download,
   MessageSquare,
   Star,
+  LifeBuoy,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -301,6 +302,14 @@ const AdminDashboard = () => {
           >
             <Activity className="w-4 h-4" /> Control Room
           </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => navigate("/app/admin/support")}
+            className="gap-2"
+          >
+            <LifeBuoy className="w-4 h-4" /> Support Desk
+          </Button>
           <Button variant="outline" size="sm" onClick={refreshAll} className="gap-2">
             <RefreshCw className="w-4 h-4" /> Refresh
           </Button>
@@ -430,11 +439,21 @@ const AdminDashboard = () => {
                   <div className="space-y-2">
                     {failedResults.slice(0, 5).map((r) => (
                       <div key={r.id} className="flex items-center justify-between text-sm py-2 border-b border-border last:border-0">
-                        <div>
-                          <p className="font-semibold">{r.full_name || r.email}</p>
-                          <p className="text-xs text-muted-foreground">{r.email}</p>
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate">{r.full_name || r.email}</p>
+                          <p className="text-xs text-muted-foreground truncate">{r.email}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">{fmtDateTime(r.upload_date)}</p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <p className="text-xs text-muted-foreground">{fmtDateTime(r.upload_date)}</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1"
+                            onClick={() => navigate(`/app/admin/support?result_id=${r.id}`)}
+                          >
+                            <LifeBuoy className="w-3.5 h-3.5" /> Help
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
