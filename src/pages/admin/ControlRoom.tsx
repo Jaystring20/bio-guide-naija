@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   Filter,
   Calendar,
+  LifeBuoy,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -291,16 +292,28 @@ export default function ControlRoom() {
                         <code className="text-xs text-muted-foreground">{r.id.slice(0, 8)}…</code>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          size="sm"
-                          variant={canOpen ? "default" : "ghost"}
-                          className="h-8 gap-1.5"
-                          disabled={!canOpen}
-                          onClick={() => openResult(r)}
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          Open result
-                        </Button>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1"
+                            onClick={() => navigate(`/app/admin/support?result_id=${r.id}`)}
+                            title="Diagnose & help this user"
+                          >
+                            <LifeBuoy className="w-3.5 h-3.5" />
+                            Help
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={canOpen ? "default" : "ghost"}
+                            className="h-8 gap-1.5"
+                            disabled={!canOpen}
+                            onClick={() => openResult(r)}
+                          >
+                            <Eye className="w-3.5 h-3.5" />
+                            Open
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
