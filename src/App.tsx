@@ -24,6 +24,7 @@ import Profile from "./pages/Profile";
 import Family from "./pages/Family";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ControlRoom from "./pages/admin/ControlRoom";
+import SupportDesk from "./pages/admin/SupportDesk";
 import { AdminRoute } from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
 import { Loader2 } from "lucide-react";
