@@ -38,6 +38,17 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useOpenIssueCount } from "@/hooks/useIssues";
+
+function IssuesBadge() {
+  const { data } = useOpenIssueCount();
+  if (!data) return null;
+  return (
+    <span className="ml-1 inline-flex items-center justify-center rounded-full bg-destructive/15 text-destructive text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]">
+      {data}
+    </span>
+  );
+}
 
 type Metrics = {
   total_users: number;
