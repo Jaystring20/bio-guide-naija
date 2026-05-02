@@ -24,6 +24,7 @@ import {
   Download,
   MessageSquare,
   Star,
+  LifeBuoy,
 } from "lucide-react";
 import {
   ResponsiveContainer,
