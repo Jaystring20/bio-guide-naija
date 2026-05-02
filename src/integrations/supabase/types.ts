@@ -259,6 +259,116 @@ export type Database = {
         }
         Relationships: []
       }
+      support_issue_events: {
+        Row: {
+          action_key: string | null
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          from_status: string | null
+          id: string
+          issue_id: string
+          metadata: Json | null
+          note: string | null
+          to_status: string | null
+        }
+        Insert: {
+          action_key?: string | null
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          issue_id: string
+          metadata?: Json | null
+          note?: string | null
+          to_status?: string | null
+        }
+        Update: {
+          action_key?: string | null
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          issue_id?: string
+          metadata?: Json | null
+          note?: string | null
+          to_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_issue_events_issue_id_fkey"
+            columns: ["issue_id"]
+            isOneToOne: false
+            referencedRelation: "support_issues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_issues: {
+        Row: {
+          affected_user_id: string
+          assigned_to: string | null
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          lab_result_id: string | null
+          metadata: Json | null
+          priority: string
+          resolution_action: string | null
+          resolution_summary: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          affected_user_id: string
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          lab_result_id?: string | null
+          metadata?: Json | null
+          priority?: string
+          resolution_action?: string | null
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          affected_user_id?: string
+          assigned_to?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          lab_result_id?: string | null
+          metadata?: Json | null
+          priority?: string
+          resolution_action?: string | null
+          resolution_summary?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -312,6 +422,28 @@ export type Database = {
           user_id: string
         }[]
       }
+      admin_list_issues: {
+        Args: { _limit?: number }
+        Returns: {
+          affected_email: string
+          affected_name: string
+          affected_user_id: string
+          assigned_to: string
+          category: string
+          created_at: string
+          created_by: string
+          id: string
+          lab_result_id: string
+          priority: string
+          resolution_action: string
+          resolution_summary: string
+          resolved_at: string
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }[]
+      }
       admin_list_users: {
         Args: never
         Returns: {
@@ -337,6 +469,23 @@ export type Database = {
           status: string
           upload_date: string
           user_id: string
+        }[]
+      }
+      admin_user_issue_history: {
+        Args: { _user_id: string }
+        Returns: {
+          assigned_to: string
+          category: string
+          created_at: string
+          id: string
+          lab_result_id: string
+          priority: string
+          resolution_action: string
+          resolution_summary: string
+          resolved_at: string
+          status: string
+          title: string
+          updated_at: string
         }[]
       }
       has_role: {
