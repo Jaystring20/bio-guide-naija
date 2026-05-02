@@ -16,6 +16,9 @@ import { Ripple } from "@/components/Ripple";
 import { UploadPreviewOverlay } from "@/components/UploadPreviewOverlay";
 import { ReportProblemButton } from "@/components/feedback/InlineRatingPrompt";
 import { inspectImage, enhanceImage, type QualityReport } from "@/lib/imageQuality";
+import { waitForFirstPaint } from "@/hooks/useFirstPaintWaiter";
+
+const FIRST_PAINT_TIMEOUT_MS = 60_000;
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
