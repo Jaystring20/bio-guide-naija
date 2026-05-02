@@ -234,20 +234,8 @@ const UploadLab = () => {
     }
   };
 
-  const handleAiError = (interpretData: any) => {
-    if (interpretData.error === "AI_CREDITS_EXHAUSTED") {
-      toast.error("AI service is temporarily unavailable. Please try again later.");
-    } else if (interpretData.error === "RATE_LIMITED") {
-      toast.error("Too many requests. Please wait a moment and try again.");
-    } else if (interpretData.error === "MODEL_UNAVAILABLE") {
-      toast.error(interpretData.message || "We couldn't read the lab result. Please try a clearer photo or PDF.");
-    } else if (interpretData.error === "NOT_A_LAB_REPORT") {
-      toast.error(interpretData.message || "This doesn't look like a lab report. Please upload a clear photo of your lab result.");
-    } else {
-      toast.error(interpretData.message || "Something went wrong with the analysis.");
-    }
-    queryClient.invalidateQueries({ queryKey: ["failed-result"] });
-  };
+  // (Detailed AI-error handling now happens on the result page once we navigate
+  // there — error toasts above cover the upload-blocking failures.)
 
   const isProcessing = uploading || retrying;
 
