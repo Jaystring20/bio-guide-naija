@@ -110,6 +110,7 @@ const AnimatedRoutes = () => {
           <Route path="profile" element={<PageFade><Profile /></PageFade>} />
           <Route path="admin" element={<AdminRoute><PageFade><AdminDashboard /></PageFade></AdminRoute>} />
           <Route path="admin/control-room" element={<AdminRoute><PageFade><ControlRoom /></PageFade></AdminRoute>} />
+          <Route path="admin/support" element={<AdminRoute><PageFade><SupportDesk /></PageFade></AdminRoute>} />
         </Route>
 
         {/* Back-compat redirects for old top-level app paths */}
