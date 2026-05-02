@@ -301,6 +301,14 @@ const AdminDashboard = () => {
           >
             <Activity className="w-4 h-4" /> Control Room
           </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => navigate("/app/admin/support")}
+            className="gap-2"
+          >
+            <LifeBuoy className="w-4 h-4" /> Support Desk
+          </Button>
           <Button variant="outline" size="sm" onClick={refreshAll} className="gap-2">
             <RefreshCw className="w-4 h-4" /> Refresh
           </Button>
