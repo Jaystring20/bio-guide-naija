@@ -102,6 +102,45 @@ const UploadLab = () => {
     }
   };
 
+  // Kicks off the edge function but does NOT await it for navigation.
+  // The function streams biomarkers to the DB ~10–30s in via a partial write,
+  // and finishes diet/checklist/Pidgin in the background via EdgeRuntime.waitUntil.
+  // We navigate as soon as the partial write lands.
+  const fireInterpret = (labResultId: string, filePath: string) => {
+    const p = supabase.functions.invoke("interpret-lab", {
+      body: { labResultId, filePath },
+    });
+    // Always clean up the storage object once the function returns, regardless
+    // of where the user is. Errors here are harmless (storage TTL handles it).
+    p.then(({ data, error }) => {
+      supabase.storage.from("lab-uploads").remove([filePath]).catch(() => {});
+      if (error) console.error("interpret-lab invoke error:", error);
+      else if ((data as any)?.error) console.warn("interpret-lab returned error:", data);
+    }).catch((err) => {
+      console.error("interpret-lab threw:", err);
+      supabase.storage.from("lab-uploads").remove([filePath]).catch(() => {});
+    });
+    return p;
+  };
+
+  const raceForFirstPaint = async (labResultId: string, filePath: string) => {
+    setProcessingStep("AI is reading your lab result...");
+    fireInterpret(labResultId, filePath);
+
+    let outcome = await waitForFirstPaint(labResultId, FIRST_PAINT_TIMEOUT_MS);
+
+    if (outcome === "timeout") {
+      // Auto-retry once — reset the row and re-invoke.
+      toast.message("Connection was slow — re-running the analysis.");
+      setProcessingStep("Taking longer than usual — retrying...");
+      await supabase.from("lab_results").update({ status: "processing" }).eq("id", labResultId);
+      fireInterpret(labResultId, filePath);
+      outcome = await waitForFirstPaint(labResultId, FIRST_PAINT_TIMEOUT_MS);
+    }
+
+    return outcome;
+  };
+
   const handleUpload = async () => {
     if (!file || !user) return;
     if (quality && !quality.recoverable) {
@@ -131,23 +170,20 @@ const UploadLab = () => {
         .single();
       if (insertError) throw insertError;
 
-      setProcessingStep("AI is reading your lab result...");
-      const { data: interpretData, error: fnError } = await supabase.functions.invoke(
-        "interpret-lab",
-        { body: { labResultId: labResult.id, filePath } }
-      );
+      const outcome = await raceForFirstPaint(labResult.id, filePath);
 
-      if (fnError) throw fnError;
-      if (interpretData?.error) {
-        await supabase.storage.from("lab-uploads").remove([filePath]);
-        handleAiError(interpretData);
-        return;
-      }
-
-      await supabase.storage.from("lab-uploads").remove([filePath]);
-      setProcessingStep("Almost done...");
       queryClient.invalidateQueries({ queryKey: ["failed-result"] });
-      navigate(`/result/${labResult.id}`);
+
+      if (outcome === "ready") {
+        navigate(`/result/${labResult.id}`);
+      } else if (outcome === "failed") {
+        toast.error("We couldn't read this lab result. Please try a clearer photo or PDF.");
+      } else {
+        // Still nothing after two tries — drop the user on the report page anyway,
+        // where the empty-biomarkers banner + regenerate flow takes over.
+        toast.message("Still working in the background — opening your report.");
+        navigate(`/result/${labResult.id}`);
+      }
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Something went wrong. Please try again.");
@@ -174,26 +210,21 @@ const UploadLab = () => {
       const { error: uploadError } = await supabase.storage.from("lab-uploads").upload(filePath, uploadFile);
       if (uploadError) throw uploadError;
 
-      setProcessingStep("AI is re-reading your lab result...");
       await supabase.from("lab_results").update({ status: "processing" }).eq("id", failedResult.id);
 
-      const { data: interpretData, error: fnError } = await supabase.functions.invoke(
-        "interpret-lab",
-        { body: { labResultId: failedResult.id, filePath } }
-      );
+      const outcome = await raceForFirstPaint(failedResult.id, filePath);
 
-      if (fnError) throw fnError;
-      if (interpretData?.error) {
-        await supabase.storage.from("lab-uploads").remove([filePath]);
-        handleAiError(interpretData);
-        return;
-      }
-
-      await supabase.storage.from("lab-uploads").remove([filePath]);
-      setProcessingStep("Almost done...");
       queryClient.invalidateQueries({ queryKey: ["failed-result"] });
       queryClient.invalidateQueries({ queryKey: ["last-result"] });
-      navigate(`/result/${failedResult.id}`);
+
+      if (outcome === "ready") {
+        navigate(`/result/${failedResult.id}`);
+      } else if (outcome === "failed") {
+        toast.error("We couldn't read this lab result. Please try a clearer photo or PDF.");
+      } else {
+        toast.message("Still working in the background — opening your report.");
+        navigate(`/result/${failedResult.id}`);
+      }
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Retry failed. Please try again.");
