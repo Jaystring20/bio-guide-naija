@@ -243,7 +243,15 @@ Extract all biomarkers with their values, units, reference ranges, status classi
     let lastErr = "";
 
     // Try up to 2 times — if validation fails, retry once with a stricter nudge.
+    // Hard ceiling: BIOMARKER_PHASE_BUDGET_MS. If we exceed it, bail out so the
+    // client's auto-retry can take over instead of leaving the user spinning.
+    let timedOut = false;
     for (let attempt = 1; attempt <= 2; attempt++) {
+      if (Date.now() - bioStart >= BIOMARKER_PHASE_BUDGET_MS) {
+        timedOut = true;
+        lastErr = `phase_budget_exceeded_after_${Date.now() - bioStart}ms`;
+        break;
+      }
       try {
         const { response, model } = await callGeminiWithRetry(biomarkerBody, geminiApiKey);
         bioModel = model;
@@ -282,7 +290,11 @@ Extract all biomarkers with their values, units, reference ranges, status classi
     if (!biomarkers.length) {
       logStep("biomarker_call", bioStart, false, bioModel, lastErr);
       await supabase.from("lab_results").update({ status: "failed", processing_steps: steps }).eq("id", labResultId);
-      return new Response(JSON.stringify({ error: "MODEL_UNAVAILABLE", message: "We couldn't read the lab result. Please try a clearer photo or PDF." }), {
+      const errorCode = timedOut ? "TIMEOUT" : "MODEL_UNAVAILABLE";
+      const message = timedOut
+        ? "The analysis is taking longer than usual. Please try again."
+        : "We couldn't read the lab result. Please try a clearer photo or PDF.";
+      return new Response(JSON.stringify({ error: errorCode, message }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
