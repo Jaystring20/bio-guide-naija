@@ -25,6 +25,7 @@ import {
   MessageSquare,
   Star,
   LifeBuoy,
+  Ticket,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -37,6 +38,17 @@ import {
 } from "recharts";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useOpenIssueCount } from "@/hooks/useIssues";
+
+function IssuesBadge() {
+  const { data } = useOpenIssueCount();
+  if (!data) return null;
+  return (
+    <span className="ml-1 inline-flex items-center justify-center rounded-full bg-destructive/15 text-destructive text-[10px] font-bold px-1.5 min-w-[18px] h-[18px]">
+      {data}
+    </span>
+  );
+}
 
 type Metrics = {
   total_users: number;
@@ -309,6 +321,15 @@ const AdminDashboard = () => {
             className="gap-2"
           >
             <LifeBuoy className="w-4 h-4" /> Support Desk
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => navigate("/app/admin/issues")}
+            className="gap-2"
+          >
+            <Ticket className="w-4 h-4" /> Issues
+            <IssuesBadge />
           </Button>
           <Button variant="outline" size="sm" onClick={refreshAll} className="gap-2">
             <RefreshCw className="w-4 h-4" /> Refresh

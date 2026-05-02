@@ -32,6 +32,25 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PLAYBOOK, fillReply, type PlaybookEntry } from "@/data/supportPlaybook";
+import { IssuePanel } from "@/components/admin/IssuePanel";
+import type { IssueCategory, IssuePriority } from "@/hooks/useIssues";
+
+const diagnosisToCategory = (id: string): IssueCategory => {
+  switch (id) {
+    case "stuck-processing":
+      return "processing_delay";
+    case "diet-missing":
+      return "diet_missing";
+    case "failed-status":
+      return "failed_extraction";
+    case "critical-unread":
+      return "critical_followup";
+    case "empty-biomarkers":
+      return "upload_error";
+    default:
+      return "other";
+  }
+};
 
 type AdminResult = {
   id: string;
@@ -401,6 +420,18 @@ export default function SupportDesk() {
               </code>
             </div>
           </div>
+
+          {/* Issue tracking panel */}
+          {detail.user_id && (
+            <IssuePanel
+              affectedUserId={detail.user_id}
+              labResultId={detail.id}
+              defaultTitle={diagnosis ? diagnosis.label : `Issue with report ${detail.id.slice(0, 8)}`}
+              defaultDescription={diagnosis ? `${diagnosis.label}\n\n${diagnosis.detail}` : ""}
+              defaultCategory={diagnosis ? diagnosisToCategory(diagnosis.suggestedPlaybookId) : "other"}
+              defaultPriority={(diagnosis?.level === "danger" ? "high" : "normal") as IssuePriority}
+            />
+          )}
 
           {/* Diagnosis */}
           {diagnosis && (
