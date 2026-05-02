@@ -25,6 +25,7 @@ import {
   MessageSquare,
   Star,
   LifeBuoy,
+  Ticket,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -309,6 +310,15 @@ const AdminDashboard = () => {
             className="gap-2"
           >
             <LifeBuoy className="w-4 h-4" /> Support Desk
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => navigate("/app/admin/issues")}
+            className="gap-2"
+          >
+            <Ticket className="w-4 h-4" /> Issues
+            <IssuesBadge />
           </Button>
           <Button variant="outline" size="sm" onClick={refreshAll} className="gap-2">
             <RefreshCw className="w-4 h-4" /> Refresh
