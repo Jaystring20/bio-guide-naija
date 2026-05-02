@@ -137,9 +137,29 @@ const ResultReport = () => {
   }
 
   if (result.status === "processing") {
+    const ageSec = (Date.now() - new Date(result.upload_date).getTime()) / 1000;
     return (
       <div className="px-5 pt-6 max-w-lg mx-auto">
         <OrbitProcessing step={1} label="Analyzing your results" />
+        {ageSec > 90 && (
+          <div className="mt-6">
+            <EmptyBiomarkersBanner
+              variant="full"
+              status="processing"
+              processingSteps={null}
+              resultId={id ?? null}
+              language="en"
+            />
+            <Button
+              onClick={() => navigate("/app/upload")}
+              variant="outline"
+              className="w-full mt-3"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Try a clearer photo
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
