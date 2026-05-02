@@ -10,7 +10,10 @@ const corsHeaders = {
 // Updated model lineup — gemini-2.0-flash is no longer available to new users.
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
 const MAX_RETRIES = 2;
-const REQUEST_TIMEOUT_MS = 25_000;
+const REQUEST_TIMEOUT_MS = 18_000;
+// Hard ceiling for the user-blocking biomarker phase. If Gemini hasn't returned
+// usable biomarkers in this window, we bail out and let the client auto-retry.
+const BIOMARKER_PHASE_BUDGET_MS = 45_000;
 
 type StepLog = { step: string; ms: number; ok: boolean; model?: string; note?: string };
 
