@@ -29,6 +29,7 @@ import IssueQueue from "./pages/admin/IssueQueue";
 import IssueDetail from "./pages/admin/IssueDetail";
 import { AdminRoute } from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
+import Unsubscribe from "./pages/Unsubscribe";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
@@ -94,6 +95,7 @@ const AnimatedRoutes = () => {
         <Route path="/auth" element={<PageFade><Auth /></PageFade>} />
         <Route path="/admin-login" element={<PageFade><AdminLogin /></PageFade>} />
         <Route path="/onboarding" element={<PageFade><Onboarding /></PageFade>} />
+        <Route path="/unsubscribe" element={<PageFade><Unsubscribe /></PageFade>} />
 
         {/* Authenticated app under /app */}
         <Route path="/app" element={
