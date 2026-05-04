@@ -1,108 +1,69 @@
-# Issue Tracking System for Admin Support
+## Goal
 
-Build a proper ticketing layer on top of the existing Support Desk so admins can track every user issue from "reported" to "resolved", keep a running notes timeline, and see the full history per user / per report.
+Make signup verification, password reset, and magic-link emails:
+1. Send from your real brand domain (`notify.getveridia.app`) instead of the leftover `notify.mandheyewear.com`.
+2. Look like VeriDIA — green Vital Green CTA, Clinical Navy headings, friendly Nigerian-aware copy, logo, and a clear "Verify my account" button.
+3. Be reliable (queued + retried, not lost on transient failures).
 
-## What gets built
+## Steps
 
-### 1. Database — two new tables
+### 1. Provision `notify.getveridia.app` as the email sender domain
 
-**`support_issues`** — one row per issue/ticket
-- `id` uuid PK
-- `affected_user_id` uuid (the user having the problem)
-- `lab_result_id` uuid nullable (the specific report, if any)
-- `title` text (short summary, e.g. "Stuck in processing 25 min")
-- `description` text (admin's diagnosis or user's complaint)
-- `category` text — `processing_delay | failed_extraction | diet_missing | critical_followup | upload_error | account | other`
-- `status` text — `open | in_progress | waiting_user | resolved | closed | reopened` (default `open`)
-- `priority` text — `low | normal | high | urgent` (default `normal`)
-- `source` text — `admin_created | user_feedback | auto_detected` (default `admin_created`)
-- `assigned_to` uuid nullable (admin user)
-- `created_by` uuid (admin who logged it)
-- `resolution_summary` text nullable (filled when resolved)
-- `resolution_action` text nullable (e.g. `regenerated_diet`, `rerun_interpret`, `manual_completed`, `user_re_uploaded`)
-- `resolved_at`, `resolved_by`, `created_at`, `updated_at` timestamps
+Open the email-domain setup dialog so a new sender subdomain (`notify.getveridia.app`) can be added to your `getveridia.app` domain. Lovable will:
+- Add NS records for `notify.getveridia.app` pointing to `ns3.lovable.cloud` / `ns4.lovable.cloud`.
+- Auto-provision SPF, DKIM, MX records for high deliverability.
+- Verify DNS in the background (usually minutes, can be up to 72h).
 
-**`support_issue_events`** — append-only timeline per issue
-- `id`, `issue_id` (FK), `actor_id` (admin), `created_at`
-- `event_type` — `note | status_change | assignment | action_taken | linked_action`
-- `from_status`, `to_status` text nullable
-- `note` text nullable (free-form admin note)
-- `action_key` text nullable (e.g. `admin-regenerate-diet`, `admin-set-status:failed`) — links a recovery action to the timeline
-- `metadata` jsonb nullable (action result, error, etc.)
+You only need to click "Set up email domain" in the dialog — DNS records are created automatically because `getveridia.app` is already managed through Lovable.
 
-**RLS:** admins-only SELECT/INSERT/UPDATE on both tables (using `has_role(auth.uid(), 'admin')`). No user access.
+### 2. Retire the old `notify.mandheyewear.com` sender
 
-**Trigger:** when `support_issues.status` changes, auto-insert a `status_change` event row. Also bump `updated_at`.
+Once the new domain is selected as the project's email domain, the old one stops being used by VeriDIA automatically. The NS records on `mandheyewear.com` itself can be cleaned up later by whoever owns that domain — it doesn't block VeriDIA from sending.
 
-**RPC `admin_user_issue_history(_user_id uuid)`** (SECURITY DEFINER, admin-gated) — returns the user's issues + last event for the User Detail page history view.
+### 3. Scaffold branded VeriDIA auth email templates
 
-### 2. Edge functions (admin-gated, service role)
+Generate the 6 standard auth email templates and the `auth-email-hook` edge function, then style them to match VeriDIA:
 
-- `admin-issue-action` — single endpoint that runs a recovery action (`regenerate_diet`, `rerun_interpret`, `set_status_failed`, `set_status_completed`) AND logs an `action_taken` event on the linked issue in one transaction. Reuses the logic already in `admin-regenerate-diet` and `admin-set-status` so the timeline stays accurate.
+- **Background:** white (#FFFFFF) — required for inbox compatibility, even though the app is dark-themed.
+- **Headings:** Clinical Navy `#1C3B70`, sans-serif, 24px+.
+- **CTA button:** Vital Green `#2ECC71` background, white text, large rounded button (touch-friendly, mirrors the app's `h-14 rounded-xl` buttons).
+- **Body text:** dark gray, 16px, sans-serif (matches Inter family).
+- **Logo:** the VeriDIA logo at the top of every email (uploaded to an `email-assets` storage bucket).
+- **Tone:** warm, plain-English, Nigerian-context aware. Examples:
+  - Signup: "Welcome to VeriDIA — let's confirm it's really you" / button "Verify my account"
+  - Password reset: "Reset your VeriDIA password" / button "Choose a new password"
+  - Magic link: "Your VeriDIA sign-in link"
+- **Footer:** "VeriDIA — Your lab-to-nutrition companion. Built for Nigerians, by Nigerians." + privacy/NDPA reminder.
 
-(Plain notes, status changes, and assignments are simple table writes from the client under RLS — no edge function needed.)
+### 4. Deploy and activate
 
-### 3. UI — three surfaces
+Deploy the `auth-email-hook` edge function. Lovable will automatically:
+- Route Supabase Auth emails through the hook.
+- Render them with the VeriDIA templates.
+- Enqueue each send to the durable email queue (auto-retry on rate-limits / transient errors).
 
-**a. Issue panel inside Support Desk (`/app/admin/support?result_id=…`)**
-When a report is loaded, show:
-- "Open issues for this report/user" list at the top (status badge + title + age).
-- "Log new issue" button → inline form (title, category auto-suggested from diagnosis, priority, description prefilled with current diagnosis text).
-- Every existing recovery button (Regenerate diet, Mark failed, Force complete) gets an optional "Attach to issue #…" selector so the action is recorded on the timeline.
+While DNS for `notify.getveridia.app` finishes verifying (usually quick), Supabase will keep delivering the *default* templates so signups don't break. Once DNS is green, every new email automatically switches to the branded VeriDIA version from `notify@getveridia.app`.
 
-**b. New page `/app/admin/issues` — Issue Queue**
-- Filters: status, priority, category, assigned-to-me, date range, search (user email / title / issue id).
-- Table columns: Priority, Title, User, Linked report, Status, Age, Assignee, Last update.
-- Row click → Issue Detail.
-- "New issue" button (without a preselected report) for issues like account/login problems.
+### 5. Verify end-to-end
 
-**c. New page `/app/admin/issues/:id` — Issue Detail**
-- Header: title, status dropdown, priority dropdown, assignee dropdown, category, source.
-- Side panel: affected user (name, email, link to user detail), linked report (link to Support Desk diagnosis), created/updated/resolved timestamps.
-- **Timeline (resolution history)**: chronological feed of events — notes, status changes, actions taken, assignments — each with actor avatar/name and time.
-- **Add note** composer at the bottom (textarea + "Save note" button).
-- **Resolve dialog** (when moving to `resolved`): requires `resolution_action` (dropdown) + `resolution_summary` (textarea). Stored on the issue row + a `status_change` event.
-- **Reopen** button on resolved/closed issues — sets status back to `reopened` and logs an event.
-- "Run recovery action" buttons (Regenerate diet, Rerun interpret, Mark failed, Force complete) — each calls `admin-issue-action` so the action shows up on the timeline automatically.
+After deployment, do a real signup with a fresh email and confirm:
+- Sender shows as `VeriDIA <notify@getveridia.app>`.
+- Subject is the new branded one.
+- "Verify my account" button works and lands on the app.
+- Email lands in inbox (not spam) — Lovable's auto-configured SPF/DKIM/DMARC handles this.
 
-**d. Cross-links**
-- Admin Dashboard header: add "Issues" button next to "Support Desk", with a small badge for `open + in_progress` count.
-- Control Room "Help" row action: in addition to opening Support Desk, show "Issues (N)" if any exist for that report.
-- User Detail (existing admin user view): add a "Resolution history" tab listing all past issues for that user with status, category, resolution summary, and resolved-at — exactly the "history per affected user" you asked for.
+## Technical notes
 
-### 4. Playbook integration
+- No third-party email service (Resend / SendGrid) is needed — Lovable Cloud's built-in email infra covers everything and is already wired to your auth system.
+- All sends go through the pgmq queue with auto-retry, so a single Lovable Email API hiccup will no longer drop verification mail.
+- Templates live in `supabase/functions/_shared/email-templates/*.tsx` and can be edited any time; redeploy `auth-email-hook` to push changes.
+- The site URL used inside the verification link will be your active app URL (`https://getveridia.app`), so users land on the real production site.
+- This change does **not** touch the `mandheyewear.com` Cloudflare zone — that's a separate workspace artifact and can stay or be cleaned up independently.
 
-When logging a new issue, the auto-diagnosis already done by Support Desk pre-fills:
-- `category` (mapped from `Diagnosis` levels)
-- suggested `playbook_id` (stored in `metadata` of the first event)
-- description seeded with the current diagnosis label + detail.
+## Out of scope (can do later if you want)
 
-When resolving, the playbook's recommended action becomes the default `resolution_action` so admins capture *what actually fixed it* — building a real knowledge base over time.
+- Transactional emails (e.g. "your lab result is ready", "critical biomarker alert" follow-up email).
+- Admin-side outbound emails to users from the Support Desk / Issue Tracker.
+- Custom DKIM rotation or a second sender subdomain for marketing.
 
-## Technical details
-
-- New routes in `src/App.tsx`: `/app/admin/issues` and `/app/admin/issues/:id`, both wrapped in `AdminRoute`.
-- New files:
-  - `src/pages/admin/IssueQueue.tsx`
-  - `src/pages/admin/IssueDetail.tsx`
-  - `src/components/admin/IssuePanel.tsx` (embedded in SupportDesk)
-  - `src/components/admin/IssueTimeline.tsx`
-  - `src/components/admin/NewIssueDialog.tsx`
-  - `src/components/admin/ResolveIssueDialog.tsx`
-  - `src/hooks/useIssues.ts` (list/detail/mutations via react-query)
-  - `supabase/functions/admin-issue-action/index.ts`
-- Edited:
-  - `src/pages/admin/SupportDesk.tsx` — embed `IssuePanel`, route action buttons through `admin-issue-action` when an issue is selected.
-  - `src/pages/admin/AdminDashboard.tsx` — "Issues" header button + open count badge (lightweight count query).
-  - `src/pages/admin/ControlRoom.tsx` — show issue count chip per row (single grouped count query).
-- Migration file creates the two tables, RLS policies, status-change trigger, `updated_at` trigger reusing `update_updated_at_column()`, and the `admin_user_issue_history` RPC.
-- All admin writes go through RLS (admin-only). The edge function only exists to chain "run recovery action + append event" atomically using the service role.
-
-## Out of scope (can add later if you want)
-
-- Email/WhatsApp notifications when status changes.
-- SLA timers / auto-escalation.
-- User-facing "my support requests" view (currently admin-only).
-- Bulk actions on the queue.
-
-Once approved I'll create the migration, build the pages/components, deploy the edge function, and wire up the entry points.
+Approve this and I'll run steps 1–4 in one go.
