@@ -404,6 +404,38 @@ Extract all biomarkers with their values, units, reference ranges, status classi
           processing_steps: [...steps, { step: "total", ms: Date.now() - t0, ok: true }],
         }).eq("id", labResultId);
         if (finalErr) console.error("Final write failed:", finalErr.message, finalErr);
+
+        // Fire "lab result ready" email (best-effort; never blocks status flip)
+        try {
+          const { data: ownerRes } = await supabase.auth.admin.getUserById(labResult.user_id);
+          const recipientEmail = ownerRes?.user?.email;
+          if (recipientEmail) {
+            const { data: profile } = await supabase
+              .from("profiles").select("full_name").eq("user_id", labResult.user_id).single();
+            let profileName: string | null = null;
+            if (labResult.dependant_id) {
+              const { data: dep } = await supabase
+                .from("dependants").select("full_name").eq("id", labResult.dependant_id).single();
+              profileName = dep?.full_name ?? null;
+            }
+            const firstName = (profile?.full_name || "").split(" ")[0] || null;
+            await supabase.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "lab-result-ready",
+                recipientEmail,
+                idempotencyKey: `lab-result-ready-${labResultId}`,
+                templateData: {
+                  name: firstName,
+                  profileName,
+                  resultUrl: `https://getveridia.app/app/result/${labResultId}`,
+                  hasCriticalAlert: hasCritical,
+                },
+              },
+            });
+          }
+        } catch (e) {
+          console.log("lab-result-ready email send failed:", (e as Error).message);
+        }
       };
 
       const tasks: Promise<any>[] = [];
