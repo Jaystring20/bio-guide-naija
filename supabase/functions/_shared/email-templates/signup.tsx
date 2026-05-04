@@ -8,9 +8,10 @@ import {
   Container,
   Head,
   Heading,
+  Hr,
   Html,
-  Link,
   Preview,
+  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
@@ -22,36 +23,40 @@ interface SignupEmailProps {
 }
 
 export const SignupEmail = ({
-  siteName,
-  siteUrl,
   recipient,
   confirmationUrl,
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Confirm your email for {siteName}</Preview>
+    <Preview>Welcome to VeriDIA — confirm your email to get started</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Heading style={h1}>Confirm your email</Heading>
+        <Section style={brandBar}>
+          <Text style={brand}>VeriDIA</Text>
+          <Text style={tagline}>Your lab-to-nutrition companion</Text>
+        </Section>
+        <Heading style={h1}>Welcome to VeriDIA 👋</Heading>
         <Text style={text}>
-          Thanks for signing up for{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          !
+          You're one tap away from turning your lab results into a personalised
+          Nigerian diet plan. To finish setting up <strong>{recipient}</strong>,
+          please verify your email below.
         </Text>
-        <Text style={text}>
-          Please confirm your email address (
-          <Link href={`mailto:${recipient}`} style={link}>
-            {recipient}
-          </Link>
-          ) by clicking the button below:
+        <Section style={{ textAlign: 'center', margin: '32px 0' }}>
+          <Button style={button} href={confirmationUrl}>
+            Verify my account
+          </Button>
+        </Section>
+        <Text style={smallText}>
+          Button not working? Copy and paste this link into your browser:
         </Text>
-        <Button style={button} href={confirmationUrl}>
-          Verify Email
-        </Button>
+        <Text style={linkText}>{confirmationUrl}</Text>
+        <Hr style={hr} />
         <Text style={footer}>
-          If you didn't create an account, you can safely ignore this email.
+          If you didn't create a VeriDIA account, you can safely ignore this
+          email — nothing will happen.
+        </Text>
+        <Text style={footerSmall}>
+          VeriDIA · Built for Nigerians, by Nigerians · NDPA 2023 compliant
         </Text>
       </Container>
     </Body>
@@ -60,27 +65,62 @@ export const SignupEmail = ({
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
+const main = {
+  backgroundColor: '#ffffff',
+  fontFamily:
+    "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+}
+const container = { padding: '24px', maxWidth: '560px', margin: '0 auto' }
+const brandBar = {
+  borderBottom: '3px solid #2ECC71',
+  paddingBottom: '12px',
+  marginBottom: '24px',
+}
+const brand = {
+  fontSize: '24px',
   fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
+  color: '#1C3B70',
+  margin: '0',
+  letterSpacing: '0.5px',
+}
+const tagline = {
+  fontSize: '13px',
+  color: '#6b7280',
+  margin: '4px 0 0',
+}
+const h1 = {
+  fontSize: '26px',
+  fontWeight: 'bold' as const,
+  color: '#1C3B70',
+  margin: '0 0 16px',
 }
 const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
+  fontSize: '16px',
+  color: '#374151',
+  lineHeight: '1.6',
+  margin: '0 0 16px',
 }
-const link = { color: 'inherit', textDecoration: 'underline' }
+const smallText = {
+  fontSize: '13px',
+  color: '#6b7280',
+  margin: '24px 0 4px',
+}
+const linkText = {
+  fontSize: '13px',
+  color: '#1C3B70',
+  wordBreak: 'break-all' as const,
+  margin: '0 0 16px',
+}
 const button = {
-  backgroundColor: '#000000',
+  backgroundColor: '#2ECC71',
   color: '#ffffff',
-  fontSize: '14px',
-  borderRadius: '8px',
-  padding: '12px 20px',
+  fontSize: '17px',
+  fontWeight: 'bold' as const,
+  borderRadius: '12px',
+  padding: '16px 32px',
   textDecoration: 'none',
+  display: 'inline-block',
 }
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+const hr = { borderColor: '#e5e7eb', margin: '24px 0' }
+const footer = { fontSize: '14px', color: '#6b7280', margin: '0 0 12px' }
+const footerSmall = { fontSize: '12px', color: '#9ca3af', margin: '0' }
