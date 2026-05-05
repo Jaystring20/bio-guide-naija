@@ -712,268 +712,115 @@ const AdminDashboard = () => {
 
         {/* FEEDBACK */}
         <TabsContent value="feedback" className="space-y-3">
-          <FeedbackInsights
-            rows={feedbackQ.data || []}
-            isLoading={feedbackQ.isLoading}
-            error={feedbackQ.error as Error | null}
-            onUpdate={updateFeedback}
-            onOpenResult={(rid) => navigate(`/app/result/${rid}`)}
-            onExport={() =>
-              downloadCSV(
-                "veridia-feedback",
-                ["Date", "User", "Email", "Category", "Source", "Rating", "NPS", "Status", "Screen", "Message", "Admin notes", "Result ID"],
-                (feedbackQ.data || []).map((f) => [
-                  f.created_at,
-                  f.full_name,
-                  f.email,
-                  f.category,
-                  (f.device_info && (f.device_info as any).source) || "organic",
-                  f.rating,
-                  f.nps,
-                  f.status,
-                  f.screen,
-                  f.message,
-                  f.admin_notes,
-                  f.result_id,
-                ])
-              )
-            }
-          />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Tester feedback in submission order. Update status as you triage.
+            </p>
+            <Button
+              variant="outline"
+              className="h-10 gap-2"
+              disabled={!feedbackQ.data?.length}
+              onClick={() =>
+                downloadCSV(
+                  "veridia-feedback",
+                  ["Date", "User", "Email", "Category", "Rating", "NPS", "Status", "Screen", "Message", "Admin notes", "Result ID"],
+                  (feedbackQ.data || []).map((f) => [
+                    f.created_at,
+                    f.full_name,
+                    f.email,
+                    f.category,
+                    f.rating,
+                    f.nps,
+                    f.status,
+                    f.screen,
+                    f.message,
+                    f.admin_notes,
+                    f.result_id,
+                  ])
+                )
+              }
+            >
+              <Download className="w-4 h-4" /> Export CSV
+            </Button>
+          </div>
+
+          {feedbackQ.isLoading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            </div>
+          ) : feedbackQ.error ? (
+            <p className="text-sm text-destructive">Failed to load feedback: {(feedbackQ.error as Error).message}</p>
+          ) : (feedbackQ.data || []).length === 0 ? (
+            <div className="bg-card border border-border rounded-2xl p-10 text-center shadow-soft">
+              <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground mb-3" />
+              <p className="font-semibold">No feedback yet</p>
+              <p className="text-xs text-muted-foreground mt-1">As testers submit, they'll appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(feedbackQ.data || []).map((f) => (
+                <div key={f.id} className="bg-card border border-border rounded-2xl p-4 shadow-soft">
+                  <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="secondary" className="text-[10px] capitalize">{f.category.replace("_", " ")}</Badge>
+                        {f.rating != null && (
+                          <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[hsl(var(--alert-amber))]">
+                            <Star className="w-3 h-3 fill-current" /> {f.rating}
+                          </span>
+                        )}
+                        {f.nps != null && (
+                          <Badge variant="outline" className="text-[10px]">NPS {f.nps}</Badge>
+                        )}
+                        <span className="text-[10px] text-muted-foreground">{fmtDateTime(f.created_at)}</span>
+                      </div>
+                      <p className="text-sm font-semibold mt-1.5">{f.full_name || f.email || "Anonymous"}</p>
+                      {f.email && f.full_name && (
+                        <p className="text-[11px] text-muted-foreground">{f.email}</p>
+                      )}
+                    </div>
+                    <select
+                      value={f.status}
+                      onChange={(e) => updateFeedback(f.id, { status: e.target.value })}
+                      className="h-8 rounded-md border border-border bg-card px-2 text-xs font-semibold capitalize"
+                    >
+                      <option value="new">New</option>
+                      <option value="reviewed">Reviewed</option>
+                      <option value="actioned">Actioned</option>
+                      <option value="wont_fix">Won't fix</option>
+                    </select>
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap leading-relaxed">{f.message}</p>
+                  {f.screen && (
+                    <p className="text-[11px] text-muted-foreground mt-2">Screen: <span className="font-mono">{f.screen}</span></p>
+                  )}
+                  {f.result_id && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-6 px-0 text-xs"
+                      onClick={() => navigate(`/app/result/${f.result_id}`)}
+                    >
+                      Open linked report →
+                    </Button>
+                  )}
+                  <textarea
+                    defaultValue={f.admin_notes || ""}
+                    placeholder="Internal admin notes (saved on blur)"
+                    onBlur={(e) => {
+                      const v = e.target.value.trim();
+                      if (v !== (f.admin_notes || "")) {
+                        updateFeedback(f.id, { admin_notes: v || null as any });
+                      }
+                    }}
+                    className="mt-3 w-full text-xs rounded-md border border-border bg-muted/30 p-2 min-h-[44px]"
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </TabsContent>
       </Tabs>
-    </div>
-  );
-};
-
-// ============================================================================
-// Feedback insights — quality trends grouped by result, category, and source.
-// ============================================================================
-
-type FeedbackFilter = {
-  category: string; // 'all' or category id
-  source: string;   // 'all' | 'email_invite' | 'organic'
-  groupByResult: boolean;
-};
-
-const SOURCE_LABEL: Record<string, string> = {
-  email_invite: "Email invite",
-  organic: "In-app",
-};
-
-const sourceOf = (f: FeedbackRow): "email_invite" | "organic" =>
-  (f.device_info && (f.device_info as any).source) === "email_invite" ? "email_invite" : "organic";
-
-const FeedbackInsights = ({
-  rows,
-  isLoading,
-  error,
-  onUpdate,
-  onOpenResult,
-  onExport,
-}: {
-  rows: FeedbackRow[];
-  isLoading: boolean;
-  error: Error | null;
-  onUpdate: (id: string, fields: { status?: string; admin_notes?: string }) => void;
-  onOpenResult: (rid: string) => void;
-  onExport: () => void;
-}) => {
-  const [filter, setFilter] = useState<FeedbackFilter>({ category: "all", source: "all", groupByResult: false });
-
-  const filtered = rows.filter((f) => {
-    if (filter.category !== "all" && f.category !== filter.category) return false;
-    if (filter.source !== "all" && sourceOf(f) !== filter.source) return false;
-    return true;
-  });
-
-  // Trend metrics
-  const total = filtered.length;
-  const avgRating = (() => {
-    const r = filtered.filter((f) => f.rating != null).map((f) => f.rating as number);
-    return r.length ? (r.reduce((a, b) => a + b, 0) / r.length).toFixed(2) : "—";
-  })();
-  const promoters = filtered.filter((f) => f.nps != null && (f.nps as number) >= 9).length;
-  const detractors = filtered.filter((f) => f.nps != null && (f.nps as number) <= 6).length;
-  const npsTotal = filtered.filter((f) => f.nps != null).length;
-  const npsScore = npsTotal ? Math.round(((promoters - detractors) / npsTotal) * 100) : null;
-  const fromEmail = rows.filter((f) => sourceOf(f) === "email_invite").length;
-
-  const categories = Array.from(new Set(rows.map((r) => r.category))).sort();
-
-  // Group by result_id when toggled
-  const grouped = (() => {
-    if (!filter.groupByResult) return null;
-    const map = new Map<string | null, FeedbackRow[]>();
-    for (const f of filtered) {
-      const k = f.result_id;
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push(f);
-    }
-    return Array.from(map.entries())
-      .sort((a, b) => (b[1].length - a[1].length))
-      .map(([rid, items]) => ({ rid, items }));
-  })();
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  if (error) return <p className="text-sm text-destructive">Failed to load feedback: {error.message}</p>;
-
-  return (
-    <>
-      {/* Trend strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard icon={MessageSquare} label="Submissions" value={total} sub={`${rows.length} unfiltered`} />
-        <StatCard icon={Star} label="Avg rating" value={avgRating} sub="Filtered window" tone="success" />
-        <StatCard icon={TrendingUp} label="NPS" value={npsScore ?? "—"} sub={`${promoters} promoters / ${detractors} detractors`} tone={npsScore != null && npsScore >= 0 ? "success" : "warn"} />
-        <StatCard icon={MessageSquare} label="From email invite" value={fromEmail} sub={`${rows.length - fromEmail} in-app`} />
-      </div>
-
-      {/* Filters */}
-      <div className="bg-card border border-border rounded-2xl p-3 shadow-soft flex flex-wrap items-center gap-2">
-        <select
-          value={filter.category}
-          onChange={(e) => setFilter((s) => ({ ...s, category: e.target.value }))}
-          className="h-9 rounded-md border border-border bg-card px-2 text-xs font-semibold capitalize"
-        >
-          <option value="all">All categories</option>
-          {categories.map((c) => (
-            <option key={c} value={c}>{c.replace("_", " ")}</option>
-          ))}
-        </select>
-        <select
-          value={filter.source}
-          onChange={(e) => setFilter((s) => ({ ...s, source: e.target.value }))}
-          className="h-9 rounded-md border border-border bg-card px-2 text-xs font-semibold"
-        >
-          <option value="all">All sources</option>
-          <option value="email_invite">Email invite</option>
-          <option value="organic">In-app</option>
-        </select>
-        <label className="flex items-center gap-2 text-xs font-semibold ml-1">
-          <Switch checked={filter.groupByResult} onCheckedChange={(v) => setFilter((s) => ({ ...s, groupByResult: v }))} />
-          Group by report
-        </label>
-        <div className="ml-auto">
-          <Button variant="outline" className="h-9 gap-2" disabled={!rows.length} onClick={onExport}>
-            <Download className="w-4 h-4" /> Export CSV
-          </Button>
-        </div>
-      </div>
-
-      {filtered.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-10 text-center shadow-soft">
-          <MessageSquare className="w-8 h-8 mx-auto text-muted-foreground mb-3" />
-          <p className="font-semibold">No matching feedback</p>
-          <p className="text-xs text-muted-foreground mt-1">Try widening your filters.</p>
-        </div>
-      ) : grouped ? (
-        <div className="space-y-3">
-          {grouped.map(({ rid, items }) => {
-            const avg = items.filter((i) => i.rating != null).map((i) => i.rating as number);
-            const avgStr = avg.length ? (avg.reduce((a, b) => a + b, 0) / avg.length).toFixed(1) : "—";
-            return (
-              <div key={rid ?? "no-result"} className="bg-card border border-border rounded-2xl p-4 shadow-soft">
-                <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-secondary/15 text-secondary border-0">{items.length} submission{items.length === 1 ? "" : "s"}</Badge>
-                    <span className="text-xs text-muted-foreground">Avg rating: <strong className="text-foreground">{avgStr}</strong></span>
-                  </div>
-                  {rid ? (
-                    <Button size="sm" variant="ghost" className="h-8" onClick={() => onOpenResult(rid)}>Open report →</Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">No linked report</span>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {items.map((f) => (
-                    <FeedbackCard key={f.id} f={f} onUpdate={onUpdate} onOpenResult={onOpenResult} compact />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((f) => (
-            <FeedbackCard key={f.id} f={f} onUpdate={onUpdate} onOpenResult={onOpenResult} />
-          ))}
-        </div>
-      )}
-    </>
-  );
-};
-
-const FeedbackCard = ({
-  f,
-  onUpdate,
-  onOpenResult,
-  compact,
-}: {
-  f: FeedbackRow;
-  onUpdate: (id: string, fields: { status?: string; admin_notes?: string }) => void;
-  onOpenResult: (rid: string) => void;
-  compact?: boolean;
-}) => {
-  const src = sourceOf(f);
-  return (
-    <div className={cn("bg-card border border-border rounded-2xl p-4 shadow-soft", compact && "shadow-none border-border/60")}>
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Badge variant="secondary" className="text-[10px] capitalize">{f.category.replace("_", " ")}</Badge>
-            <Badge variant="outline" className={cn("text-[10px]", src === "email_invite" && "border-primary/40 text-primary")}>
-              {SOURCE_LABEL[src]}
-            </Badge>
-            {f.rating != null && (
-              <span className="inline-flex items-center gap-0.5 text-xs font-bold text-[hsl(var(--alert-amber))]">
-                <Star className="w-3 h-3 fill-current" /> {f.rating}
-              </span>
-            )}
-            {f.nps != null && (
-              <Badge variant="outline" className="text-[10px]">NPS {f.nps}</Badge>
-            )}
-            <span className="text-[10px] text-muted-foreground">{fmtDateTime(f.created_at)}</span>
-          </div>
-          <p className="text-sm font-semibold mt-1.5">{f.full_name || f.email || "Anonymous"}</p>
-          {f.email && f.full_name && <p className="text-[11px] text-muted-foreground">{f.email}</p>}
-        </div>
-        <select
-          value={f.status}
-          onChange={(e) => onUpdate(f.id, { status: e.target.value })}
-          className="h-8 rounded-md border border-border bg-card px-2 text-xs font-semibold capitalize"
-        >
-          <option value="new">New</option>
-          <option value="reviewed">Reviewed</option>
-          <option value="actioned">Actioned</option>
-          <option value="wont_fix">Won't fix</option>
-        </select>
-      </div>
-      <p className="text-sm whitespace-pre-wrap leading-relaxed">{f.message}</p>
-      {f.screen && (
-        <p className="text-[11px] text-muted-foreground mt-2">Screen: <span className="font-mono">{f.screen}</span></p>
-      )}
-      {f.result_id && !compact && (
-        <Button variant="link" size="sm" className="h-6 px-0 text-xs" onClick={() => onOpenResult(f.result_id!)}>
-          Open linked report →
-        </Button>
-      )}
-      <textarea
-        defaultValue={f.admin_notes || ""}
-        placeholder="Internal admin notes (saved on blur)"
-        onBlur={(e) => {
-          const v = e.target.value.trim();
-          if (v !== (f.admin_notes || "")) {
-            onUpdate(f.id, { admin_notes: (v || null) as any });
-          }
-        }}
-        className="mt-3 w-full text-xs rounded-md border border-border bg-muted/30 p-2 min-h-[44px]"
-      />
     </div>
   );
 };
