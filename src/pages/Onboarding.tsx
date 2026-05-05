@@ -28,6 +28,7 @@ const Onboarding = () => {
   const [zone, setZone] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState<"male" | "female" | "">("");
+  const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
   const { updateProfile } = useAuth();
   const navigate = useNavigate();
@@ -39,10 +40,11 @@ const Onboarding = () => {
         geopolitical_zone: zone as any,
         age: parseInt(age),
         sex: sex as any,
+        phone: phone.trim() || null,
         ndpa_consent: consent,
         medical_disclaimer_accepted: true,
         onboarding_completed: true,
-      });
+      } as any);
       navigate("/app");
     } catch (err: any) {
       toast.error(err.message);
