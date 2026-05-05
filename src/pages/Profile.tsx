@@ -42,7 +42,7 @@ const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
 
 const Profile = () => {
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { dependants, addDependant, updateDependant, deleteDependant } = useDependants();
   const { resolvedTheme } = useTheme();
@@ -50,6 +50,24 @@ const Profile = () => {
   const { lang: emergencyLang, setLang: setEmergencyLang } = useEmergencyAudioLang();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Dependant | null>(null);
+  const [phone, setPhone] = useState<string>(((profile as any)?.phone as string) || "");
+  const [savingPhone, setSavingPhone] = useState(false);
+
+  useEffect(() => {
+    setPhone(((profile as any)?.phone as string) || "");
+  }, [profile]);
+
+  const savePhone = async () => {
+    setSavingPhone(true);
+    try {
+      await updateProfile({ phone: phone.trim() || null } as any);
+      toast.success("Phone saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save");
+    } finally {
+      setSavingPhone(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
