@@ -304,6 +304,7 @@ const Index = () => {
       <p className="text-xs text-muted-foreground/80 text-center mt-8 px-4 leading-relaxed">
         VeriDIA provides nutritional guidance only and is not a substitute for professional medical advice.
       </p>
+      <FeedbackSheet open={feedbackOpen} onOpenChange={setFeedbackOpen} defaultCategory="suggestion" contextNote="From email invite" />
     </div>
   );
 };
