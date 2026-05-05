@@ -1,10 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { VeridiaLogo } from "@/components/VeridiaLogo";
+import { Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Rule = { label: string; test: (p: string) => boolean };
+const RULES: Rule[] = [
+  { label: "At least 8 characters", test: (p) => p.length >= 8 },
+  { label: "One uppercase letter (A-Z)", test: (p) => /[A-Z]/.test(p) },
+  { label: "One lowercase letter (a-z)", test: (p) => /[a-z]/.test(p) },
+  { label: "One number (0-9)", test: (p) => /\d/.test(p) },
+  { label: "One symbol (!@#$…)", test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+const STRENGTH = [
+  { label: "Too weak", color: "bg-destructive", text: "text-destructive" },
+  { label: "Weak", color: "bg-destructive", text: "text-destructive" },
+  { label: "Fair", color: "bg-amber-500", text: "text-amber-600" },
+  { label: "Good", color: "bg-amber-500", text: "text-amber-600" },
+  { label: "Strong", color: "bg-primary", text: "text-primary" },
+  { label: "Very strong", color: "bg-primary", text: "text-primary" },
+];
 
 const ResetPassword = () => {
   const navigate = useNavigate();
