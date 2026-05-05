@@ -22,6 +22,7 @@ import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { InlineRatingPrompt } from "@/components/feedback/InlineRatingPrompt";
 import { PostResultFeedbackPrompt } from "@/components/feedback/PostResultFeedbackPrompt";
 import { EmptyBiomarkersBanner } from "@/components/report/EmptyBiomarkersBanner";
+import { WhatsAppSupportButton } from "@/components/support/WhatsAppSupportButton";
 import { DietPlanSkeleton } from "@/components/report/DietPlanSkeleton";
 
 const TABS = ["summary", "results", "diet", "checklist"] as const;
