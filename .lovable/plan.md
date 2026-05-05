@@ -1,69 +1,87 @@
-## Goal
+# Feedback button placement + post-result feedback prompts
 
-Make signup verification, password reset, and magic-link emails:
-1. Send from your real brand domain (`notify.getveridia.app`) instead of the leftover `notify.mandheyewear.com`.
-2. Look like VeriDIA — green Vital Green CTA, Clinical Navy headings, friendly Nigerian-aware copy, logo, and a clear "Verify my account" button.
-3. Be reliable (queued + retried, not lost on transient failures).
+## Problems
 
-## Steps
+1. **FAB blocks UI on mobile.** `FeedbackButton` is pinned at `right-4 bottom-24`. On `/app/result/:id` and `/app/bulk-upload`, fixed action bars sit at `bottom-20` → the round Feedback pill overlaps "Download PDF / Share" buttons and the bulk-upload CTA.
+2. **Feedback is passive.** Users only give feedback if they tap the FAB. We already have `InlineRatingPrompt` on the result page (1‑tap stars), but no follow-up: no auto-opened deep feedback sheet, and no email asking for feedback after they've had time to use the report.
 
-### 1. Provision `notify.getveridia.app` as the email sender domain
+---
 
-Open the email-domain setup dialog so a new sender subdomain (`notify.getveridia.app`) can be added to your `getveridia.app` domain. Lovable will:
-- Add NS records for `notify.getveridia.app` pointing to `ns3.lovable.cloud` / `ns4.lovable.cloud`.
-- Auto-provision SPF, DKIM, MX records for high deliverability.
-- Verify DNS in the background (usually minutes, can be up to 72h).
+## Plan
 
-You only need to click "Set up email domain" in the dialog — DNS records are created automatically because `getveridia.app` is already managed through Lovable.
+### 1. Reposition the floating Feedback button
 
-### 2. Retire the old `notify.mandheyewear.com` sender
+Edit `src/components/feedback/FeedbackButton.tsx`:
 
-Once the new domain is selected as the project's email domain, the old one stops being used by VeriDIA automatically. The NS records on `mandheyewear.com` itself can be cleaned up later by whoever owns that domain — it doesn't block VeriDIA from sending.
+- Shrink to a 44px **icon-only circle** on mobile (`sm:` keeps the labelled pill on desktop).
+- Move higher so it never sits in the action-bar zone: `bottom-28` baseline, and bump to `bottom-44` on routes that render a fixed action bar (Result report, Bulk upload).
+- Add those routes to a new `LIFTED_PREFIXES` list so the button auto-lifts (uses `useLocation` — no per-page wiring).
+- Keep existing `HIDDEN_PREFIXES` (admin, auth, onboarding) behaviour.
 
-### 3. Scaffold branded VeriDIA auth email templates
+Result: on mobile the FAB is a small green circle tucked above the bottom nav, never on top of the Download/Share row.
 
-Generate the 6 standard auth email templates and the `auth-email-hook` edge function, then style them to match VeriDIA:
+### 2. Auto-open the full feedback sheet after a result is viewed
 
-- **Background:** white (#FFFFFF) — required for inbox compatibility, even though the app is dark-themed.
-- **Headings:** Clinical Navy `#1C3B70`, sans-serif, 24px+.
-- **CTA button:** Vital Green `#2ECC71` background, white text, large rounded button (touch-friendly, mirrors the app's `h-14 rounded-xl` buttons).
-- **Body text:** dark gray, 16px, sans-serif (matches Inter family).
-- **Logo:** the VeriDIA logo at the top of every email (uploaded to an `email-assets` storage bucket).
-- **Tone:** warm, plain-English, Nigerian-context aware. Examples:
-  - Signup: "Welcome to VeriDIA — let's confirm it's really you" / button "Verify my account"
-  - Password reset: "Reset your VeriDIA password" / button "Choose a new password"
-  - Magic link: "Your VeriDIA sign-in link"
-- **Footer:** "VeriDIA — Your lab-to-nutrition companion. Built for Nigerians, by Nigerians." + privacy/NDPA reminder.
+New component `src/components/feedback/PostResultFeedbackPrompt.tsx`:
 
-### 4. Deploy and activate
+- Mounted from `ResultReport.tsx` only when `result.status === "completed"` and viewer is the owner (not admin).
+- Waits **45 seconds** of dwell on the page, then opens `FeedbackSheet` once (uses the existing `wasPromptShownRecently` / `markPromptDismissedForever` cooldown helpers under key `post-result-deep-v1`, scoped per `result.id` so each new report can re-prompt).
+- Pre-fills `defaultCategory="suggestion"`, `resultId={id}`, and a context note "Just read a report".
+- Suppressed if the user already submitted any feedback for this `result_id` (cheap `useQuery` count) so we don't nag.
 
-Deploy the `auth-email-hook` edge function. Lovable will automatically:
-- Route Supabase Auth emails through the hook.
-- Render them with the VeriDIA templates.
-- Enqueue each send to the durable email queue (auto-retry on rate-limits / transient errors).
+This complements the existing 1-tap `InlineRatingPrompt` — stars first, deeper sheet later.
 
-While DNS for `notify.getveridia.app` finishes verifying (usually quick), Supabase will keep delivering the *default* templates so signups don't break. Once DNS is green, every new email automatically switches to the branded VeriDIA version from `notify@getveridia.app`.
+### 3. Email people to ask for feedback
 
-### 5. Verify end-to-end
+**New transactional template** `supabase/functions/_shared/transactional-email-templates/feedback-request.tsx`
+- VeriDIA-branded (Clinical Navy heading, Vital Green CTA).
+- Two variants via prop `variant: "post_result" | "post_signup"`:
+  - `post_result`: "How was your VeriDIA report? Tap to share 1 quick thought." CTA → `https://getveridia.app/app/result/{id}?fb=1`.
+  - `post_signup`: For users who signed up but never uploaded — "What's stopping you from trying your first report?" CTA → `https://getveridia.app/app?fb=1`.
+- Add to `registry.ts`.
 
-After deployment, do a real signup with a fresh email and confirm:
-- Sender shows as `VeriDIA <notify@getveridia.app>`.
-- Subject is the new branded one.
-- "Verify my account" button works and lands on the app.
-- Email lands in inbox (not spam) — Lovable's auto-configured SPF/DKIM/DMARC handles this.
+**New Edge Function** `supabase/functions/dispatch-feedback-emails/index.ts`
+- Service-role; runs on a `pg_cron` schedule every hour.
+- Two queries:
+  1. `lab_results` where `status='completed'` AND `upload_date` between **24h and 72h ago** AND user has **no feedback row** AND no prior `feedback_email_sent_at` on that result.
+  2. `auth.users` joined to `profiles` where account is **3+ days old**, no `lab_results`, no feedback row, and no prior `feedback_signup_email_sent_at` on profile.
+- For each match: invoke `send-transactional-email` with template `feedback-request`, idempotency key `fb-${variant}-${id}`, then stamp the new column to prevent re-sends.
 
-## Technical notes
+**Migration** (single SQL file):
+- `ALTER TABLE lab_results ADD COLUMN feedback_email_sent_at timestamptz;`
+- `ALTER TABLE profiles ADD COLUMN feedback_signup_email_sent_at timestamptz;`
+- Schedule the cron job (hourly) calling `dispatch-feedback-emails` via the same vault-secret pattern used for `process-email-queue`.
 
-- No third-party email service (Resend / SendGrid) is needed — Lovable Cloud's built-in email infra covers everything and is already wired to your auth system.
-- All sends go through the pgmq queue with auto-retry, so a single Lovable Email API hiccup will no longer drop verification mail.
-- Templates live in `supabase/functions/_shared/email-templates/*.tsx` and can be edited any time; redeploy `auth-email-hook` to push changes.
-- The site URL used inside the verification link will be your active app URL (`https://getveridia.app`), so users land on the real production site.
-- This change does **not** touch the `mandheyewear.com` Cloudflare zone — that's a separate workspace artifact and can stay or be cleaned up independently.
+**Front-end glue:** when `?fb=1` is present in the URL on `/app/result/:id` or `/app`, auto-open `FeedbackSheet` immediately (bypasses dwell timer, bypasses cooldown). One small `useEffect` in `ResultReport.tsx` and `Index.tsx`.
 
-## Out of scope (can do later if you want)
+### 4. No new UI surface for users — uses existing FeedbackSheet
 
-- Transactional emails (e.g. "your lab result is ready", "critical biomarker alert" follow-up email).
-- Admin-side outbound emails to users from the Support Desk / Issue Tracker.
-- Custom DKIM rotation or a second sender subdomain for marketing.
+All prompts route through the existing branded `FeedbackSheet` so styling/analytics stay consistent.
 
-Approve this and I'll run steps 1–4 in one go.
+---
+
+## Files
+
+**New**
+- `src/components/feedback/PostResultFeedbackPrompt.tsx`
+- `supabase/functions/_shared/transactional-email-templates/feedback-request.tsx`
+- `supabase/functions/dispatch-feedback-emails/index.ts`
+- `supabase/functions/dispatch-feedback-emails/deno.json`
+- `supabase/migrations/<ts>_feedback_email_dispatch.sql`
+
+**Edited**
+- `src/components/feedback/FeedbackButton.tsx` — responsive sizing + lifted positioning.
+- `src/pages/ResultReport.tsx` — mount `PostResultFeedbackPrompt`, handle `?fb=1`.
+- `src/pages/Index.tsx` — handle `?fb=1` to open feedback sheet.
+- `supabase/functions/_shared/transactional-email-templates/registry.ts` — register new template.
+
+## Deploy
+
+After writing files: deploy `dispatch-feedback-emails` and `send-transactional-email` (template registry change requires redeploy).
+
+## Notes / assumptions
+
+- Hourly cron is enough; emails go out 24–72 h after a completed report — gives users time to read it but stays fresh.
+- Each user gets at most **one** feedback email per result, and at most **one** signup-nudge email ever.
+- Suppression list and unsubscribe footer are already enforced by `send-transactional-email`, so users who unsubscribed won't be nudged.
+- 45 s dwell timer for the in-app prompt is conservative; we can tune later from analytics.

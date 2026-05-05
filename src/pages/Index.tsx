@@ -1,6 +1,8 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { FeedbackSheet } from "@/components/feedback/FeedbackSheet";
 import { Upload, Users, ArrowUpRight, Activity, FileText, Clock, AlertTriangle, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +29,17 @@ const Index = () => {
   const { get, raw } = useProfileStats();
   const { data: myFeedbackCount } = useMyFeedbackCount();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+
+  useEffect(() => {
+    if (searchParams.get("fb") === "1") {
+      setFeedbackOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete("fb");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const completedCount = raw.filter((r: any) => r.status === "completed").length;
   const showNPS = completedCount >= 3;
@@ -291,6 +304,7 @@ const Index = () => {
       <p className="text-xs text-muted-foreground/80 text-center mt-8 px-4 leading-relaxed">
         VeriDIA provides nutritional guidance only and is not a substitute for professional medical advice.
       </p>
+      <FeedbackSheet open={feedbackOpen} onOpenChange={setFeedbackOpen} defaultCategory="suggestion" contextNote="From email invite" />
     </div>
   );
 };
