@@ -209,6 +209,7 @@ export type Database = {
           dietary_plan_pidgin: Json | null
           fda_safety: Json | null
           fda_safety_status: string
+          feedback_email_sent_at: string | null
           grounding_status: string
           has_critical_alert: boolean
           id: string
@@ -240,6 +241,7 @@ export type Database = {
           dietary_plan_pidgin?: Json | null
           fda_safety?: Json | null
           fda_safety_status?: string
+          feedback_email_sent_at?: string | null
           grounding_status?: string
           has_critical_alert?: boolean
           id?: string
@@ -271,6 +273,7 @@ export type Database = {
           dietary_plan_pidgin?: Json | null
           fda_safety?: Json | null
           fda_safety_status?: string
+          feedback_email_sent_at?: string | null
           grounding_status?: string
           has_critical_alert?: boolean
           id?: string
@@ -299,6 +302,7 @@ export type Database = {
         Row: {
           age: number | null
           created_at: string
+          feedback_signup_email_sent_at: string | null
           full_name: string
           geopolitical_zone:
             | Database["public"]["Enums"]["geopolitical_zone"]
@@ -315,6 +319,7 @@ export type Database = {
         Insert: {
           age?: number | null
           created_at?: string
+          feedback_signup_email_sent_at?: string | null
           full_name?: string
           geopolitical_zone?:
             | Database["public"]["Enums"]["geopolitical_zone"]
@@ -331,6 +336,7 @@ export type Database = {
         Update: {
           age?: number | null
           created_at?: string
+          feedback_signup_email_sent_at?: string | null
           full_name?: string
           geopolitical_zone?:
             | Database["public"]["Enums"]["geopolitical_zone"]
