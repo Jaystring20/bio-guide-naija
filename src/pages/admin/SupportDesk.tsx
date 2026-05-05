@@ -294,17 +294,73 @@ export default function SupportDesk() {
       qc.invalidateQueries({ queryKey: ["support-desk-results"] });
     });
 
-  const copyReply = async (entry: PlaybookEntry) => {
-    const text = fillReply(entry.reply, {
+  const renderReply = (entry: PlaybookEntry) =>
+    fillReply(entry.reply, {
       name: owner?.full_name || null,
       resultLink: reportLink || null,
     });
+
+  const copyReply = async (entry: PlaybookEntry) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(renderReply(entry));
       toast.success("Reply copied to clipboard");
     } catch {
       toast.error("Could not copy — long-press to select instead");
     }
+  };
+
+  const logReplyToIssue = async (entry: PlaybookEntry, channel: "email" | "whatsapp") => {
+    const issueId = (issuesForResultQ.data || [])[0]?.id;
+    if (!issueId) return;
+    try {
+      await addIssueNote.mutateAsync({
+        issue_id: issueId,
+        note: `Replied via ${channel} · playbook: ${entry.title}\n\n${renderReply(entry)}`,
+      });
+    } catch {
+      /* non-blocking */
+    }
+  };
+
+  const sendReplyByEmail = async (entry: PlaybookEntry) => {
+    if (!owner?.email) {
+      toast.error("No email on file for this user");
+      return;
+    }
+    setBusyAction(`email-${entry.id}`);
+    try {
+      const { error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "support-reply",
+          recipientEmail: owner.email,
+          idempotencyKey: `support-${selectedId}-${entry.id}-${Date.now()}`,
+          templateData: {
+            name: owner.full_name || null,
+            message: renderReply(entry),
+            resultUrl: reportLink || null,
+            agentName: "VeriDIA support",
+          },
+        },
+      });
+      if (error) throw error;
+      toast.success(`Email sent to ${owner.email}`);
+      void logReplyToIssue(entry, "email");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to send email");
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const openWhatsAppReply = (entry: PlaybookEntry) => {
+    const phone = (owner?.phone || "").replace(/[^\d]/g, "");
+    if (!phone) {
+      toast.error("No phone on file — ask the user to add it in Profile");
+      return;
+    }
+    const text = encodeURIComponent(renderReply(entry));
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank", "noopener,noreferrer");
+    void logReplyToIssue(entry, "whatsapp");
   };
 
   return (
