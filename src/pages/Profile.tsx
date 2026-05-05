@@ -127,6 +127,36 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* WhatsApp / phone */}
+      <div className="bg-card rounded-3xl border border-border p-5 mb-4 shadow-soft">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-[hsl(142_70%_45%)]/10 flex items-center justify-center shrink-0">
+            <MessageCircle className="w-4 h-4 text-[hsl(142_70%_35%)]" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-display font-bold">WhatsApp number</p>
+            <p className="text-xs text-muted-foreground">Optional — only used by support if your upload gets stuck.</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            type="tel"
+            inputMode="tel"
+            placeholder="+234 803 000 0000"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-11 rounded-xl flex-1"
+          />
+          <Button
+            onClick={savePhone}
+            disabled={savingPhone || phone === (((profile as any)?.phone as string) || "")}
+            className="h-11 rounded-xl"
+          >
+            Save
+          </Button>
+        </div>
+      </div>
+
       {/* People I manage */}
       <div className="bg-card rounded-3xl border border-border p-5 mb-4 shadow-soft">
         <div className="flex items-center justify-between mb-4">
