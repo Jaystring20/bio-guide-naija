@@ -11,8 +11,10 @@ export interface TemplateEntry {
 
 import { template as labResultReady } from './lab-result-ready.tsx'
 import { template as feedbackRequest } from './feedback-request.tsx'
+import { template as supportReply } from './support-reply.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'lab-result-ready': labResultReady,
   'feedback-request': feedbackRequest,
+  'support-reply': supportReply,
 }
