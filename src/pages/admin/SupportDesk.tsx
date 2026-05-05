@@ -33,7 +33,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PLAYBOOK, fillReply, type PlaybookEntry } from "@/data/supportPlaybook";
 import { IssuePanel } from "@/components/admin/IssuePanel";
-import type { IssueCategory, IssuePriority } from "@/hooks/useIssues";
+import { useIssuesForContext, useAddIssueNote, type IssueCategory, type IssuePriority } from "@/hooks/useIssues";
+import { Mail, MessageCircle } from "lucide-react";
 
 const diagnosisToCategory = (id: string): IssueCategory => {
   switch (id) {
