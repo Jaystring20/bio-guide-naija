@@ -59,12 +59,23 @@ export const isPromptDismissedForever = (key: string) => {
 
 const captureDeviceInfo = () => {
   if (typeof window === "undefined") return {};
+  // Detect "came from email invite" — the dispatch-feedback-emails job appends ?fb=1
+  // to the deep link, and the landing page sets sessionStorage so the flag survives
+  // navigation between landing → opening the feedback sheet.
+  let source: string | null = null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("fb") === "1") source = "email_invite";
+    else if (sessionStorage.getItem("veridia:fb-source") === "email_invite") source = "email_invite";
+    if (source === "email_invite") sessionStorage.setItem("veridia:fb-source", "email_invite");
+  } catch { /* ignore */ }
   return {
     ua: navigator.userAgent,
     viewport: { w: window.innerWidth, h: window.innerHeight },
     online: navigator.onLine,
     lang: navigator.language,
     platform: (navigator as any).platform,
+    source,
     ts: new Date().toISOString(),
   };
 };
