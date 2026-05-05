@@ -28,6 +28,7 @@ const Onboarding = () => {
   const [zone, setZone] = useState("");
   const [age, setAge] = useState("");
   const [sex, setSex] = useState<"male" | "female" | "">("");
+  const [phone, setPhone] = useState("");
   const [consent, setConsent] = useState(false);
   const { updateProfile } = useAuth();
   const navigate = useNavigate();
@@ -39,10 +40,11 @@ const Onboarding = () => {
         geopolitical_zone: zone as any,
         age: parseInt(age),
         sex: sex as any,
+        phone: phone.trim() || null,
         ndpa_consent: consent,
         medical_disclaimer_accepted: true,
         onboarding_completed: true,
-      });
+      } as any);
       navigate("/app");
     } catch (err: any) {
       toast.error(err.message);
@@ -152,6 +154,22 @@ const Onboarding = () => {
               </button>
             ))}
           </div>
+        </div>
+        <div>
+          <label className="text-body-sm font-medium mb-1 block">
+            Phone (WhatsApp) <span className="text-muted-foreground font-normal">— optional</span>
+          </label>
+          <Input
+            type="tel"
+            inputMode="tel"
+            placeholder="+234 803 000 0000"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-14 text-body rounded-xl"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            We only use this if our support team needs to reach you about a stuck upload.
+          </p>
         </div>
       </div>
 

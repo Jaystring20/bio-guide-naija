@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette, BarChart3, ArrowUpRight, Languages } from "lucide-react";
+import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette, BarChart3, ArrowUpRight, Languages, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDependants } from "@/hooks/useDependants";
 import AddDependantDialog from "@/components/AddDependantDialog";
@@ -41,7 +42,7 @@ const initials = (name?: string | null) =>
   (name || "?").split(" ").map(p => p[0]).slice(0, 2).join("").toUpperCase();
 
 const Profile = () => {
-  const { profile, user, signOut } = useAuth();
+  const { profile, user, signOut, updateProfile } = useAuth();
   const navigate = useNavigate();
   const { dependants, addDependant, updateDependant, deleteDependant } = useDependants();
   const { resolvedTheme } = useTheme();
@@ -49,6 +50,24 @@ const Profile = () => {
   const { lang: emergencyLang, setLang: setEmergencyLang } = useEmergencyAudioLang();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Dependant | null>(null);
+  const [phone, setPhone] = useState<string>(((profile as any)?.phone as string) || "");
+  const [savingPhone, setSavingPhone] = useState(false);
+
+  useEffect(() => {
+    setPhone(((profile as any)?.phone as string) || "");
+  }, [profile]);
+
+  const savePhone = async () => {
+    setSavingPhone(true);
+    try {
+      await updateProfile({ phone: phone.trim() || null } as any);
+      toast.success("Phone saved");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save");
+    } finally {
+      setSavingPhone(false);
+    }
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -105,6 +124,36 @@ const Profile = () => {
               {profile?.age ? `${profile.age}y` : "—"} · {profile?.sex || "—"}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* WhatsApp / phone */}
+      <div className="bg-card rounded-3xl border border-border p-5 mb-4 shadow-soft">
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-[hsl(142_70%_45%)]/10 flex items-center justify-center shrink-0">
+            <MessageCircle className="w-4 h-4 text-[hsl(142_70%_35%)]" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-display font-bold">WhatsApp number</p>
+            <p className="text-xs text-muted-foreground">Optional — only used by support if your upload gets stuck.</p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            type="tel"
+            inputMode="tel"
+            placeholder="+234 803 000 0000"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-11 rounded-xl flex-1"
+          />
+          <Button
+            onClick={savePhone}
+            disabled={savingPhone || phone === (((profile as any)?.phone as string) || "")}
+            className="h-11 rounded-xl"
+          >
+            Save
+          </Button>
         </div>
       </div>
 

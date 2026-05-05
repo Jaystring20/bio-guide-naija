@@ -33,7 +33,8 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { PLAYBOOK, fillReply, type PlaybookEntry } from "@/data/supportPlaybook";
 import { IssuePanel } from "@/components/admin/IssuePanel";
-import type { IssueCategory, IssuePriority } from "@/hooks/useIssues";
+import { useIssuesForContext, useAddIssueNote, type IssueCategory, type IssuePriority } from "@/hooks/useIssues";
+import { Mail, MessageCircle } from "lucide-react";
 
 const diagnosisToCategory = (id: string): IssueCategory => {
   switch (id) {
@@ -217,10 +218,15 @@ export default function SupportDesk() {
         _result_id: selectedId!,
       });
       if (error) throw error;
-      const row = (data || [])[0] as { user_id: string; email: string; full_name: string } | undefined;
+      const row = (data || [])[0] as
+        | { user_id: string; email: string; full_name: string; phone: string | null }
+        | undefined;
       return row || null;
     },
   });
+
+  const issuesForResultQ = useIssuesForContext({ labResultId: selectedId });
+  const addIssueNote = useAddIssueNote();
 
   useEffect(() => {
     if (selectedId) setParams({ result_id: selectedId }, { replace: true });
@@ -288,17 +294,73 @@ export default function SupportDesk() {
       qc.invalidateQueries({ queryKey: ["support-desk-results"] });
     });
 
-  const copyReply = async (entry: PlaybookEntry) => {
-    const text = fillReply(entry.reply, {
+  const renderReply = (entry: PlaybookEntry) =>
+    fillReply(entry.reply, {
       name: owner?.full_name || null,
       resultLink: reportLink || null,
     });
+
+  const copyReply = async (entry: PlaybookEntry) => {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(renderReply(entry));
       toast.success("Reply copied to clipboard");
     } catch {
       toast.error("Could not copy — long-press to select instead");
     }
+  };
+
+  const logReplyToIssue = async (entry: PlaybookEntry, channel: "email" | "whatsapp") => {
+    const issueId = (issuesForResultQ.data || [])[0]?.id;
+    if (!issueId) return;
+    try {
+      await addIssueNote.mutateAsync({
+        issue_id: issueId,
+        note: `Replied via ${channel} · playbook: ${entry.title}\n\n${renderReply(entry)}`,
+      });
+    } catch {
+      /* non-blocking */
+    }
+  };
+
+  const sendReplyByEmail = async (entry: PlaybookEntry) => {
+    if (!owner?.email) {
+      toast.error("No email on file for this user");
+      return;
+    }
+    setBusyAction(`email-${entry.id}`);
+    try {
+      const { error } = await supabase.functions.invoke("send-transactional-email", {
+        body: {
+          templateName: "support-reply",
+          recipientEmail: owner.email,
+          idempotencyKey: `support-${selectedId}-${entry.id}-${Date.now()}`,
+          templateData: {
+            name: owner.full_name || null,
+            message: renderReply(entry),
+            resultUrl: reportLink || null,
+            agentName: "VeriDIA support",
+          },
+        },
+      });
+      if (error) throw error;
+      toast.success(`Email sent to ${owner.email}`);
+      void logReplyToIssue(entry, "email");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to send email");
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const openWhatsAppReply = (entry: PlaybookEntry) => {
+    const phone = (owner?.phone || "").replace(/[^\d]/g, "");
+    if (!phone) {
+      toast.error("No phone on file — ask the user to add it in Profile");
+      return;
+    }
+    const text = encodeURIComponent(renderReply(entry));
+    window.open(`https://wa.me/${phone}?text=${text}`, "_blank", "noopener,noreferrer");
+    void logReplyToIssue(entry, "whatsapp");
   };
 
   return (
@@ -583,15 +645,46 @@ export default function SupportDesk() {
                             resultLink: reportLink || null,
                           })}
                         </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2 gap-2"
-                          onClick={() => copyReply(entry)}
-                        >
-                          <ClipboardCopy className="w-3.5 h-3.5" />
-                          Copy reply
-                        </Button>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => copyReply(entry)}
+                          >
+                            <ClipboardCopy className="w-3.5 h-3.5" />
+                            Copy
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={!owner?.email || busyAction === `email-${entry.id}`}
+                            onClick={() => sendReplyByEmail(entry)}
+                          >
+                            {busyAction === `email-${entry.id}` ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Mail className="w-3.5 h-3.5" />
+                            )}
+                            Send by email
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 border-[hsl(142_70%_45%)] text-[hsl(142_70%_35%)] hover:bg-[hsl(142_70%_45%)]/10"
+                            disabled={!owner?.phone}
+                            onClick={() => openWhatsAppReply(entry)}
+                            title={owner?.phone ? "Open WhatsApp with this reply pre-filled" : "User has no phone on file"}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                          </Button>
+                        </div>
+                        {!owner?.phone && (
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            No phone on file — ask the user to add it in their Profile to enable WhatsApp replies.
+                          </p>
+                        )}
                       </div>
                     </AccordionContent>
                   </AccordionItem>

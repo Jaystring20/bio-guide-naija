@@ -311,6 +311,7 @@ export type Database = {
           medical_disclaimer_accepted: boolean
           ndpa_consent: boolean
           onboarding_completed: boolean
+          phone: string | null
           sex: Database["public"]["Enums"]["sex_type"] | null
           updated_at: string
           user_id: string
@@ -328,6 +329,7 @@ export type Database = {
           medical_disclaimer_accepted?: boolean
           ndpa_consent?: boolean
           onboarding_completed?: boolean
+          phone?: string | null
           sex?: Database["public"]["Enums"]["sex_type"] | null
           updated_at?: string
           user_id: string
@@ -345,6 +347,7 @@ export type Database = {
           medical_disclaimer_accepted?: boolean
           ndpa_consent?: boolean
           onboarding_completed?: boolean
+          phone?: string | null
           sex?: Database["public"]["Enums"]["sex_type"] | null
           updated_at?: string
           user_id?: string
@@ -517,6 +520,7 @@ export type Database = {
         Returns: {
           email: string
           full_name: string
+          phone: string
           user_id: string
         }[]
       }

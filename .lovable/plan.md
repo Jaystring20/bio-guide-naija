@@ -1,41 +1,77 @@
-## Goal
+# Reply to users from the Support Desk
 
-Give users a one-tap WhatsApp escape hatch whenever an upload/analysis fails, so nobody is left stuck after retrying.
+Right now the Support Desk only lets you **Copy reply** — you then have to paste it into your own email or WhatsApp. That's a real gap. Here's how we close it.
 
-## Where it appears
+## What we have today
 
-1. **`ResultReport.tsx` — failed-result screen** (the `result.status === "failed"` block, ~line 168): below the existing "Try Again" button.
-2. **`ResultReport.tsx` — stuck-processing banner** (after 90s, ~line 145): alongside "Try a clearer photo".
-3. **`EmptyBiomarkersBanner.tsx` — failed/empty variant**: as a final option after the existing recovery tips.
+- **Email infrastructure is already wired up** (`send-transactional-email` edge function, queues, suppression, unsubscribe) — used for feedback + lab-result-ready emails.
+- **No user phone numbers** are collected anywhere (`profiles` has no phone column, onboarding never asks).
+- The user-side "Chat with support on WhatsApp" button (which you just shipped) deep-links the **user → your** number `2348038838094`. There is no reverse channel from admin → user.
 
-This covers every place the user currently sees a dead-end.
+So an admin reply today has two realistic paths:
+1. Email (we own the infra, zero new accounts).
+2. WhatsApp click-to-chat (only works if we have the user's phone number).
 
-## Button behaviour
+True outbound WhatsApp ("admin clicks Send and the user gets a WhatsApp message they didn't initiate") requires the **WhatsApp Business API** (Twilio / Meta Cloud API / 360dialog) + pre-approved message templates + a paid number. That's a separate, bigger piece of work — flagged at the bottom.
 
-- Label: **"Chat with support on WhatsApp"** (Pidgin: **"Message us for WhatsApp"**).
-- Green WhatsApp-style outline button with the `MessageCircle` Lucide icon (we don't ship a brand WhatsApp glyph; lucide stays consistent with the rest of the UI).
-- Opens `https://wa.me/<SUPPORT_NUMBER>?text=<prefilled>` in a new tab.
-- The prefilled message is auto-generated and includes:
-  - "Hi VeriDIA, I need help with my lab upload."
-  - The user's name (from `profile.full_name` if signed in).
-  - The result ID (when on `ResultReport`).
-  - The failure reason (when known, e.g. `not-lab`, validation drop).
-  - Upload timestamp.
-- Falls back gracefully when not signed in (just the generic message).
+---
 
-## Configuration
+## Plan
 
-- Add a single constant `SUPPORT_WHATSAPP_NUMBER` in a new `src/lib/support.ts` (E.164, no `+`, e.g. `2348012345678`).
-- Export a helper `buildWhatsAppUrl({ name, resultId, reason })` so all three call-sites stay consistent.
-- The number is a placeholder for now; the user can swap it in one place. We'll ask them for the real number in chat after approval.
+### 1. Send playbook reply by email — one click
 
-## Files
+Add a new transactional template `support-reply` and a **Send by email** button next to **Copy reply** in the playbook accordion.
 
-- **Create** `src/lib/support.ts` — number constant + URL builder.
-- **Create** `src/components/support/WhatsAppSupportButton.tsx` — small reusable button accepting `{ resultId?, reason?, language?, variant? }`.
-- **Edit** `src/pages/ResultReport.tsx` — drop the button into the failed and stuck-processing blocks.
-- **Edit** `src/components/report/EmptyBiomarkersBanner.tsx` — append the button to the failed/empty recovery section.
+- **Template**: `supabase/functions/_shared/transactional-email-templates/support-reply.tsx`
+  - Props: `name`, `messageHtml` (rendered as paragraphs, not raw HTML — split on newlines), `resultLink` (optional CTA button "Open my report")
+  - Brand styling matching existing `lab-result-ready` template (Vital Green CTA, Clinical Navy heading)
+  - Subject: `"VeriDIA support — about your recent upload"`
+- **Register** in `_shared/transactional-email-templates/registry.ts`.
+- **UI** (`SupportDesk.tsx`, playbook block ~line 586): add a second button:
+  - `Send by email` → calls `supabase.functions.invoke('send-transactional-email', { body: { templateName: 'support-reply', recipientEmail: owner.email, idempotencyKey: \`support-${selectedId}-${entry.id}-${Date.now()}\`, templateData: { name: owner.full_name, messageHtml: filledReply, resultLink: reportLink } } })`
+  - Loading + success/error toast
+  - Disabled if no `owner.email`
+- **Audit trail**: after a successful send, also write a note onto the existing support issue via `useAddIssueNote` so the timeline shows _"Replied by email at {time} — playbook: {entry.title}"_. This makes the conversation history visible to all admins.
 
-## Out of scope
+### 2. WhatsApp click-to-chat — collect phone first
 
-No backend logging of WhatsApp clicks (can be added later if useful). No changes to the upload page itself — the failed-upload flow already routes users to `ResultReport`, where the new button lives.
+We can't send WhatsApp without the user's number. Two coordinated changes:
+
+- **Onboarding**: add an optional `phone` field (E.164, with `+234` placeholder) on the existing onboarding step. Keep optional — don't block users who don't want to share.
+- **Profile page**: add the same field so existing users can fill it in.
+- **DB migration**: `ALTER TABLE public.profiles ADD COLUMN phone TEXT;` (nullable, no default). RLS already covers it (own-row policies).
+- **`admin_get_result_owner` RPC**: extend the SELECT + return type to include `phone` so Support Desk can read it.
+- **Support Desk UI**: when `owner.phone` is present, show a **Reply on WhatsApp** button next to **Send by email**. It opens `https://wa.me/{phone}?text={prefilled reply}` in a new tab — admin still hits Send manually inside WhatsApp (this is just click-to-chat, not API send). When phone is missing, show a small muted note: _"No phone on file — ask the user to add it in their profile."_
+
+### 3. UI layout in the playbook reply card
+
+Each playbook entry's "Reply to user" card gets a tidy 3-button row:
+
+```text
+[ Copy reply ]   [ Send by email ]   [ Reply on WhatsApp ]
+                                       (disabled if no phone)
+```
+
+All three operate on the same `fillReply(...)` text so the message is identical regardless of channel.
+
+### 4. Out of scope (call out, do not build now)
+
+- **Outbound WhatsApp via API** (Twilio / Meta Cloud API). Requires: business verification, paid WhatsApp Business number, pre-approved message templates per use case, edge function to call the API, and a webhook to receive replies. Worth doing once volume justifies it — recommend revisiting after we see how often admins actually need to reach users.
+- **In-app inbox / push notifications to the user** — different surface, separate plan.
+- **SMS fallback** — also separate; would need an SMS provider (Termii is the usual NG choice).
+
+---
+
+## Files touched
+
+**New**
+- `supabase/functions/_shared/transactional-email-templates/support-reply.tsx`
+- One DB migration: add `profiles.phone`, update `admin_get_result_owner` RPC return shape.
+
+**Edited**
+- `supabase/functions/_shared/transactional-email-templates/registry.ts` — register template
+- `src/pages/admin/SupportDesk.tsx` — Send-by-email + WhatsApp buttons, owner.phone, audit-note write
+- `src/pages/Onboarding.tsx` — optional phone input
+- `src/pages/Profile.tsx` — optional phone input
+
+After deploy I'll redeploy `send-transactional-email` so the new template is picked up, and verify the first send lands.
