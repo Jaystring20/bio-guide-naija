@@ -1,10 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { VeridiaLogo } from "@/components/VeridiaLogo";
+import { Check, X } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Rule = { label: string; test: (p: string) => boolean };
+const RULES: Rule[] = [
+  { label: "At least 8 characters", test: (p) => p.length >= 8 },
+  { label: "One uppercase letter (A-Z)", test: (p) => /[A-Z]/.test(p) },
+  { label: "One lowercase letter (a-z)", test: (p) => /[a-z]/.test(p) },
+  { label: "One number (0-9)", test: (p) => /\d/.test(p) },
+  { label: "One symbol (!@#$…)", test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
+
+const STRENGTH = [
+  { label: "Too weak", color: "bg-destructive", text: "text-destructive" },
+  { label: "Weak", color: "bg-destructive", text: "text-destructive" },
+  { label: "Fair", color: "bg-amber-500", text: "text-amber-600" },
+  { label: "Good", color: "bg-amber-500", text: "text-amber-600" },
+  { label: "Strong", color: "bg-primary", text: "text-primary" },
+  { label: "Very strong", color: "bg-primary", text: "text-primary" },
+];
 
 const ResetPassword = () => {
   const navigate = useNavigate();
@@ -36,9 +56,14 @@ const ResetPassword = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const passed = useMemo(() => RULES.map((r) => r.test(password)), [password]);
+  const score = passed.filter(Boolean).length;
+  const meetsAll = score === RULES.length;
+  const strength = STRENGTH[score];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) return toast.error("Password must be at least 6 characters");
+    if (!meetsAll) return toast.error("Password doesn't meet all requirements");
     if (password !== confirm) return toast.error("Passwords do not match");
     setLoading(true);
     try {
@@ -82,23 +107,72 @@ const ResetPassword = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-14 text-body rounded-xl"
-              minLength={6}
+              minLength={8}
               required
               disabled={!ready}
+              aria-describedby="pwd-rules"
             />
+
+            {/* Strength meter */}
+            <div className="space-y-2" aria-live="polite">
+              <div className="flex gap-1.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-1.5 flex-1 rounded-full transition-colors",
+                      i < score ? strength.color : "bg-muted"
+                    )}
+                  />
+                ))}
+              </div>
+              {password && (
+                <p className={cn("text-body-sm font-medium", strength.text)}>
+                  Strength: {strength.label}
+                </p>
+              )}
+            </div>
+
+            {/* Requirements checklist */}
+            <ul id="pwd-rules" className="space-y-1.5 rounded-xl bg-muted/50 p-3">
+              {RULES.map((rule, i) => {
+                const ok = passed[i];
+                return (
+                  <li
+                    key={rule.label}
+                    className={cn(
+                      "flex items-center gap-2 text-body-sm",
+                      ok ? "text-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    {ok ? (
+                      <Check className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <X className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>{rule.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+
             <Input
               type="password"
               placeholder="Confirm new password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className="h-14 text-body rounded-xl"
-              minLength={6}
+              minLength={8}
               required
               disabled={!ready}
             />
+            {confirm && confirm !== password && (
+              <p className="text-body-sm text-destructive">Passwords do not match</p>
+            )}
+
             <Button
               type="submit"
-              disabled={loading || !ready}
+              disabled={loading || !ready || !meetsAll || password !== confirm}
               className="w-full h-14 text-lg font-bold rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 touch-target"
             >
               {loading ? "Updating..." : ready ? "Update password" : "Verifying link..."}
