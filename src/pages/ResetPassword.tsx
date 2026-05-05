@@ -107,23 +107,72 @@ const ResetPassword = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-14 text-body rounded-xl"
-              minLength={6}
+              minLength={8}
               required
               disabled={!ready}
+              aria-describedby="pwd-rules"
             />
+
+            {/* Strength meter */}
+            <div className="space-y-2" aria-live="polite">
+              <div className="flex gap-1.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-1.5 flex-1 rounded-full transition-colors",
+                      i < score ? strength.color : "bg-muted"
+                    )}
+                  />
+                ))}
+              </div>
+              {password && (
+                <p className={cn("text-body-sm font-medium", strength.text)}>
+                  Strength: {strength.label}
+                </p>
+              )}
+            </div>
+
+            {/* Requirements checklist */}
+            <ul id="pwd-rules" className="space-y-1.5 rounded-xl bg-muted/50 p-3">
+              {RULES.map((rule, i) => {
+                const ok = passed[i];
+                return (
+                  <li
+                    key={rule.label}
+                    className={cn(
+                      "flex items-center gap-2 text-body-sm",
+                      ok ? "text-primary" : "text-muted-foreground"
+                    )}
+                  >
+                    {ok ? (
+                      <Check className="h-4 w-4 shrink-0" />
+                    ) : (
+                      <X className="h-4 w-4 shrink-0" />
+                    )}
+                    <span>{rule.label}</span>
+                  </li>
+                );
+              })}
+            </ul>
+
             <Input
               type="password"
               placeholder="Confirm new password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               className="h-14 text-body rounded-xl"
-              minLength={6}
+              minLength={8}
               required
               disabled={!ready}
             />
+            {confirm && confirm !== password && (
+              <p className="text-body-sm text-destructive">Passwords do not match</p>
+            )}
+
             <Button
               type="submit"
-              disabled={loading || !ready}
+              disabled={loading || !ready || !meetsAll || password !== confirm}
               className="w-full h-14 text-lg font-bold rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 touch-target"
             >
               {loading ? "Updating..." : ready ? "Update password" : "Verifying link..."}
