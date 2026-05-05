@@ -167,6 +167,7 @@ const ResultReport = () => {
                 resultId={id ?? null}
                 reason="Upload appears stuck (still processing)"
                 uploadDate={result.upload_date}
+                biomarkerCount={Array.isArray((result as any).biomarkers) ? (result as any).biomarkers.length : 0}
               />
             </div>
           </div>
@@ -176,6 +177,12 @@ const ResultReport = () => {
   }
 
   if (result.status === "failed") {
+    const stepsForReason = ((result as any).processing_steps as Array<{ step: string; ok?: boolean; note?: string }> | null) || null;
+    const failedStep = stepsForReason?.find((s) => s.ok === false);
+    const failureReason = failedStep
+      ? `Failed at "${failedStep.step}"${failedStep.note ? ` — ${failedStep.note}` : ""}`
+      : ((result as any).failure_reason as string | null) || "Lab result failed to process (no biomarkers extracted)";
+    const biomarkerCount = Array.isArray((result as any).biomarkers) ? (result as any).biomarkers.length : 0;
     return (
       <div className="px-5 pt-12 text-center max-w-sm mx-auto">
         <p className="text-destructive font-semibold text-body">We couldn't read your lab result</p>
@@ -187,8 +194,9 @@ const ResultReport = () => {
             fullWidth
             name={profile?.full_name}
             resultId={result.id}
-            reason="Lab result failed to process"
+            reason={failureReason}
             uploadDate={result.upload_date}
+            biomarkerCount={biomarkerCount}
           />
         </div>
       </div>
