@@ -56,9 +56,14 @@ const ResetPassword = () => {
     return () => subscription.unsubscribe();
   }, []);
 
+  const passed = useMemo(() => RULES.map((r) => r.test(password)), [password]);
+  const score = passed.filter(Boolean).length;
+  const meetsAll = score === RULES.length;
+  const strength = STRENGTH[score];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) return toast.error("Password must be at least 6 characters");
+    if (!meetsAll) return toast.error("Password doesn't meet all requirements");
     if (password !== confirm) return toast.error("Passwords do not match");
     setLoading(true);
     try {
