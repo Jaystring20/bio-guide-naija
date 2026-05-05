@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp, Loader2, CheckCircle2, Sun, Crop, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedbackSheet } from "@/components/feedback/FeedbackSheet";
+import { WhatsAppSupportButton } from "@/components/support/WhatsAppSupportButton";
 import type { Language } from "./types";
 
 type ProcessingStep = {
