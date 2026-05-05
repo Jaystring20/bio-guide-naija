@@ -20,6 +20,7 @@ import { generatePDF, sharePDF } from "@/components/report/PDFExport";
 import { AnimatePresence, motion } from "framer-motion";
 import { OrbitProcessing } from "@/components/OrbitProcessing";
 import { InlineRatingPrompt } from "@/components/feedback/InlineRatingPrompt";
+import { PostResultFeedbackPrompt } from "@/components/feedback/PostResultFeedbackPrompt";
 import { EmptyBiomarkersBanner } from "@/components/report/EmptyBiomarkersBanner";
 import { DietPlanSkeleton } from "@/components/report/DietPlanSkeleton";
 
@@ -320,12 +321,20 @@ const ResultReport = () => {
       </p>
 
       {!isAdminViewing && result.status === "completed" && (
-        <InlineRatingPrompt
-          promptKey="post-result-v1"
-          title="How was your VeriDIA report?"
-          subtitle="One tap helps us improve faster — your rating goes straight to the team."
-          resultId={id}
-        />
+        <>
+          <InlineRatingPrompt
+            promptKey="post-result-v1"
+            title="How was your VeriDIA report?"
+            subtitle="One tap helps us improve faster — your rating goes straight to the team."
+            resultId={id}
+          />
+          {id && (
+            <PostResultFeedbackPrompt
+              resultId={id}
+              forceOpen={searchParams.get("fb") === "1"}
+            />
+          )}
+        </>
       )}
 
       {biomarkersEmpty && result.status !== "processing" && (
