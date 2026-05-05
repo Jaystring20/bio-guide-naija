@@ -159,6 +159,15 @@ const ResultReport = () => {
               <RefreshCw className="w-4 h-4 mr-2" />
               Try a clearer photo
             </Button>
+            <div className="mt-3">
+              <WhatsAppSupportButton
+                fullWidth
+                name={profile?.full_name}
+                resultId={id ?? null}
+                reason="Upload appears stuck (still processing)"
+                uploadDate={result.upload_date}
+              />
+            </div>
           </div>
         )}
       </div>
