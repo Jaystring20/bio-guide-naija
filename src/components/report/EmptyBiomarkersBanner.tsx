@@ -219,7 +219,8 @@ export const EmptyBiomarkersBanner = ({
                     size="sm"
                     fullWidth
                     resultId={resultId ?? null}
-                    reason={failedStep ? `Failed at: ${failedStep.step}` : "Lab result analysis failed"}
+                    reason={failedStep ? `Failed at "${failedStep.step}"${failedStep.note ? ` — ${failedStep.note}` : ""}` : "Lab result analysis failed (no biomarkers extracted)"}
+                    biomarkerCount={0}
                     language={language === "pidgin" ? "pidgin" : "en"}
                   />
                 </div>

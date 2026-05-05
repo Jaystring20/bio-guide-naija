@@ -19,6 +19,11 @@ export const WhatsAppSupportButton = ({
       ? "Message us for WhatsApp"
       : "Chat with support on WhatsApp";
 
+  // Build the URL at click time so device language reflects the latest state.
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.currentTarget.href = buildWhatsAppUrl(ctx);
+  };
+
   return (
     <Button
       asChild
@@ -33,6 +38,7 @@ export const WhatsAppSupportButton = ({
         target="_blank"
         rel="noopener noreferrer"
         aria-label={label}
+        onClick={handleClick}
       >
         <MessageCircle className="w-4 h-4 mr-1.5" />
         {label}
