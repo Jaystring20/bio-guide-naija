@@ -218,10 +218,15 @@ export default function SupportDesk() {
         _result_id: selectedId!,
       });
       if (error) throw error;
-      const row = (data || [])[0] as { user_id: string; email: string; full_name: string } | undefined;
+      const row = (data || [])[0] as
+        | { user_id: string; email: string; full_name: string; phone: string | null }
+        | undefined;
       return row || null;
     },
   });
+
+  const issuesForResultQ = useIssuesForContext({ labResultId: selectedId });
+  const addIssueNote = useAddIssueNote();
 
   useEffect(() => {
     if (selectedId) setParams({ result_id: selectedId }, { replace: true });
