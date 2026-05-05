@@ -155,6 +155,22 @@ const Onboarding = () => {
             ))}
           </div>
         </div>
+        <div>
+          <label className="text-body-sm font-medium mb-1 block">
+            Phone (WhatsApp) <span className="text-muted-foreground font-normal">— optional</span>
+          </label>
+          <Input
+            type="tel"
+            inputMode="tel"
+            placeholder="+234 803 000 0000"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="h-14 text-body rounded-xl"
+          />
+          <p className="text-[11px] text-muted-foreground mt-1">
+            We only use this if our support team needs to reach you about a stuck upload.
+          </p>
+        </div>
       </div>
 
       <div className="bg-card rounded-xl p-5 border border-border">
