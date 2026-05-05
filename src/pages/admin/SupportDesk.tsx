@@ -645,15 +645,46 @@ export default function SupportDesk() {
                             resultLink: reportLink || null,
                           })}
                         </p>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2 gap-2"
-                          onClick={() => copyReply(entry)}
-                        >
-                          <ClipboardCopy className="w-3.5 h-3.5" />
-                          Copy reply
-                        </Button>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5"
+                            onClick={() => copyReply(entry)}
+                          >
+                            <ClipboardCopy className="w-3.5 h-3.5" />
+                            Copy
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="gap-1.5"
+                            disabled={!owner?.email || busyAction === `email-${entry.id}`}
+                            onClick={() => sendReplyByEmail(entry)}
+                          >
+                            {busyAction === `email-${entry.id}` ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Mail className="w-3.5 h-3.5" />
+                            )}
+                            Send by email
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 border-[hsl(142_70%_45%)] text-[hsl(142_70%_35%)] hover:bg-[hsl(142_70%_45%)]/10"
+                            disabled={!owner?.phone}
+                            onClick={() => openWhatsAppReply(entry)}
+                            title={owner?.phone ? "Open WhatsApp with this reply pre-filled" : "User has no phone on file"}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                            WhatsApp
+                          </Button>
+                        </div>
+                        {!owner?.phone && (
+                          <p className="mt-2 text-[11px] text-muted-foreground">
+                            No phone on file — ask the user to add it in their Profile to enable WhatsApp replies.
+                          </p>
+                        )}
                       </div>
                     </AccordionContent>
                   </AccordionItem>
