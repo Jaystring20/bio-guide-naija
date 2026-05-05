@@ -30,6 +30,7 @@ import IssueDetail from "./pages/admin/IssueDetail";
 import { AdminRoute } from "./components/AdminRoute";
 import NotFound from "./pages/NotFound";
 import Unsubscribe from "./pages/Unsubscribe";
+import ResetPassword from "./pages/ResetPassword";
 import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
@@ -96,6 +97,7 @@ const AnimatedRoutes = () => {
         <Route path="/admin-login" element={<PageFade><AdminLogin /></PageFade>} />
         <Route path="/onboarding" element={<PageFade><Onboarding /></PageFade>} />
         <Route path="/unsubscribe" element={<PageFade><Unsubscribe /></PageFade>} />
+        <Route path="/reset-password" element={<PageFade><ResetPassword /></PageFade>} />
 
         {/* Authenticated app under /app */}
         <Route path="/app" element={
