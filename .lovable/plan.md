@@ -1,54 +1,41 @@
-## Add Forgot Password & Reset Password Flow
+## Goal
 
-Currently `Auth.tsx` only has Sign In / Sign Up — users with forgotten passwords are stuck. We'll add a simple, branded recovery flow that uses the existing VeriDIA auth-email-hook (already wired up with the Recovery template).
+Give users a one-tap WhatsApp escape hatch whenever an upload/analysis fails, so nobody is left stuck after retrying.
 
-### What gets built
+## Where it appears
 
-**1. "Forgot password?" link on the sign-in form** (`src/pages/Auth.tsx`)
-- Add a small link beneath the Sign In button (only visible in sign-in mode)
-- Clicking it switches the form into a third "reset request" mode (no new route — keeps the page lightweight)
+1. **`ResultReport.tsx` — failed-result screen** (the `result.status === "failed"` block, ~line 168): below the existing "Try Again" button.
+2. **`ResultReport.tsx` — stuck-processing banner** (after 90s, ~line 145): alongside "Try a clearer photo".
+3. **`EmptyBiomarkersBanner.tsx` — failed/empty variant**: as a final option after the existing recovery tips.
 
-**2. Reset request mode (in `Auth.tsx`)**
-- Single email input + "Send reset link" button
-- Calls `supabase.auth.resetPasswordForEmail(email, { redirectTo: \`${window.location.origin}/reset-password\` })`
-- Shows toast: "Check your email for a reset link" and returns to sign-in view
-- Generic success message even if email doesn't exist (avoids account enumeration)
+This covers every place the user currently sees a dead-end.
 
-**3. New `/reset-password` page** (`src/pages/ResetPassword.tsx`)
-- Public route (added to `App.tsx`, outside `ProtectedRoute`)
-- On mount: Supabase auto-creates a recovery session from the URL token; we listen via `onAuthStateChange` for the `PASSWORD_RECOVERY` event
-- Shows two inputs: New password + Confirm password (min 6 chars, must match)
-- Calls `supabase.auth.updateUser({ password })`
-- On success: signs out the recovery session, toasts "Password updated — please sign in", redirects to `/auth`
-- On invalid/expired link: shows friendly error with a "Request a new link" button back to `/auth`
-- Matches existing VeriDIA visual style (logo, rounded inputs, accent button)
+## Button behaviour
 
-**4. Route registration** (`src/App.tsx`)
-- Add `<Route path="/reset-password" element={<PageFade><ResetPassword /></PageFade>} />` alongside `/auth` and `/unsubscribe`
+- Label: **"Chat with support on WhatsApp"** (Pidgin: **"Message us for WhatsApp"**).
+- Green WhatsApp-style outline button with the `MessageCircle` Lucide icon (we don't ship a brand WhatsApp glyph; lucide stays consistent with the rest of the UI).
+- Opens `https://wa.me/<SUPPORT_NUMBER>?text=<prefilled>` in a new tab.
+- The prefilled message is auto-generated and includes:
+  - "Hi VeriDIA, I need help with my lab upload."
+  - The user's name (from `profile.full_name` if signed in).
+  - The result ID (when on `ResultReport`).
+  - The failure reason (when known, e.g. `not-lab`, validation drop).
+  - Upload timestamp.
+- Falls back gracefully when not signed in (just the generic message).
 
-### What we are NOT changing
-- The existing recovery email template (`supabase/functions/_shared/email-templates/recovery.tsx`) — already branded and working
-- `auth-email-hook` — already deployed and routing recovery emails correctly
-- AuthContext — no API changes needed; we call `supabase.auth` directly from the new screens (same pattern as `Auth.tsx`)
+## Configuration
 
-### Files
+- Add a single constant `SUPPORT_WHATSAPP_NUMBER` in a new `src/lib/support.ts` (E.164, no `+`, e.g. `2348012345678`).
+- Export a helper `buildWhatsAppUrl({ name, resultId, reason })` so all three call-sites stay consistent.
+- The number is a placeholder for now; the user can swap it in one place. We'll ask them for the real number in chat after approval.
 
-```text
-NEW   src/pages/ResetPassword.tsx
-EDIT  src/pages/Auth.tsx           (add forgot link + reset-request mode)
-EDIT  src/App.tsx                  (register /reset-password route)
-```
+## Files
 
-### UX flow
+- **Create** `src/lib/support.ts` — number constant + URL builder.
+- **Create** `src/components/support/WhatsAppSupportButton.tsx` — small reusable button accepting `{ resultId?, reason?, language?, variant? }`.
+- **Edit** `src/pages/ResultReport.tsx` — drop the button into the failed and stuck-processing blocks.
+- **Edit** `src/components/report/EmptyBiomarkersBanner.tsx` — append the button to the failed/empty recovery section.
 
-```text
-Sign In screen
-  └─ "Forgot password?" link
-       └─ Reset-request view (email field)
-            └─ Email sent → toast → back to Sign In
-                 └─ User clicks link in email
-                      └─ /reset-password (new password form)
-                           └─ Success → /auth (sign in with new password)
-```
+## Out of scope
 
-No DB migrations, no new edge functions, no config changes.
+No backend logging of WhatsApp clicks (can be added later if useful). No changes to the upload page itself — the failed-upload flow already routes users to `ResultReport`, where the new button lives.

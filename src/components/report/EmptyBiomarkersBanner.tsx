@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { AlertTriangle, RefreshCw, MessageSquareWarning, ChevronDown, ChevronUp, Loader2, CheckCircle2, Sun, Crop, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FeedbackSheet } from "@/components/feedback/FeedbackSheet";
+import { WhatsAppSupportButton } from "@/components/support/WhatsAppSupportButton";
 import type { Language } from "./types";
 
 type ProcessingStep = {
@@ -207,6 +208,21 @@ export const EmptyBiomarkersBanner = ({
                 >
                   {t.reupload}
                 </button>
+
+                <div className="pt-2 mt-1 border-t border-border/60">
+                  <p className="text-[11px] text-muted-foreground mb-1.5">
+                    {language === "pidgin"
+                      ? "E never work? Talk to person."
+                      : "Still not working? Talk to a human."}
+                  </p>
+                  <WhatsAppSupportButton
+                    size="sm"
+                    fullWidth
+                    resultId={resultId ?? null}
+                    reason={failedStep ? `Failed at: ${failedStep.step}` : "Lab result analysis failed"}
+                    language={language === "pidgin" ? "pidgin" : "en"}
+                  />
+                </div>
               </>
             )}
 
