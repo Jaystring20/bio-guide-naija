@@ -167,10 +167,20 @@ const ResultReport = () => {
 
   if (result.status === "failed") {
     return (
-      <div className="px-5 pt-12 text-center">
+      <div className="px-5 pt-12 text-center max-w-sm mx-auto">
         <p className="text-destructive font-semibold text-body">We couldn't read your lab result</p>
         <p className="text-muted-foreground text-body-sm mt-2">Please try uploading a clearer image or PDF.</p>
         <Button onClick={() => navigate("/app/upload")} className="mt-4 bg-accent text-accent-foreground">Try Again</Button>
+        <div className="mt-6 pt-5 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-2">Still stuck? Talk to a human.</p>
+          <WhatsAppSupportButton
+            fullWidth
+            name={profile?.full_name}
+            resultId={result.id}
+            reason="Lab result failed to process"
+            uploadDate={result.upload_date}
+          />
+        </div>
       </div>
     );
   }
