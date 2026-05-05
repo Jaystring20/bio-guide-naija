@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette, BarChart3, ArrowUpRight, Languages } from "lucide-react";
+import { LogOut, Shield, MapPin, User, Users, Plus, Pencil, Trash2, Palette, BarChart3, ArrowUpRight, Languages, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useDependants } from "@/hooks/useDependants";
 import AddDependantDialog from "@/components/AddDependantDialog";
