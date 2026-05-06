@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation, useParams } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -35,6 +35,14 @@ import { Loader2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const queryClient = new QueryClient();
+
+// Preserves the dynamic :id when redirecting legacy /result/:id → /app/result/:id.
+// Also forwards search params (e.g. ?fb=1 from feedback emails).
+const ResultRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  const { search } = useLocation();
+  return <Navigate to={`/app/result/${id}${search}`} replace />;
+};
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, loading } = useAuth();
@@ -124,7 +132,7 @@ const AnimatedRoutes = () => {
 
         {/* Back-compat redirects for old top-level app paths */}
         <Route path="/upload" element={<Navigate to="/app/upload" replace />} />
-        <Route path="/result/:id" element={<Navigate to="/app/result/:id" replace />} />
+        <Route path="/result/:id" element={<ResultRedirect />} />
         <Route path="/history" element={<Navigate to="/app/history" replace />} />
         <Route path="/trends" element={<Navigate to="/app/trends" replace />} />
         <Route path="/bulk-upload" element={<Navigate to="/app/bulk-upload" replace />} />
