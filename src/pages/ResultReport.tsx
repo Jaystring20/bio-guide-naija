@@ -131,19 +131,46 @@ const ResultReport = () => {
     if (result?.has_critical_alert) setShowEmergency(true);
   }, [result?.has_critical_alert]);
 
-  if (isLoading) {
+  // While the row hasn't appeared yet (fresh upload, replication lag), show
+  // the processing UI instead of "Result not found" — which previously misled
+  // first-time users into thinking analysis had failed.
+  const stillRetryingNotFound =
+    fetchError && (fetchError as any)?.message === "not-found-yet" && failureCount < 10;
+
+  if (isLoading || stillRetryingNotFound) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-secondary-foreground" />
+      <div className="px-5 pt-6 max-w-lg mx-auto">
+        <OrbitProcessing step={1} label="Loading your results" />
       </div>
     );
   }
 
   if (!result) {
     return (
-      <div className="px-5 pt-12 text-center">
-        <p className="text-muted-foreground">Result not found.</p>
-        <Button onClick={() => navigate("/app")} variant="outline" className="mt-4">Go Home</Button>
+      <div className="px-5 pt-12 text-center max-w-sm mx-auto">
+        <p className="text-foreground font-semibold text-body">We couldn't find this result yet</p>
+        <p className="text-muted-foreground text-body-sm mt-2">
+          It may still be syncing. Try refreshing in a moment, or head back to your history.
+        </p>
+        <div className="mt-4 flex flex-col gap-2">
+          <Button onClick={() => refetch()} variant="default">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Try again
+          </Button>
+          <Button onClick={() => navigate("/app/history")} variant="outline">View history</Button>
+          <Button onClick={() => navigate("/app")} variant="ghost">Go Home</Button>
+        </div>
+        <div className="mt-6 pt-5 border-t border-border">
+          <p className="text-xs text-muted-foreground mb-2">Still stuck? Talk to a human.</p>
+          <WhatsAppSupportButton
+            fullWidth
+            name={profile?.full_name}
+            resultId={id ?? null}
+            reason="Result page shows 'not found' after upload"
+            uploadDate={new Date().toISOString()}
+            biomarkerCount={0}
+          />
+        </div>
       </div>
     );
   }
