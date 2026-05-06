@@ -66,17 +66,27 @@ const ResultReport = () => {
 
   const [language, setLanguage] = useState<Language>("en");
 
-  const { data: result, isLoading, refetch } = useQuery({
+  const { data: result, isLoading, refetch, error: fetchError, failureCount } = useQuery({
     queryKey: ["lab-result", id, isAdmin],
     queryFn: async () => {
       // Admins can view any result (RLS allows). Regular users are scoped to their own.
       let q = supabase.from("lab_results").select("*").eq("id", id!);
       if (!isAdmin) q = q.eq("user_id", user!.id);
-      const { data, error } = await q.single();
+      // Use maybeSingle so a freshly-inserted row that hasn't propagated yet
+      // returns null instead of throwing — we handle the retry below.
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
+      if (!data) throw new Error("not-found-yet");
       return data;
     },
     enabled: !!id && !!user,
+    // Retry aggressively for the first ~20s so a fresh upload doesn't dead-end
+    // on "Result not found" before the row is queryable.
+    retry: (count, err: any) => {
+      if (err?.message === "not-found-yet") return count < 10;
+      return count < 3;
+    },
+    retryDelay: (count) => Math.min(1000 + count * 500, 3000),
     refetchInterval: (query) => {
       const data: any = query.state.data;
       if (!data) return 3000;
