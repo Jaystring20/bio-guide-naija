@@ -36,6 +36,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 const queryClient = new QueryClient();
 
+// Preserves the dynamic :id when redirecting legacy /result/:id → /app/result/:id.
+// Also forwards search params (e.g. ?fb=1 from feedback emails).
+const ResultRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+  const { search } = useLocation();
+  return <Navigate to={`/app/result/${id}${search}`} replace />;
+};
+
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, profile, loading } = useAuth();
 
