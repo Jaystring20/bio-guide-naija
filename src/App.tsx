@@ -124,7 +124,7 @@ const AnimatedRoutes = () => {
 
         {/* Back-compat redirects for old top-level app paths */}
         <Route path="/upload" element={<Navigate to="/app/upload" replace />} />
-        <Route path="/result/:id" element={<Navigate to="/app/result/:id" replace />} />
+        <Route path="/result/:id" element={<ResultRedirect />} />
         <Route path="/history" element={<Navigate to="/app/history" replace />} />
         <Route path="/trends" element={<Navigate to="/app/trends" replace />} />
         <Route path="/bulk-upload" element={<Navigate to="/app/bulk-upload" replace />} />
