@@ -1,6 +1,6 @@
 # VeriDIA - AI Health Intelligence Platform
 
-An agentic AI platform that interprets Nigerian medical lab results and generates culturally-grounded, personalized dietary recommendations for NCD management.
+> An agentic AI platform that interprets Nigerian medical lab results and generates culturally-grounded, personalized dietary recommendations for NCD management.
 
 [![TypeScript](https://img.shields.io/badge/TypeScript-95.1%25-blue)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-18+-61DAFB?logo=react)](https://reactjs.org/)
@@ -24,7 +24,6 @@ VeriDIA is a **mobile-first AI health companion** that transforms medical lab re
 3. **Personalized Dietary Plans** - Context-aware recommendations using Nigerian foods, cooking methods, and cultural eating patterns
 4. **Doctor's Checklist** - Structured summary for physician consultation with flagged abnormalities
 
-
 ## 🏗️ Architecture
 
 ### Tech Stack
@@ -37,12 +36,12 @@ VeriDIA is a **mobile-first AI health companion** that transforms medical lab re
 
 **Backend & Infrastructure:**
 - Supabase (PostgreSQL database, authentication, edge functions)
-- OpenAI GPT-4 (clinical reasoning and interpretation)
-- Google Cloud Vision API (OCR for lab result extraction)
+- Google Gemini API (vision for OCR and clinical reasoning)
+- LLM integration for medical interpretation
 - Retrieval-Augmented Generation (RAG) for clinical verification
 
 **AI/ML Pipeline:**
-1. **Perception Layer** - Vision models extract structured data from lab documents
+1. **Perception Layer** - Gemini vision models extract structured data from lab documents
 2. **Reasoning Layer** - LLM interprets clinical values against Nigerian reference ranges
 3. **Verification Layer** - RAG cross-references against validated clinical databases
 4. **Action Layer** - Context-aware dietary recommendation engine
@@ -73,20 +72,21 @@ VeriDIA operates as an autonomous agent with:
 - 💰 **Budget-Conscious** - Recommendations aligned with local purchasing power
 
 ### Technical Highlights
-- **Multimodal AI** - Combines vision (OCR) and language (GPT-4) models
+- **Multimodal AI** - Combines vision and language models via Gemini API
 - **RAG Implementation** - Clinical knowledge retrieval for accuracy
 - **Supabase Edge Functions** - Serverless architecture for scalability
 - **Real-time Processing** - Sub-30-second result interpretation
 - **Longitudinal Tracking** - Monitors health trends over time
 
+---
 
 ## 🚀 Development Status
 
 **Current Phase:** MVP in active development
 
 **Completed:**
-- ✅ Core OCR pipeline (lab result extraction)
-- ✅ GPT-4 clinical interpretation engine
+- ✅ Core OCR pipeline (lab result extraction via Gemini)
+- ✅ LLM clinical interpretation engine
 - ✅ Nigerian food database (500+ entries)
 - ✅ User authentication and onboarding flow
 - ✅ Basic dietary recommendation generator
@@ -105,6 +105,7 @@ VeriDIA operates as an autonomous agent with:
 - 📋 Clinical pilot with Nigerian lab chains
 - 📋 Mobile app (React Native)
 
+---
 
 ## 🧪 Technical Challenges Solved
 
@@ -135,23 +136,24 @@ VeriDIA is designed for **NDPA 2023 (Nigeria Data Protection Act)** compliance:
 - **DPIA Completed** - Data Privacy Impact Assessment pre-launch
 - **DPO Appointed** - Data Protection Officer for compliance oversight
 
+---
 
-## 👨‍💻 About the Developer
+## 👨‍💻 About the Team
 
-Built by **Samson** - Software Engineer and AI Product Manager passionate about using AI to solve real-world healthcare challenges in Africa.
+Jeremiah - Software Engineer and AI Product Manager, building VeriDIA alongside a medical doctor co-founder who provides clinical validation and healthcare expertise.
 
-**Role in VeriDIA:**
+Technical Leadership (Jeremiah's Role):
 - Full-stack development (React/TypeScript frontend, Supabase backend)
-- AI/ML pipeline architecture (OCR, LLM reasoning, RAG)
+- AI/ML pipeline architecture (Gemini API integration, LLM reasoning, RAG)
 - Product strategy and go-to-market planning
-- Clinical safety protocol design
+- Clinical safety protocol design (in collaboration with medical co-founder)
 - Data privacy and compliance framework
 
 
 ## 🔗 Links
 
-- **Live Demo:** [getveridia.app](https://getveridia.app)
-- **GitHub:** [github.com/Jaystring20/bio-guide-naija](https://github.com/Jaystring20/bio-guide-naija)
+- Live Demo: [getveridia.app](https://getveridia.app)
+- GitHub:** [github.com/Jaystring20/bio-guide-naija](https://github.com/Jaystring20/bio-guide-naija)
 
 
 ## 📄 License
