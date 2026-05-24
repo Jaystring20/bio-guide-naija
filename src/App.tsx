@@ -17,6 +17,7 @@ import AdminLogin from "./pages/AdminLogin";
 import Onboarding from "./pages/Onboarding";
 import UploadLab from "./pages/UploadLab";
 import ResultReport from "./pages/ResultReport";
+import ProcessingResult from "./pages/ProcessingResult";
 import History from "./pages/History";
 import Trends from "./pages/Trends";
 import BulkUpload from "./pages/BulkUpload";
@@ -118,6 +119,7 @@ const AnimatedRoutes = () => {
           <Route index element={<PageFade><Index /></PageFade>} />
           <Route path="upload" element={<PageFade><UploadLab /></PageFade>} />
           <Route path="result/:id" element={<PageFade><ResultReport /></PageFade>} />
+          <Route path="processing/:id" element={<PageFade><ProcessingResult /></PageFade>} />
           <Route path="history" element={<PageFade><History /></PageFade>} />
           <Route path="trends" element={<PageFade><Trends /></PageFade>} />
           <Route path="bulk-upload" element={<PageFade><BulkUpload /></PageFade>} />

@@ -16,9 +16,7 @@ import { Ripple } from "@/components/Ripple";
 import { UploadPreviewOverlay } from "@/components/UploadPreviewOverlay";
 import { ReportProblemButton } from "@/components/feedback/InlineRatingPrompt";
 import { inspectImage, enhanceImage, type QualityReport } from "@/lib/imageQuality";
-import { waitForFirstPaint } from "@/hooks/useFirstPaintWaiter";
 
-const FIRST_PAINT_TIMEOUT_MS = 60_000;
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -123,23 +121,8 @@ const UploadLab = () => {
     return p;
   };
 
-  const raceForFirstPaint = async (labResultId: string, filePath: string) => {
-    setProcessingStep("AI is reading your lab result...");
-    fireInterpret(labResultId, filePath);
 
-    let outcome = await waitForFirstPaint(labResultId, FIRST_PAINT_TIMEOUT_MS);
 
-    if (outcome === "timeout") {
-      // Auto-retry once — reset the row and re-invoke.
-      toast.message("Connection was slow — re-running the analysis.");
-      setProcessingStep("Taking longer than usual — retrying...");
-      await supabase.from("lab_results").update({ status: "processing" }).eq("id", labResultId);
-      fireInterpret(labResultId, filePath);
-      outcome = await waitForFirstPaint(labResultId, FIRST_PAINT_TIMEOUT_MS);
-    }
-
-    return outcome;
-  };
 
   const handleUpload = async () => {
     if (!file || !user) return;
@@ -170,20 +153,11 @@ const UploadLab = () => {
         .single();
       if (insertError) throw insertError;
 
-      const outcome = await raceForFirstPaint(labResult.id, filePath);
-
+      // Kick off the AI in the background and hand the user off to the
+      // dedicated processing screen, which polls + auto-redirects when ready.
+      fireInterpret(labResult.id, filePath);
       queryClient.invalidateQueries({ queryKey: ["failed-result"] });
-
-      if (outcome === "ready") {
-        navigate(`/result/${labResult.id}`);
-      } else if (outcome === "failed") {
-        toast.error("We couldn't read this lab result. Please try a clearer photo or PDF.");
-      } else {
-        // Still nothing after two tries — drop the user on the report page anyway,
-        // where the empty-biomarkers banner + regenerate flow takes over.
-        toast.message("Still working in the background — opening your report.");
-        navigate(`/result/${labResult.id}`);
-      }
+      navigate(`/app/processing/${labResult.id}`, { replace: true });
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Something went wrong. Please try again.");
@@ -212,19 +186,10 @@ const UploadLab = () => {
 
       await supabase.from("lab_results").update({ status: "processing" }).eq("id", failedResult.id);
 
-      const outcome = await raceForFirstPaint(failedResult.id, filePath);
-
+      fireInterpret(failedResult.id, filePath);
       queryClient.invalidateQueries({ queryKey: ["failed-result"] });
       queryClient.invalidateQueries({ queryKey: ["last-result"] });
-
-      if (outcome === "ready") {
-        navigate(`/result/${failedResult.id}`);
-      } else if (outcome === "failed") {
-        toast.error("We couldn't read this lab result. Please try a clearer photo or PDF.");
-      } else {
-        toast.message("Still working in the background — opening your report.");
-        navigate(`/result/${failedResult.id}`);
-      }
+      navigate(`/app/processing/${failedResult.id}`, { replace: true });
     } catch (err: any) {
       console.error(err);
       toast.error(err.message || "Retry failed. Please try again.");
