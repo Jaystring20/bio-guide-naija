@@ -16,9 +16,7 @@ import { Ripple } from "@/components/Ripple";
 import { UploadPreviewOverlay } from "@/components/UploadPreviewOverlay";
 import { ReportProblemButton } from "@/components/feedback/InlineRatingPrompt";
 import { inspectImage, enhanceImage, type QualityReport } from "@/lib/imageQuality";
-import { waitForFirstPaint } from "@/hooks/useFirstPaintWaiter";
 
-const FIRST_PAINT_TIMEOUT_MS = 60_000;
 
 const UploadLab = () => {
   const [file, setFile] = useState<File | null>(null);
@@ -123,23 +121,8 @@ const UploadLab = () => {
     return p;
   };
 
-  const raceForFirstPaint = async (labResultId: string, filePath: string) => {
-    setProcessingStep("AI is reading your lab result...");
-    fireInterpret(labResultId, filePath);
 
-    let outcome = await waitForFirstPaint(labResultId, FIRST_PAINT_TIMEOUT_MS);
 
-    if (outcome === "timeout") {
-      // Auto-retry once — reset the row and re-invoke.
-      toast.message("Connection was slow — re-running the analysis.");
-      setProcessingStep("Taking longer than usual — retrying...");
-      await supabase.from("lab_results").update({ status: "processing" }).eq("id", labResultId);
-      fireInterpret(labResultId, filePath);
-      outcome = await waitForFirstPaint(labResultId, FIRST_PAINT_TIMEOUT_MS);
-    }
-
-    return outcome;
-  };
 
   const handleUpload = async () => {
     if (!file || !user) return;
