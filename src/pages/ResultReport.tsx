@@ -176,6 +176,18 @@ const ResultReport = () => {
   }
 
   if (result.status === "processing") {
+    const bios = Array.isArray((result as any).biomarkers) ? (result as any).biomarkers : [];
+    // If nothing renderable yet, hand off to the dedicated processing screen
+    // (it polls + auto-redirects). This keeps the report page focused on
+    // finished results.
+    if (bios.length === 0 && !isAdminViewing) {
+      navigate(`/app/processing/${id}`, { replace: true });
+      return (
+        <div className="px-5 pt-6 max-w-lg mx-auto">
+          <OrbitProcessing step={0} label="Loading your results" />
+        </div>
+      );
+    }
     const ageSec = (Date.now() - new Date(result.upload_date).getTime()) / 1000;
     return (
       <div className="px-5 pt-6 max-w-lg mx-auto">
