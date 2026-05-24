@@ -1,77 +1,50 @@
-# Reply to users from the Support Desk
+## Goal
 
-Right now the Support Desk only lets you **Copy reply** — you then have to paste it into your own email or WhatsApp. That's a real gap. Here's how we close it.
+Today, after a user uploads, `UploadLab.tsx` calls `waitForFirstPaint` inline and only navigates to `/app/result/:id` once OCR is done. If the user reloads, navigates away, or lands on the report before biomarkers exist, they see partial loaders or (historically) "Result not found." We'll add a clear, dedicated **Processing** screen that any flow can land on, polls until the result is ready, and auto-redirects.
 
-## What we have today
+## What to build
 
-- **Email infrastructure is already wired up** (`send-transactional-email` edge function, queues, suppression, unsubscribe) — used for feedback + lab-result-ready emails.
-- **No user phone numbers** are collected anywhere (`profiles` has no phone column, onboarding never asks).
-- The user-side "Chat with support on WhatsApp" button (which you just shipped) deep-links the **user → your** number `2348038838094`. There is no reverse channel from admin → user.
+### 1. New page: `src/pages/ProcessingResult.tsx` (route `/app/processing/:id`)
 
-So an admin reply today has two realistic paths:
-1. Email (we own the infra, zero new accounts).
-2. WhatsApp click-to-chat (only works if we have the user's phone number).
+A single-purpose status screen for an in-flight lab analysis.
 
-True outbound WhatsApp ("admin clicks Send and the user gets a WhatsApp message they didn't initiate") requires the **WhatsApp Business API** (Twilio / Meta Cloud API / 360dialog) + pre-approved message templates + a paid number. That's a separate, bigger piece of work — flagged at the bottom.
+- Reuses `OrbitProcessing` (heart + aurora + rotating phrases) for visual continuity.
+- Shows live status text driven by the row:
+  - "Reading your lab…" (status `processing`, no biomarkers yet)
+  - "Mapping biomarkers…" (biomarkers present, diet/checklist `pending`)
+  - "Finalising your plan…" (almost done)
+- Step pips (0/1/2) advance with the above.
+- Polls `lab_results` every 2s via `useQuery` + `refetchInterval`, plus a Supabase Realtime subscription on `lab-result-${id}` for instant updates (mirrors `ResultReport`).
+- Auto-redirect rules (uses `navigate(..., { replace: true })`):
+  - `status === 'completed' | 'critical'` OR biomarkers array non-empty → `/app/result/:id`
+  - `status === 'failed'` → `/app/upload?retry=:id`
+- Safety net:
+  - Soft timeout at 60s: keep polling but show an extra reassurance line ("Taking a little longer than usual — hang tight").
+  - Hard timeout at 3 min: stop auto-poll, show **Try again**, **View history**, and the existing `WhatsAppSupportButton` as a final fallback (matches the failure-screen pattern we already use in `ResultReport`).
+- Handles "row not yet visible" with the same `maybeSingle` + `not-found-yet` retry pattern used in `ResultReport` so a freshly-inserted row never dead-ends.
 
----
+### 2. Wire it into the upload flow (`src/pages/UploadLab.tsx`)
 
-## Plan
+- After the `lab_results` row is inserted and the `interpret-lab` function is invoked, immediately `navigate('/app/processing/' + newId, { replace: true })` instead of awaiting `waitForFirstPaint` inline.
+- Remove the now-redundant inline `OrbitProcessing` block from `UploadLab` (the processing page owns it). Keep the upload-time spinners (compression/upload progress) — only the post-insert "waiting for AI" stage moves out.
+- `waitForFirstPaint` becomes unused for this flow; leave the helper in place for any other callers, but stop importing it here.
 
-### 1. Send playbook reply by email — one click
+### 3. Route registration (`src/App.tsx`)
 
-Add a new transactional template `support-reply` and a **Send by email** button next to **Copy reply** in the playbook accordion.
+- Add `<Route path="processing/:id" element={<ProcessingResult />} />` inside the existing authenticated `/app` shell.
+- Lazy-import alongside the other authenticated pages.
 
-- **Template**: `supabase/functions/_shared/transactional-email-templates/support-reply.tsx`
-  - Props: `name`, `messageHtml` (rendered as paragraphs, not raw HTML — split on newlines), `resultLink` (optional CTA button "Open my report")
-  - Brand styling matching existing `lab-result-ready` template (Vital Green CTA, Clinical Navy heading)
-  - Subject: `"VeriDIA support — about your recent upload"`
-- **Register** in `_shared/transactional-email-templates/registry.ts`.
-- **UI** (`SupportDesk.tsx`, playbook block ~line 586): add a second button:
-  - `Send by email` → calls `supabase.functions.invoke('send-transactional-email', { body: { templateName: 'support-reply', recipientEmail: owner.email, idempotencyKey: \`support-${selectedId}-${entry.id}-${Date.now()}\`, templateData: { name: owner.full_name, messageHtml: filledReply, resultLink: reportLink } } })`
-  - Loading + success/error toast
-  - Disabled if no `owner.email`
-- **Audit trail**: after a successful send, also write a note onto the existing support issue via `useAddIssueNote` so the timeline shows _"Replied by email at {time} — playbook: {entry.title}"_. This makes the conversation history visible to all admins.
+### 4. Belt-and-braces in `ResultReport.tsx`
 
-### 2. WhatsApp click-to-chat — collect phone first
+If a user lands directly on `/app/result/:id` while the row still has `status === 'processing'` and no biomarkers, redirect once to `/app/processing/:id` (replace). This keeps the report page focused on rendering finished results and the processing page focused on waiting. No other behaviour changes.
 
-We can't send WhatsApp without the user's number. Two coordinated changes:
+## Out of scope
 
-- **Onboarding**: add an optional `phone` field (E.164, with `+234` placeholder) on the existing onboarding step. Keep optional — don't block users who don't want to share.
-- **Profile page**: add the same field so existing users can fill it in.
-- **DB migration**: `ALTER TABLE public.profiles ADD COLUMN phone TEXT;` (nullable, no default). RLS already covers it (own-row policies).
-- **`admin_get_result_owner` RPC**: extend the SELECT + return type to include `phone` so Support Desk can read it.
-- **Support Desk UI**: when `owner.phone` is present, show a **Reply on WhatsApp** button next to **Send by email**. It opens `https://wa.me/{phone}?text={prefilled reply}` in a new tab — admin still hits Send manually inside WhatsApp (this is just click-to-chat, not API send). When phone is missing, show a small muted note: _"No phone on file — ask the user to add it in their profile."_
+- No backend, RPC, or edge-function changes.
+- No changes to `interpret-lab`, diet regeneration, or email queues.
+- No changes to the failed-upload screen itself (it already exists with the WhatsApp fallback).
 
-### 3. UI layout in the playbook reply card
+## Files
 
-Each playbook entry's "Reply to user" card gets a tidy 3-button row:
-
-```text
-[ Copy reply ]   [ Send by email ]   [ Reply on WhatsApp ]
-                                       (disabled if no phone)
-```
-
-All three operate on the same `fillReply(...)` text so the message is identical regardless of channel.
-
-### 4. Out of scope (call out, do not build now)
-
-- **Outbound WhatsApp via API** (Twilio / Meta Cloud API). Requires: business verification, paid WhatsApp Business number, pre-approved message templates per use case, edge function to call the API, and a webhook to receive replies. Worth doing once volume justifies it — recommend revisiting after we see how often admins actually need to reach users.
-- **In-app inbox / push notifications to the user** — different surface, separate plan.
-- **SMS fallback** — also separate; would need an SMS provider (Termii is the usual NG choice).
-
----
-
-## Files touched
-
-**New**
-- `supabase/functions/_shared/transactional-email-templates/support-reply.tsx`
-- One DB migration: add `profiles.phone`, update `admin_get_result_owner` RPC return shape.
-
-**Edited**
-- `supabase/functions/_shared/transactional-email-templates/registry.ts` — register template
-- `src/pages/admin/SupportDesk.tsx` — Send-by-email + WhatsApp buttons, owner.phone, audit-note write
-- `src/pages/Onboarding.tsx` — optional phone input
-- `src/pages/Profile.tsx` — optional phone input
-
-After deploy I'll redeploy `send-transactional-email` so the new template is picked up, and verify the first send lands.
+- **New:** `src/pages/ProcessingResult.tsx`
+- **Edited:** `src/App.tsx`, `src/pages/UploadLab.tsx`, `src/pages/ResultReport.tsx`
