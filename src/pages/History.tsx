@@ -191,14 +191,29 @@ const History = () => {
             ? "bg-[hsl(var(--alert-amber))]"
             : "bg-primary";
 
+          const isSelectable = selectMode && r.status !== "processing" && r.status !== "failed" && biomarkers.length > 0;
+          const isSelected = selectedIds.includes(r.id);
+
           return (
             <motion.button
               key={r.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: Math.min(i * 0.04, 0.3) }}
-              onClick={() => navigate(`/app/result/${r.id}`)}
-              className="group relative w-full bg-card rounded-2xl pl-5 pr-4 py-4 border border-border text-left touch-target flex items-center gap-3 overflow-hidden shadow-soft transition-all hover:shadow-card hover:-translate-y-0.5"
+              onClick={() => {
+                if (selectMode) {
+                  if (isSelectable) toggleSelected(r.id);
+                  return;
+                }
+                navigate(`/app/result/${r.id}`);
+              }}
+              disabled={selectMode && !isSelectable}
+              aria-pressed={selectMode ? isSelected : undefined}
+              className={cn(
+                "group relative w-full bg-card rounded-2xl pl-5 pr-4 py-4 border text-left touch-target flex items-center gap-3 overflow-hidden shadow-soft transition-all hover:shadow-card",
+                selectMode ? (isSelected ? "border-accent ring-2 ring-accent/40" : "border-border") : "border-border hover:-translate-y-0.5",
+                selectMode && !isSelectable && "opacity-50 cursor-not-allowed",
+              )}
             >
               <span className={cn("absolute left-0 top-3 bottom-3 w-1 rounded-r-full", accentColor)} />
               <div className={cn(
@@ -237,11 +252,44 @@ const History = () => {
                   </div>
                 )}
               </div>
-              <ArrowUpRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              {selectMode ? (
+                <div className={cn(
+                  "w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0",
+                  isSelected ? "bg-accent border-accent" : "border-border bg-card",
+                )}>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-primary-foreground" />}
+                </div>
+              ) : (
+                <ArrowUpRight className="w-4 h-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              )}
             </motion.button>
           );
         })}
       </div>
+
+      {selectMode && (
+        <div className="fixed inset-x-0 bottom-16 z-40 px-4 pb-safe pointer-events-none">
+          <div className="max-w-lg mx-auto pointer-events-auto rounded-2xl border border-border bg-card/95 backdrop-blur shadow-elevated p-3 flex items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold">
+                {selectedIds.length} selected
+                <span className="text-muted-foreground font-normal"> · pick 2–4</span>
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Chronological order used automatically.
+              </p>
+            </div>
+            <Button
+              onClick={startCompare}
+              disabled={selectedIds.length < 2}
+              className="bg-primary text-primary-foreground hover:bg-primary/90 h-10 rounded-xl font-bold px-4"
+            >
+              <GitCompare className="w-4 h-4 mr-1.5" />
+              Compare
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
