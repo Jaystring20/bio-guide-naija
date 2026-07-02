@@ -82,8 +82,8 @@ export const AiVerdictPanel = ({ resultIds, payload, cacheKey }: Props) => {
             </div>
             <div className="mt-3">
               <WhatsAppSupportButton
-                context={{ topic: "compare-ai-failed", note: error, biomarkerCount: 0 }}
-                variant="outline"
+                reason={`Compare AI failed: ${error}`}
+                resultId={resultIds.join(", ")}
                 size="sm"
               />
             </div>
