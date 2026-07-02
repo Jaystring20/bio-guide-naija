@@ -189,6 +189,14 @@ const Compare = () => {
         profileLabel={profileLabel}
       />
 
+      {isPair && (
+        <PlainSummaryCard
+          deltas={sortedDeltas}
+          aLabel={formatDateLabel(a)}
+          bLabel={formatDateLabel(b)}
+        />
+      )}
+
       <CompareSummary summary={summary} />
 
       {mode === "side" && isPair && (
