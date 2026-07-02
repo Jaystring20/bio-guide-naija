@@ -79,6 +79,52 @@ function buildPrompt(payload: unknown): string {
   ].join("\n");
 }
 
+// Drop rows that don't help AI commentary (missing values, unit mismatch) and cap
+// the list so the prompt+response fit comfortably in the token budget.
+function trimPayload(payload: any): any {
+  if (!payload || typeof payload !== "object") return payload ?? {};
+  const deltas = Array.isArray(payload.deltas) ? payload.deltas : [];
+  const useful = deltas.filter(
+    (d: any) => d && d.verdict !== "dropped" && d.verdict !== "new" && d.verdict !== "unit_mismatch",
+  );
+  const ranked = useful
+    .map((d: any) => ({ d, mag: Math.abs(Number(d.pct ?? 0)) }))
+    .sort((a, b) => b.mag - a.mag)
+    .slice(0, 16)
+    .map((x) => x.d);
+  return { ...payload, deltas: ranked };
+}
+
+// Best-effort recovery for a Gemini response cut off mid-JSON: close open strings,
+// arrays, and objects in reverse order.
+function trySalvageJson(text: string): any | null {
+  let s = text.trim();
+  if (!s.startsWith("{") && !s.startsWith("[")) return null;
+  // Cut a trailing partial token after the last comma.
+  const lastComma = s.lastIndexOf(",");
+  const lastClose = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"), s.lastIndexOf('"'));
+  if (lastComma > lastClose) s = s.slice(0, lastComma);
+  // Balance quotes
+  const quoteCount = (s.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 === 1) s += '"';
+  // Balance brackets/braces using a simple stack scan.
+  const stack: string[] = [];
+  let inStr = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '"' && s[i - 1] !== "\\") inStr = !inStr;
+    if (inStr) continue;
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" && stack[stack.length - 1] === "{") stack.pop();
+    else if (ch === "]" && stack[stack.length - 1] === "[") stack.pop();
+  }
+  while (stack.length) {
+    const open = stack.pop();
+    s += open === "{" ? "}" : "]";
+  }
+  try { return JSON.parse(s); } catch { return null; }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
