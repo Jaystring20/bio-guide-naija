@@ -200,6 +200,13 @@ const Compare = () => {
 
       <CompareSummary summary={summary} />
 
+      {isPair && (
+        <ActionChecklistCard
+          deltas={sortedDeltas}
+          storageKey={`${a.id}::${b.id}`}
+        />
+      )}
+
       {mode === "side" && isPair && (
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-2 text-center">
