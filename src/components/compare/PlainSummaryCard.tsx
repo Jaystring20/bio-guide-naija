@@ -26,7 +26,7 @@ function pickBiggestChanges(deltas: PairDelta[]): PairDelta[] {
 }
 
 // Rule-based next actions from the deltas — no AI required.
-function pickNextActions(deltas: PairDelta[]): string[] {
+export function pickNextActions(deltas: PairDelta[]): string[] {
   const actions: string[] = [];
   const seen = new Set<string>();
   const push = (a: string) => {

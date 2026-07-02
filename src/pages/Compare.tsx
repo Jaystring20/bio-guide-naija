@@ -11,6 +11,7 @@ import { BiomarkerDeltaCard } from "@/components/compare/BiomarkerDeltaCard";
 import { TimelineRow } from "@/components/compare/TimelineRow";
 import { AiVerdictPanel } from "@/components/compare/AiVerdictPanel";
 import { PlainSummaryCard } from "@/components/compare/PlainSummaryCard";
+import { ActionChecklistCard } from "@/components/compare/ActionChecklistCard";
 import {
   alignBiomarkers,
   computeDelta,
@@ -198,6 +199,13 @@ const Compare = () => {
       )}
 
       <CompareSummary summary={summary} />
+
+      {isPair && (
+        <ActionChecklistCard
+          deltas={sortedDeltas}
+          storageKey={`${a.id}::${b.id}`}
+        />
+      )}
 
       {mode === "side" && isPair && (
         <div className="space-y-3">
