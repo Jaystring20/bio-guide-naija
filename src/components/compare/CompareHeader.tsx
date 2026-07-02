@@ -1,4 +1,5 @@
-import { ArrowLeft, ArrowLeftRight, Rows3, Columns2, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ArrowLeftRight, Rows3, Columns2, AlertTriangle, ArrowUp, ArrowDown, Minus, CircleOff, HelpCircle, ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 type Props = {
