@@ -10,6 +10,7 @@ import { CompareSummary } from "@/components/compare/CompareSummary";
 import { BiomarkerDeltaCard } from "@/components/compare/BiomarkerDeltaCard";
 import { TimelineRow } from "@/components/compare/TimelineRow";
 import { AiVerdictPanel } from "@/components/compare/AiVerdictPanel";
+import { PlainSummaryCard } from "@/components/compare/PlainSummaryCard";
 import {
   alignBiomarkers,
   computeDelta,
@@ -187,6 +188,14 @@ const Compare = () => {
         crossProfile={crossProfile}
         profileLabel={profileLabel}
       />
+
+      {isPair && (
+        <PlainSummaryCard
+          deltas={sortedDeltas}
+          aLabel={formatDateLabel(a)}
+          bLabel={formatDateLabel(b)}
+        />
+      )}
 
       <CompareSummary summary={summary} />
 
