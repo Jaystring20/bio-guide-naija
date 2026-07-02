@@ -5,7 +5,7 @@ import { useActiveProfile, REL_LABELS } from "@/contexts/ActiveProfileContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useDependants } from "@/hooks/useDependants";
-import { Loader2, FileText, AlertTriangle, User, TrendingUp, ArrowUpRight, Upload } from "lucide-react";
+import { Loader2, FileText, AlertTriangle, User, TrendingUp, ArrowUpRight, Upload, GitCompare, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,21 @@ const History = () => {
   const { dependants } = useDependants();
   const { activeProfile, activeProfileId } = useActiveProfile();
   const [scope, setScope] = useState<Scope>("all"); // default: show everything
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) return prev; // cap at 4 for readable UI
+      return [...prev, id];
+    });
+  };
+  const exitSelect = () => { setSelectMode(false); setSelectedIds([]); };
+  const startCompare = () => {
+    if (selectedIds.length < 2) return;
+    navigate(`/app/compare?ids=${selectedIds.join(",")}`);
+  };
 
   const { data: results, isLoading } = useQuery({
     queryKey: ["lab-results", user?.id],
