@@ -20,6 +20,7 @@ import ResultReport from "./pages/ResultReport";
 import ProcessingResult from "./pages/ProcessingResult";
 import History from "./pages/History";
 import Trends from "./pages/Trends";
+import Compare from "./pages/Compare";
 import BulkUpload from "./pages/BulkUpload";
 import Profile from "./pages/Profile";
 import Family from "./pages/Family";
@@ -122,6 +123,7 @@ const AnimatedRoutes = () => {
           <Route path="processing/:id" element={<PageFade><ProcessingResult /></PageFade>} />
           <Route path="history" element={<PageFade><History /></PageFade>} />
           <Route path="trends" element={<PageFade><Trends /></PageFade>} />
+          <Route path="compare" element={<PageFade><Compare /></PageFade>} />
           <Route path="bulk-upload" element={<PageFade><BulkUpload /></PageFade>} />
           <Route path="family" element={<PageFade><Family /></PageFade>} />
           <Route path="profile" element={<PageFade><Profile /></PageFade>} />

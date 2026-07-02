@@ -1,50 +1,97 @@
-## Goal
+# Compare Results Feature
 
-Today, after a user uploads, `UploadLab.tsx` calls `waitForFirstPaint` inline and only navigates to `/app/result/:id` once OCR is done. If the user reloads, navigates away, or lands on the report before biomarkers exist, they see partial loaders or (historically) "Result not found." We'll add a clear, dedicated **Processing** screen that any flow can land on, polls until the result is ready, and auto-redirects.
+Compare 2–5 lab results side-by-side or as a timeline, with deterministic deltas by default and an on-demand AI verdict powered by the **direct Google Gemini API** (matching how `interpret-lab` already calls Gemini — not Lovable AI Gateway).
 
-## What to build
+## Core UX principles
+- **Zero-friction entry**: three launch points (History multi-select, Result Report "Compare with previous", Trends chart dot-pair).
+- **Deterministic first, AI second**: instant per-biomarker deltas; AI narrative only when the user taps "Get AI insights" (saves Gemini spend on every view).
+- **Mobile-first**: card-per-biomarker on ≤428px, columns on ≥768px; horizontal scroll for timeline mode.
+- **Safety on cross-profile compares**: allowed, but with an amber banner ("Comparing across people isn't clinically equivalent — guidance only").
 
-### 1. New page: `src/pages/ProcessingResult.tsx` (route `/app/processing/:id`)
+## Modes
 
-A single-purpose status screen for an in-flight lab analysis.
+**A. Side-by-side (2 results)** — cleanest verdict.
+- Two columns (A = older, B = newer; swap button).
+- Per biomarker: value A → value B, absolute Δ, % Δ, direction arrow, status pill change (e.g. High → Normal).
+- Verdict badge: `Improved` / `Worsened` / `Unchanged` / `New` / `Dropped`, based on a clinical-direction map in `src/lib/biomarker-direction.ts` (LDL lower = better, HDL higher = better, most others = "closer to range").
+- Top summary strip: counts of Improved / Worsened / Unchanged + "Biggest win" and "Biggest concern".
 
-- Reuses `OrbitProcessing` (heart + aurora + rotating phrases) for visual continuity.
-- Shows live status text driven by the row:
-  - "Reading your lab…" (status `processing`, no biomarkers yet)
-  - "Mapping biomarkers…" (biomarkers present, diet/checklist `pending`)
-  - "Finalising your plan…" (almost done)
-- Step pips (0/1/2) advance with the above.
-- Polls `lab_results` every 2s via `useQuery` + `refetchInterval`, plus a Supabase Realtime subscription on `lab-result-${id}` for instant updates (mirrors `ResultReport`).
-- Auto-redirect rules (uses `navigate(..., { replace: true })`):
-  - `status === 'completed' | 'critical'` OR biomarkers array non-empty → `/app/result/:id`
-  - `status === 'failed'` → `/app/upload?retry=:id`
-- Safety net:
-  - Soft timeout at 60s: keep polling but show an extra reassurance line ("Taking a little longer than usual — hang tight").
-  - Hard timeout at 3 min: stop auto-poll, show **Try again**, **View history**, and the existing `WhatsAppSupportButton` as a final fallback (matches the failure-screen pattern we already use in `ResultReport`).
-- Handles "row not yet visible" with the same `maybeSingle` + `not-found-yet` retry pattern used in `ResultReport` so a freshly-inserted row never dead-ends.
+**B. Timeline (3–5 results)** — chronological.
+- Horizontal scroll of N columns (oldest → newest), sticky biomarker-name column.
+- Per row: mini-sparkline (recharts) + first→last delta + status trajectory.
+- Same verdict logic on net change across the series.
 
-### 2. Wire it into the upload flow (`src/pages/UploadLab.tsx`)
+Mode toggle at the top; auto-selects based on count (2 → side-by-side; 3+ → timeline; user can override).
 
-- After the `lab_results` row is inserted and the `interpret-lab` function is invoked, immediately `navigate('/app/processing/' + newId, { replace: true })` instead of awaiting `waitForFirstPaint` inline.
-- Remove the now-redundant inline `OrbitProcessing` block from `UploadLab` (the processing page owns it). Keep the upload-time spinners (compression/upload progress) — only the post-insert "waiting for AI" stage moves out.
-- `waitForFirstPaint` becomes unused for this flow; leave the helper in place for any other callers, but stop importing it here.
+## Entry points
 
-### 3. Route registration (`src/App.tsx`)
+1. **History page** — new "Compare" button top-right toggles multi-select; checkboxes appear on cards; sticky footer `Compare (n)` enabled when 2–5 selected. Mixed profiles trigger the amber banner.
+2. **Result Report** — "Compare with previous" action next to Export; opens directly against the immediately previous done result for the same profile (falls back to a lightweight picker).
+3. **Trends page** — tap two dots on any biomarker chart → floating "Compare these two" pill → opens compare with that biomarker highlighted.
 
-- Add `<Route path="processing/:id" element={<ProcessingResult />} />` inside the existing authenticated `/app` shell.
-- Lazy-import alongside the other authenticated pages.
+## AI verdict (on-demand, direct Gemini API)
 
-### 4. Belt-and-braces in `ResultReport.tsx`
+Button "Get AI insights" at the bottom. Calls a new edge function `compare-results` that uses the **existing `GOOGLE_GEMINI_API_KEY` secret** and the same direct-REST pattern already used in `supabase/functions/interpret-lab/index.ts` — not Lovable AI Gateway, not the AI SDK, no `LOVABLE_API_KEY`.
 
-If a user lands directly on `/app/result/:id` while the row still has `status === 'processing'` and no biomarkers, redirect once to `/app/processing/:id` (replace). This keeps the report page focused on rendering finished results and the processing page focused on waiting. No other behaviour changes.
+- Endpoint: `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=<GOOGLE_GEMINI_API_KEY>` (same model family the interpret-lab function uses; falls back to `gemini-2.5-flash-8b` on quota, mirroring existing fallback logic).
+- Receives the already-computed deltas + raw biomarkers so the model doesn't recompute math.
+- Response schema (via `responseMimeType: application/json` + `responseSchema`): `headline`, `wins[]`, `concerns[]`, `likely_drivers[]`, `next_actions[]`, `questions_for_doctor[]`.
+- CORS + JWT verification consistent with other edge functions in the project.
+- In-memory cache per browser session, keyed by sorted result IDs, so re-opening is free.
+- Graceful failure UI: retry button + WhatsApp support fallback on persistent errors.
 
-## Out of scope
+## Data & safety
+- Read-only. No schema changes.
+- Uses existing `lab_results.biomarkers` JSON.
+- Cross-profile amber banner + one-line disclaimer.
+- Biomarker matching by normalized name with a small alias map (HbA1c / A1C, LDL-C / LDL, etc.), reusing the normalization already in `Trends.tsx`.
+- Unit mismatch (mg/dL vs mmol/L on the same biomarker across results) → flagged, delta skipped, no false verdict.
 
-- No backend, RPC, or edge-function changes.
-- No changes to `interpret-lab`, diet regeneration, or email queues.
-- No changes to the failed-upload screen itself (it already exists with the WhatsApp fallback).
+## Technical details
 
-## Files
+**New files**
+- `src/pages/CompareResults.tsx` — route `/app/compare?ids=<uuid>,<uuid>[,...]&highlight=<biomarker>`.
+- `src/components/compare/CompareHeader.tsx` — profile chips, mode toggle, swap, safety banner.
+- `src/components/compare/CompareSummary.tsx` — counts + biggest win/concern.
+- `src/components/compare/BiomarkerDeltaCard.tsx` — side-by-side card.
+- `src/components/compare/TimelineRow.tsx` — timeline row with sparkline.
+- `src/components/compare/AiVerdictPanel.tsx` — collapsible AI narrative, skeleton, retry.
+- `src/lib/biomarker-direction.ts` — clinical-direction map for ~40 common biomarkers.
+- `src/lib/compare-engine.ts` — pure fns: `alignBiomarkers`, `computeDelta`, `verdictFor`, `summarize`.
+- `supabase/functions/compare-results/index.ts` — direct Gemini REST call using `GOOGLE_GEMINI_API_KEY` (no Lovable AI Gateway, no AI SDK).
 
-- **New:** `src/pages/ProcessingResult.tsx`
-- **Edited:** `src/App.tsx`, `src/pages/UploadLab.tsx`, `src/pages/ResultReport.tsx`
+**Modified files**
+- `src/App.tsx` — add `/app/compare` route.
+- `src/pages/History.tsx` — multi-select mode, Compare CTA.
+- `src/pages/ResultReport.tsx` — "Compare with previous" button.
+- `src/pages/Trends.tsx` — dot-pair selection → "Compare these two".
+
+**Route/query design**
+- IDs in URL for shareability + back-button sanity: `/app/compare?ids=uuid1,uuid2,uuid3`.
+- Invalid/empty IDs → friendly picker screen.
+
+**Layout**
+```text
+┌─────────────────────────────────────────┐
+│ ← Compare results         [Timeline ▾]  │
+│ Profile: You  •  3 results              │
+│ ⚠ Cross-profile compare (if applicable) │
+├─────────────────────────────────────────┤
+│ Summary: 8 improved · 2 worse · 5 same  │
+│ Biggest win: HbA1c 7.8 → 6.4 (−18%)     │
+│ Biggest concern: LDL 120 → 148 (+23%)   │
+├─────────────────────────────────────────┤
+│ [Biomarker cards / timeline rows...]    │
+├─────────────────────────────────────────┤
+│ [ Get AI insights ]                     │
+└─────────────────────────────────────────┘
+```
+
+## Out of scope (this iteration)
+- Auto unit conversion (mg/dL ↔ mmol/L) — flagged, not converted.
+- Compare-view PDF export (easy follow-up if you want it).
+- Public shareable compare links.
+
+## Verification
+- Manual: pick 2 results in History → open compare → verify deltas & verdicts → tap AI insights → confirm narrative renders from direct Gemini call → try 3-result timeline → try cross-profile → confirm amber banner.
+- Edge cases: missing biomarkers on one side (`New`/`Dropped`), unparseable values (skipped with note), unit mismatch, only one done result (Compare disabled with tooltip).
