@@ -86,26 +86,46 @@ const History = () => {
         </p>
       </div>
 
-      {/* Scope toggle */}
-      <div className="inline-flex p-1 mb-4 rounded-xl bg-muted gap-1">
-        <button
-          onClick={() => setScope("all")}
-          className={cn(
-            "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
-            scope === "all" ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
-          )}
-        >
-          All profiles
-        </button>
-        <button
-          onClick={() => setScope("active")}
-          className={cn(
-            "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
-            scope === "active" ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
-          )}
-        >
-          {activeProfile.isSelf ? "Just me" : `Just ${activeProfile.name.split(" ")[0]}`}
-        </button>
+      {/* Scope toggle + Compare toggle */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <div className="inline-flex p-1 rounded-xl bg-muted gap-1">
+          <button
+            onClick={() => setScope("all")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
+              scope === "all" ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
+            )}
+          >
+            All profiles
+          </button>
+          <button
+            onClick={() => setScope("active")}
+            className={cn(
+              "px-3 py-1.5 rounded-lg text-xs font-bold transition-colors",
+              scope === "active" ? "bg-card text-foreground shadow-soft" : "text-muted-foreground"
+            )}
+          >
+            {activeProfile.isSelf ? "Just me" : `Just ${activeProfile.name.split(" ")[0]}`}
+          </button>
+        </div>
+
+        {(filteredResults?.length || 0) >= 2 && (
+          selectMode ? (
+            <button
+              onClick={exitSelect}
+              className="ml-auto inline-flex items-center gap-1 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground hover:bg-accent/10"
+            >
+              <X className="w-3.5 h-3.5" /> Cancel
+            </button>
+          ) : (
+            <button
+              onClick={() => setSelectMode(true)}
+              className="ml-auto inline-flex items-center gap-1 rounded-lg border border-accent/40 bg-accent/10 px-3 py-1.5 text-xs font-bold text-secondary-foreground hover:bg-accent/20"
+            >
+              <GitCompare className="w-3.5 h-3.5" /> Compare
+            </button>
+          )
+        )}
       </div>
 
       {/* View Trends */}
