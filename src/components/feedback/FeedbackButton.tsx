@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const HIDDEN_PREFIXES = ["/app/admin", "/admin-login", "/auth", "/onboarding"];
 // Routes that render their own fixed bottom action bar — lift the FAB higher so it doesn't overlap.
-const LIFTED_PREFIXES = ["/app/result/", "/app/bulk-upload"];
+const LIFTED_PREFIXES = ["/app/result/", "/app/bulk-upload", "/app/compare"];
 
 export const FeedbackButton = () => {
   const { user } = useAuth();

@@ -15,7 +15,7 @@ export type AiVerdict = {
 
 type Props = {
   resultIds: string[];
-  payload: unknown; // deltas + biomarkers summary for the model
+  payload: unknown;
   cacheKey: string;
 };
 
@@ -25,17 +25,33 @@ export const AiVerdictPanel = ({ resultIds, payload, cacheKey }: Props) => {
   const [verdict, setVerdict] = useState<AiVerdict | null>(cache.get(cacheKey) || null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<"changed" | "actions">("changed");
 
   const run = async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data, error } = await supabase.functions.invoke("compare-results", {
+      const { data, error: invokeErr } = await supabase.functions.invoke("compare-results", {
         body: { resultIds, payload },
       });
-      if (error) throw error;
-      if (!data || typeof data !== "object" || !("headline" in data)) {
-        throw new Error("Malformed AI response");
+      if (invokeErr) {
+        // Try to pull the real error body the edge function returned.
+        let serverMsg = "";
+        try {
+          const ctx: any = (invokeErr as any).context;
+          if (ctx?.body) {
+            const parsed = typeof ctx.body === "string" ? JSON.parse(ctx.body) : ctx.body;
+            serverMsg = parsed?.error || "";
+          }
+        } catch { /* ignore */ }
+        throw new Error(serverMsg || invokeErr.message || "AI service unreachable");
+      }
+      // Edge function may return 200 with an `error` field for soft failures.
+      if (data && typeof data === "object" && "error" in (data as any) && (data as any).error) {
+        throw new Error((data as any).error);
+      }
+      if (!data || typeof data !== "object" || !("headline" in (data as any))) {
+        throw new Error("AI response was incomplete. Please try again.");
       }
       const v = data as AiVerdict;
       cache.set(cacheKey, v);
@@ -98,16 +114,39 @@ export const AiVerdictPanel = ({ resultIds, payload, cacheKey }: Props) => {
       <div className="rounded-2xl border border-accent/40 bg-gradient-to-br from-accent/10 to-primary/5 p-4">
         <div className="flex items-center gap-2 mb-2">
           <Sparkles className="w-4 h-4 text-accent" />
-          <span className="text-[11px] font-bold uppercase tracking-wide text-accent">AI insights</span>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-accent">Plain-English summary</span>
         </div>
         <p className="font-display text-lg font-extrabold leading-snug">{verdict.headline}</p>
       </div>
 
-      <Section title="What improved" tone="good" icon={<TrendingUp className="w-4 h-4" />} items={verdict.wins} />
-      <Section title="What worsened or needs attention" tone="bad" icon={<TrendingDown className="w-4 h-4" />} items={verdict.concerns} />
-      <Section title="Likely drivers" tone="neutral" icon={<Lightbulb className="w-4 h-4" />} items={verdict.likely_drivers} />
-      <Section title="Next actions" tone="good" icon={<ClipboardList className="w-4 h-4" />} items={verdict.next_actions} />
-      <Section title="Ask your doctor" tone="neutral" icon={<Stethoscope className="w-4 h-4" />} items={verdict.questions_for_doctor} />
+      {/* Tabs to reduce vertical scroll and make sections scannable */}
+      <div className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-muted border border-border">
+        <button
+          onClick={() => setTab("changed")}
+          className={`h-9 rounded-lg text-sm font-bold transition-colors ${tab === "changed" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+        >
+          What changed
+        </button>
+        <button
+          onClick={() => setTab("actions")}
+          className={`h-9 rounded-lg text-sm font-bold transition-colors ${tab === "actions" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"}`}
+        >
+          What to do
+        </button>
+      </div>
+
+      {tab === "changed" ? (
+        <>
+          <Section title="What improved" tone="good" icon={<TrendingUp className="w-4 h-4" />} items={verdict.wins} />
+          <Section title="Needs attention" tone="bad" icon={<TrendingDown className="w-4 h-4" />} items={verdict.concerns} />
+          <Section title="Likely drivers" tone="neutral" icon={<Lightbulb className="w-4 h-4" />} items={verdict.likely_drivers} />
+        </>
+      ) : (
+        <>
+          <Section title="Next actions" tone="good" icon={<ClipboardList className="w-4 h-4" />} items={verdict.next_actions} />
+          <Section title="Ask your doctor" tone="neutral" icon={<Stethoscope className="w-4 h-4" />} items={verdict.questions_for_doctor} />
+        </>
+      )}
 
       <p className="text-[11px] text-muted-foreground text-center px-4 mt-2">
         AI guidance based on your reports. Not a diagnosis — discuss with a clinician.

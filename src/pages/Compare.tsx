@@ -106,10 +106,20 @@ const Compare = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ordered, crossProfile, dependants, profile]);
 
+  // If two results share the same test_date, append upload-time so cards are distinguishable.
+  const sameDay = ordered.length === 2
+    && new Date(ordered[0].test_date || ordered[0].upload_date).toDateString()
+       === new Date(ordered[1].test_date || ordered[1].upload_date).toDateString();
+
   const formatDateLabel = (r: ResultLite | undefined) => {
     if (!r) return "";
     const d = new Date(r.test_date || r.upload_date);
-    return d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "2-digit" });
+    const datePart = d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "2-digit" });
+    if (!sameDay) return datePart;
+    // Fall back to upload time (usually different even when test_date matches).
+    const t = new Date(r.upload_date);
+    const timePart = t.toLocaleTimeString("en-NG", { hour: "numeric", minute: "2-digit" });
+    return `${datePart} · ${timePart}`;
   };
 
   // Sort deltas: worsened → improved → unit_mismatch → new/dropped → unchanged

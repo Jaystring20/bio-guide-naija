@@ -79,6 +79,52 @@ function buildPrompt(payload: unknown): string {
   ].join("\n");
 }
 
+// Drop rows that don't help AI commentary (missing values, unit mismatch) and cap
+// the list so the prompt+response fit comfortably in the token budget.
+function trimPayload(payload: any): any {
+  if (!payload || typeof payload !== "object") return payload ?? {};
+  const deltas = Array.isArray(payload.deltas) ? payload.deltas : [];
+  const useful = deltas.filter(
+    (d: any) => d && d.verdict !== "dropped" && d.verdict !== "new" && d.verdict !== "unit_mismatch",
+  );
+  const ranked = useful
+    .map((d: any) => ({ d, mag: Math.abs(Number(d.pct ?? 0)) }))
+    .sort((a, b) => b.mag - a.mag)
+    .slice(0, 16)
+    .map((x) => x.d);
+  return { ...payload, deltas: ranked };
+}
+
+// Best-effort recovery for a Gemini response cut off mid-JSON: close open strings,
+// arrays, and objects in reverse order.
+function trySalvageJson(text: string): any | null {
+  let s = text.trim();
+  if (!s.startsWith("{") && !s.startsWith("[")) return null;
+  // Cut a trailing partial token after the last comma.
+  const lastComma = s.lastIndexOf(",");
+  const lastClose = Math.max(s.lastIndexOf("}"), s.lastIndexOf("]"), s.lastIndexOf('"'));
+  if (lastComma > lastClose) s = s.slice(0, lastComma);
+  // Balance quotes
+  const quoteCount = (s.match(/(?<!\\)"/g) || []).length;
+  if (quoteCount % 2 === 1) s += '"';
+  // Balance brackets/braces using a simple stack scan.
+  const stack: string[] = [];
+  let inStr = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === '"' && s[i - 1] !== "\\") inStr = !inStr;
+    if (inStr) continue;
+    if (ch === "{" || ch === "[") stack.push(ch);
+    else if (ch === "}" && stack[stack.length - 1] === "{") stack.pop();
+    else if (ch === "]" && stack[stack.length - 1] === "[") stack.pop();
+  }
+  while (stack.length) {
+    const open = stack.pop();
+    s += open === "{" ? "}" : "]";
+  }
+  try { return JSON.parse(s); } catch { return null; }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -129,15 +175,20 @@ serve(async (req) => {
       });
     }
 
-    const prompt = buildPrompt(payload ?? {});
+    // Trim payload before sending: drop non-comparable rows and cap list to focus the model.
+    const trimmedPayload = trimPayload(payload);
+    const prompt = buildPrompt(trimmedPayload);
 
     const geminiBody = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.4,
-        maxOutputTokens: 900,
+        maxOutputTokens: 2048,
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
+        // Disable thinking tokens on 2.5-flash — they consume the output budget and
+        // cause the JSON response to be truncated mid-object.
+        thinkingConfig: { thinkingBudget: 0 },
       },
     };
 
@@ -145,33 +196,45 @@ serve(async (req) => {
     if (!res.ok) {
       const errText = await res.text();
       console.error("Gemini error:", res.status, errText);
+      const friendly =
+        res.status === 429 ? "AI is briefly busy — please try again in a few seconds."
+        : res.status === 503 ? "AI service is temporarily unavailable. Try again shortly."
+        : "AI service error. Please try again.";
       return new Response(
-        JSON.stringify({ error: "AI service error", status: res.status }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ error: friendly, status: res.status }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const data = await res.json();
+    const candidate = data?.candidates?.[0];
+    const finishReason: string | undefined = candidate?.finishReason;
     const text: string | undefined =
-      data?.candidates?.[0]?.content?.parts?.find((p: any) => typeof p.text === "string")?.text;
+      candidate?.content?.parts?.find((p: any) => typeof p.text === "string")?.text;
 
     if (!text) {
-      console.error("No text returned:", JSON.stringify(data).slice(0, 500));
-      return new Response(JSON.stringify({ error: "Empty AI response" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("No text returned:", JSON.stringify(data).slice(0, 500), "finish:", finishReason);
+      return new Response(
+        JSON.stringify({ error: "AI returned an empty response. Please try again." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     let parsed: any;
     try {
       parsed = JSON.parse(text);
-    } catch (e) {
-      console.error("JSON parse failed:", text.slice(0, 500));
-      return new Response(JSON.stringify({ error: "Malformed AI JSON" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    } catch {
+      // Attempt to recover from a truncated JSON by closing open braces/brackets.
+      const salvaged = trySalvageJson(text);
+      if (salvaged) {
+        parsed = salvaged;
+      } else {
+        console.error("JSON parse failed (finish:", finishReason, "):", text.slice(0, 500));
+        return new Response(
+          JSON.stringify({ error: "AI response was cut short. Please try again." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Defensive: ensure array fields exist so the client can render safely.
