@@ -13,6 +13,7 @@ type Props = {
 
 export const CompareHeader = ({ count, mode, onModeChange, onSwap, crossProfile, profileLabel }: Props) => {
   const navigate = useNavigate();
+  const [helpOpen, setHelpOpen] = useState(false);
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
