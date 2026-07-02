@@ -129,15 +129,20 @@ serve(async (req) => {
       });
     }
 
-    const prompt = buildPrompt(payload ?? {});
+    // Trim payload before sending: drop non-comparable rows and cap list to focus the model.
+    const trimmedPayload = trimPayload(payload);
+    const prompt = buildPrompt(trimmedPayload);
 
     const geminiBody = {
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.4,
-        maxOutputTokens: 900,
+        maxOutputTokens: 2048,
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
+        // Disable thinking tokens on 2.5-flash — they consume the output budget and
+        // cause the JSON response to be truncated mid-object.
+        thinkingConfig: { thinkingBudget: 0 },
       },
     };
 
@@ -145,33 +150,45 @@ serve(async (req) => {
     if (!res.ok) {
       const errText = await res.text();
       console.error("Gemini error:", res.status, errText);
+      const friendly =
+        res.status === 429 ? "AI is briefly busy — please try again in a few seconds."
+        : res.status === 503 ? "AI service is temporarily unavailable. Try again shortly."
+        : "AI service error. Please try again.";
       return new Response(
-        JSON.stringify({ error: "AI service error", status: res.status }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        JSON.stringify({ error: friendly, status: res.status }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const data = await res.json();
+    const candidate = data?.candidates?.[0];
+    const finishReason: string | undefined = candidate?.finishReason;
     const text: string | undefined =
-      data?.candidates?.[0]?.content?.parts?.find((p: any) => typeof p.text === "string")?.text;
+      candidate?.content?.parts?.find((p: any) => typeof p.text === "string")?.text;
 
     if (!text) {
-      console.error("No text returned:", JSON.stringify(data).slice(0, 500));
-      return new Response(JSON.stringify({ error: "Empty AI response" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("No text returned:", JSON.stringify(data).slice(0, 500), "finish:", finishReason);
+      return new Response(
+        JSON.stringify({ error: "AI returned an empty response. Please try again." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     let parsed: any;
     try {
       parsed = JSON.parse(text);
-    } catch (e) {
-      console.error("JSON parse failed:", text.slice(0, 500));
-      return new Response(JSON.stringify({ error: "Malformed AI JSON" }), {
-        status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    } catch {
+      // Attempt to recover from a truncated JSON by closing open braces/brackets.
+      const salvaged = trySalvageJson(text);
+      if (salvaged) {
+        parsed = salvaged;
+      } else {
+        console.error("JSON parse failed (finish:", finishReason, "):", text.slice(0, 500));
+        return new Response(
+          JSON.stringify({ error: "AI response was cut short. Please try again." }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
     }
 
     // Defensive: ensure array fields exist so the client can render safely.
