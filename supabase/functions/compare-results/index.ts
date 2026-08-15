@@ -5,6 +5,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callGatewayAsGemini } from "../_shared/gemini-gateway.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +58,15 @@ async function callGemini(body: unknown, apiKey: string): Promise<Response> {
       }
     }
   }
-  throw new Error(`Gemini unreachable: ${(lastErr as Error)?.message || "unknown"}`);
+  // Fallback: same request through the Lovable AI Gateway.
+  try {
+    const { response } = await callGatewayAsGemini(body, { timeoutMs: REQUEST_TIMEOUT_MS });
+    return response;
+  } catch (gwErr) {
+    throw new Error(
+      `Gemini unreachable: ${(lastErr as Error)?.message || "unknown"}; fallback: ${(gwErr as Error).message}`,
+    );
+  }
 }
 
 function buildPrompt(payload: unknown): string {
