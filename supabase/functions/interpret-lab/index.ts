@@ -124,6 +124,17 @@ async function callGeminiForFunction(body: unknown, apiKey: string): Promise<{ a
       }
     }
   }
+
+  // Gateway fallback (depleted Google credits, outages, etc.)
+  try {
+    const { response, model } = await callGatewayAsGemini(body, { timeoutMs: REQUEST_TIMEOUT_MS + 12_000 });
+    const args = extractFunctionCall(await response.json());
+    if (args) return { args, model };
+    lastNote = `gateway: no function call (${lastNote})`;
+  } catch (gwErr) {
+    lastNote = `${lastNote}; fallback: ${(gwErr as Error).message}`;
+  }
+
   return { args: null, model: GEMINI_MODELS[GEMINI_MODELS.length - 1], note: lastNote };
 }
 
