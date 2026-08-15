@@ -61,6 +61,18 @@ async function callGeminiForFunction(body: unknown, apiKey: string): Promise<{ a
       }
     }
   }
+
+  // Direct Google access failed (commonly depleted prepay credits) — retry via
+  // the Lovable AI Gateway before reporting failure.
+  try {
+    const { response, model } = await callGatewayAsGemini(body, { timeoutMs: REQUEST_TIMEOUT_MS });
+    const args = extractFunctionCall(await response.json());
+    if (args) return { args, model };
+    lastNote = `gateway: no function call (${lastNote})`;
+  } catch (gwErr) {
+    lastNote = `${lastNote}; fallback: ${(gwErr as Error).message}`;
+  }
+
   return { args: null, model: GEMINI_MODELS[GEMINI_MODELS.length - 1], note: lastNote };
 }
 
