@@ -20,6 +20,8 @@ type StepLog = { step: string; ms: number; ok: boolean; model?: string; note?: s
 
 async function callGeminiWithRetry(body: unknown, apiKey: string): Promise<{ response: Response; model: string }> {
   let lastErr: unknown = null;
+  let lastStatus = 0;
+  let lastErrBody = "";
   for (const model of GEMINI_MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
@@ -33,9 +35,17 @@ async function callGeminiWithRetry(body: unknown, apiKey: string): Promise<{ res
         });
         if (response.ok) return { response, model };
         const status = response.status;
+        lastStatus = status;
+        try { lastErrBody = (await response.clone().text()).slice(0, 200); } catch { /* ignore */ }
         // Don't retry 404 (model gone) — switch to next model immediately.
         if (status === 404) {
           console.log(`${model} returned 404, switching to next model`);
+          break;
+        }
+        // Quota/billing exhaustion is account-wide — retrying or switching
+        // Google models cannot help, go straight to the gateway fallback.
+        if (status === 429 && /quota|credit|RESOURCE_EXHAUSTED/i.test(lastErrBody)) {
+          console.log(`${model} quota exhausted, escalating to gateway fallback`);
           break;
         }
         if ((status === 503 || status === 429) && attempt < MAX_RETRIES) {
@@ -60,8 +70,19 @@ async function callGeminiWithRetry(body: unknown, apiKey: string): Promise<{ res
       }
     }
   }
-  throw new Error(`All Gemini models unavailable: ${(lastErr as Error)?.message || "unknown"}`);
+
+  // Direct Google access is down (usually depleted prepay credits) — retry the
+  // exact same request through the Lovable AI Gateway before giving up.
+  try {
+    console.log("Direct Gemini unavailable, falling back to Lovable AI Gateway");
+    return await callGatewayAsGemini(body, { timeoutMs: REQUEST_TIMEOUT_MS + 12_000 });
+  } catch (gwErr) {
+    throw new Error(
+      `All Gemini models unavailable (direct http_${lastStatus || "?"}: ${lastErrBody || (lastErr as Error)?.message || "unknown"}; fallback: ${(gwErr as Error).message})`,
+    );
+  }
 }
+
 
 function extractFunctionCall(aiData: any): any | null {
   return aiData?.candidates?.[0]?.content?.parts?.find((p: any) => p.functionCall)?.functionCall?.args ?? null;
