@@ -57,7 +57,15 @@ async function callGemini(body: unknown, apiKey: string): Promise<Response> {
       }
     }
   }
-  throw new Error(`Gemini unreachable: ${(lastErr as Error)?.message || "unknown"}`);
+  // Fallback: same request through the Lovable AI Gateway.
+  try {
+    const { response } = await callGatewayAsGemini(body, { timeoutMs: REQUEST_TIMEOUT_MS });
+    return response;
+  } catch (gwErr) {
+    throw new Error(
+      `Gemini unreachable: ${(lastErr as Error)?.message || "unknown"}; fallback: ${(gwErr as Error).message}`,
+    );
+  }
 }
 
 function buildPrompt(payload: unknown): string {
